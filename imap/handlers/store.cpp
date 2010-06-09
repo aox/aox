@@ -595,6 +595,14 @@ void Store::execute()
         }
         d->sentNextModSeq = true;
 
+        // this is very slightly wrong: we write back all of d->s,
+        // even if something restricted the set of seen flags we
+        // actually changed. that's ok. better than trying to get it
+        // 100% correct and maybe not even hitting the most desirable
+        // semantics.
+        if ( d->changeSeen )
+            m->addWriteBackMessages( d->s );
+
         Query * q = new Query( "update mailboxes set nextmodseq=$1 "
                                "where id=$2", 0 );
         q->bind( 1, d->modseq + 1 );

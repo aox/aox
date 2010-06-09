@@ -340,7 +340,7 @@ void ImapSession::ignoreModSeq( int64 ms )
 
 /*! \class ImapExpungeResponse imapsession.h
 
-    The ImapExpungeResponse the expun an Expunge response. It can
+    The ImapExpungeResponse provides a single Expunge response. It can
     formulate the right text and modify the session to account for the
     response's having been sent.
 */

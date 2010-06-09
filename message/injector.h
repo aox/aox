@@ -32,6 +32,9 @@ public:
     List<Annotation> * annotations( Mailbox * ) const;
     void setAnnotations( Mailbox *, List<Annotation> * );
 
+    void setThreadRoot( uint );
+    uint threadRoot() const;
+
     List<Mailbox> * mailboxes() const;
 
     static Injectee * wrapUnparsableMessage( const EString &,

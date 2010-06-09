@@ -4,8 +4,9 @@
 
 #include "configuration.h"
 #include "sievescript.h"
-#include "smtpparser.h"
 #include "estringlist.h"
+#include "smtpparser.h"
+#include "smtpclient.h"
 #include "address.h"
 #include "mailbox.h"
 #include "query.h"
@@ -133,9 +134,9 @@ void SmtpMailFrom::addParam( const EString & name, const EString & value )
         uint n = value.number( &ok );
         if ( !ok )
             respond( 501, "SIZE must be a decimal number" );
-        if ( n > 100 * 1024 * 1024 )
-            respond( 501, "Cannot deliver mail larger than 100MB" );
-        // a configurable limit would be nice, not? perhaps even two?
+        if ( SmtpClient::observedSize() && n > SmtpClient::observedSize() )
+            respond( 501, "Cannot deliver mail larger than " +
+                     EString::humanNumber( SmtpClient::observedSize() ) );
     }
     else if ( name == "auth" ) {
         // RFC 2554 page 4

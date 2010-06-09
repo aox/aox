@@ -702,3 +702,200 @@ void AddressCreator::execute()
 
     processSelect( obtain );
 }
+
+
+/*! \class BaseSubjectCreator helperrowcreator.h
+
+    The BaseSubjectCreator is a HelperRowCreator to insert rows into
+    the base_subjects table. Nothing particular.
+*/
+
+
+/*!  Constructs a BaseSubjectCreator to make sure \a l is in
+     base_subjects, using \a t.
+
+     \a l has to be a UTF8-encoded version of the base subjects and
+     already header-cased.
+*/
+
+BaseSubjectCreator::BaseSubjectCreator( const UStringList & f,
+                                        Transaction * t )
+    : HelperRowCreator( "base_subjects", t, "base_subjects_subject_key" ),
+      subjects( f )
+{
+}
+
+
+Query * BaseSubjectCreator::makeSelect()
+{
+    Query * q = new Query( "select id, subject as name "
+                           "from base_subjects where "
+                           "subject=any($1::text[])", this );
+
+    UStringList sl;
+    UStringList::Iterator it( subjects );
+    while ( it ) {
+        UString name( *it );
+        if ( id( name.utf8() ) == 0 )
+            sl.append( name );
+        ++it;
+    }
+    if ( sl.isEmpty() )
+        return 0;
+
+    q->bind( 1, sl );
+    log( "Looking up " + fn( sl.count() ) + " base subjects", Log::Debug );
+    return q;
+}
+
+
+Query * BaseSubjectCreator::makeCopy()
+{
+    Query * q = new Query( "copy base_subjects (subject) "
+                           "from stdin with binary", this );
+    UStringList::Iterator it( subjects );
+    uint count = 0;
+    while ( it ) {
+        if ( id( it->utf8() ) == 0 ) {
+            count++;
+            q->bind( 1, *it );
+            q->submitLine();
+        }
+        ++it;
+    }
+
+    if ( !count )
+        return 0;
+    log( "Inserting " + fn( count ) + " new base subjects" );
+    return q;
+    
+}
+
+
+/*! \class ThreadRootCreator helperrowcreator.h
+  
+    The ThreadRootCreator class thread_roots rows. The only particular
+    here is that id() works on all the message-ids, not just the root
+    ids.
+*/
+
+/*!  Constructs a ThreadRootCreator that will make sure that the
+     messages in \a l are all threadable, using a subtransaction of \a
+     t for all db work.
+*/
+
+ThreadRootCreator::ThreadRootCreator( List<ThreadRootCreator::Message> * l, 
+                                      Transaction * t )
+    : HelperRowCreator( "thread_roots", t, "thread_roots_messageid_key" ),
+      messages( l ), nodes( new Dict<ThreadNode> ), first( true )
+{
+    List<Message>::Iterator m( messages );
+    while ( m ) {
+        EStringList l = m->references();
+        l.append( m->messageId() );
+        EStringList::Iterator s( l );
+        ThreadNode * parent = 0;
+        while ( s ) {
+            if ( !s->isEmpty() ) {
+                ThreadNode * n = nodes->find( *s );
+                if ( !n ) {
+                    n = new ThreadNode( *s );
+                    nodes->insert( *s, n );
+                }
+                if ( parent ) {
+                    ThreadNode * f = n;
+                    while ( f->parent && f->parent != parent )
+                        f = f->parent;
+                    f->parent = parent;
+                }
+                parent = n;
+            }
+            ++s;
+        };
+        ++m;
+    }
+}
+
+
+Query * ThreadRootCreator::makeSelect()
+{
+    Query * q = 0;
+    EStringList l;
+    Dict<ThreadNode>::Iterator i( nodes );
+    if ( first ) {
+        // the first time around we might find IDs
+        while ( i ) {
+            ThreadNode * n = i;
+            ThreadNode * p = n;
+            while ( p->parent )
+                p = p->parent;
+            if ( !p->trid )
+                l.append( n->id );
+            ++i;
+        }
+        q = new Query( "select id, messageid as name from thread_roots "
+                       "where messageid=any($1::text[]) "
+                       "union "
+                       "select m.thread_root as id, v.value as name "
+                       "from messages m join header_fields hf on "
+                       "(m.id=hf.message and hf.field=13) "
+                       "where hf.value=any($1::text[])",
+                       this );
+        first = false;
+    }
+    else {
+        while ( i ) {
+            if ( !i->parent && !i->trid )
+                l.append( i->id );
+            ++i;
+        }
+        q = new Query( "select id, messageid as name from thread_roots "
+                       "where messageid=any($1::text[])",
+                       this );
+    }
+    if ( l.isEmpty() )
+        return 0;
+    q->bind( 1, l );
+    return q;
+}
+
+
+Query * ThreadRootCreator::makeCopy()
+{
+    Query * q = new Query( "copy thread_roots( messageid ) "
+                           "from stdin with binary", 0 );
+    Dict<ThreadNode>::Iterator i( nodes );
+    while ( i ) {
+        if ( !i->parent && !i->trid ) {
+            q->bind( 1, i->id );
+            q->submitLine();
+        }
+        ++i;
+    }
+    return q;
+}
+
+
+uint ThreadRootCreator::id( const EString & id )
+{
+    ThreadNode * n = nodes->find( id );
+    if ( !n )
+        return HelperRowCreator::id( id );
+    while ( n->parent )
+        n = n->parent;
+    return n->trid;
+}
+
+
+void ThreadRootCreator::add( const EString & id, uint i )
+{
+    ThreadNode * n = nodes->find( id );
+    if ( !n ) {
+        n = new ThreadNode( id );
+        nodes->insert( id, n );
+    }
+    while ( n->parent )
+        n = n->parent;
+    n->trid = i;
+    HelperRowCreator::add( n->id, i );
+}

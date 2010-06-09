@@ -146,13 +146,21 @@ void EventLoop::addConnection( Connection * c )
     Connections.
 */
 
-void EventLoop::removeConnection( Connection *c )
+void EventLoop::removeConnection( Connection * c )
 {
     Scope x( d->log );
 
     if ( d->connections.remove( c ) == 0 )
         return;
     setConnectionCounts();
+
+    // if this is a server, with external connections, and we just
+    // closed the last external connection, then we shut down
+    // nicely. otherwise, we just remove the specified connection,
+    // with no magic.
+
+    if ( c->hasProperty( Connection::Internal ) )
+        return;
 
     if ( d->stop )
         return;

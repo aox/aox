@@ -75,6 +75,7 @@ public:
           state( Inactive ), failed( false ), retried( 0 ), transaction( 0 ),
           mailboxesCreated( 0 ),
           fieldNameCreator( 0 ), flagCreator( 0 ), annotationNameCreator( 0 ),
+          baseSubjectCreator( 0 ),
           lockUidnext( 0 ), select( 0 ), insert( 0 ),
           substate( 0 ), subtransaction( 0 ),
           findParents( 0 ), findReferences( 0 ),
@@ -109,6 +110,7 @@ public:
     EStringList flags;
     EStringList fields;
     EStringList annotationNames;
+    UStringList baseSubjects;
     Dict<Address> addresses;
     List< ::Mailbox > * mailboxesCreated;
 
@@ -125,6 +127,7 @@ public:
     HelperRowCreator * fieldNameCreator;
     HelperRowCreator * flagCreator;
     HelperRowCreator * annotationNameCreator;
+    BaseSubjectCreator * baseSubjectCreator;
 
     Query * lockUidnext;
     Query * select;
@@ -572,10 +575,18 @@ void Injector::findDependencies()
 
             ++mi;
         }
+
+        // It probably also contains a subject using which it may need
+        // threading. Foo how I love subject threading.
+
+        HeaderField * sf = m->header()->field( HeaderField::Subject );
+        if ( sf )
+            d->baseSubjects.append( m->baseSubject( sf->value().titlecased() ) );
     }
 
     d->flags.removeDuplicates();
     d->annotationNames.removeDuplicates( true );
+    d->baseSubjects.removeDuplicates( true );
 
     // Rows destined for deliveries/delivery_recipients also contain
     // addresses that need to be looked up.
@@ -653,6 +664,12 @@ void Injector::createDependencies()
         d->annotationNameCreator->execute();
     }
 
+    if ( !d->baseSubjects.isEmpty() ) {
+        d->baseSubjectCreator =
+            new BaseSubjectCreator( d->baseSubjects, d->transaction );
+        d->baseSubjectCreator->execute();
+    }
+
     if ( !d->addresses.isEmpty() ) {
         AddressCreator * ac
             = new AddressCreator( &d->addresses, d->transaction );
@@ -716,8 +733,8 @@ void Injector::convertInReplyTo()
         // found above
         d->findParents = new Query( "", this );
         EString s = "select message, value "
-                   "from header_fields "
-                   "where field=";
+                    "from header_fields "
+                    "where field=";
         s.appendNumber( HeaderField::MessageId );
         if ( ids.count() < 100 ) {
             s.append( " and (" );
@@ -1291,8 +1308,10 @@ void Injector::selectMessageIds()
     if ( d->select->failed() )
         return;
 
-    Query * copy = new Query( "copy messages (id,rfc822size,idate) "
-                              "from stdin with binary", this );
+    Query * copy
+        = new Query( "copy messages "
+                     "(id,rfc822size,idate,thread_root,base_subject) "
+                     "from stdin with binary", this );
 
     List<Injectee>::Iterator m( d->messages );
     while ( m && d->select->hasResults() ) {
@@ -1305,6 +1324,17 @@ void Injector::selectMessageIds()
         }
         copy->bind( 2, m->rfc822Size() );
         copy->bind( 3, internalDate( m ) );
+        if ( m->threadRoot() )
+            copy->bind( 4, m->threadRoot() );
+        else
+            copy->bindNull( 4 );
+        HeaderField * sf = m->header()->field( HeaderField::Subject );
+        if ( sf )
+            copy->bind( 5, d->baseSubjectCreator->id(
+                            m->baseSubject(
+                                sf->value().titlecased() ).utf8() ) );
+        else
+            copy->bindNull( 5 );
         copy->submitLine();
         ++m;
     }
@@ -1944,6 +1974,8 @@ class InjecteeData
     : public Garbage
 {
 public:
+    InjecteeData(): Garbage(), threadRoot( 0 ) {}
+
     class Mailbox
         : public Garbage
     {
@@ -1960,6 +1992,7 @@ public:
     };
 
     List<Mailbox> mailboxes;
+    uint threadRoot;
 
     Mailbox * mailbox( ::Mailbox * mb, bool create = false ) {
         if ( mailboxes.firstElement() &&
@@ -2276,4 +2309,24 @@ Injectee * Injectee::wrapUnparsableMessage( const EString & message,
     m->parse( wrapper );
     m->setWrapped( true );
     return m;
+}
+
+
+/*! Records that this Injectee has thread root number \a n. \a n must
+    not be 0.
+*/
+
+void Injectee::setThreadRoot( uint n )
+{
+    d->threadRoot = n;
+}
+
+
+/*! Returns what setThreadRoot() recorded, or 0 if setThreadRoot() has
+    not been called.
+*/
+
+uint Injectee::threadRoot() const
+{
+    return d->threadRoot;
 }

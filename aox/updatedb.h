@@ -13,10 +13,11 @@ public:
     UpdateDatabase( EStringList * );
     void execute();
 
+    void thread();
+    void subject();
+    
 private:
     class UpdateDatabaseData * d;
-    bool convertField( uint, uint, const EString &, uint, uint,
-                       const EString & );
 };
 
 

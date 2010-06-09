@@ -219,9 +219,9 @@ void Server::setup( Stage s )
         uint i = 0;
         while( c[i] )
             i++;
-        ::write( 2, c, i );
-        ::write( 2, "\n", 1 );
-        exit( 1 );
+        int r = ::write( 2, c, i ) + ::write( 2, "\n", 1 );
+        if ( r < INT_MAX )
+            exit( 1 );
     }
 }
 

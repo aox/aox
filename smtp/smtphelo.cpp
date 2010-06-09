@@ -3,6 +3,7 @@
 #include "smtphelo.h"
 
 #include "smtpparser.h"
+#include "smtpclient.h"
 #include "mechanism.h"
 #include "scope.h"
 #include "smtp.h"
@@ -51,8 +52,8 @@ SmtpHelo::SmtpHelo( SMTP * s, SmtpParser * p, Type t )
                      "2030-04-04T08:00:00Z" );
         }
         respond( 0, "ENHANCEDSTATUSCODES" );
-        if ( !Configuration::toggle( Configuration::Security ) )
-            respond( 0, "X-ORYX-TESTING-1" );
+        if ( SmtpClient::observedSize() > 0 && s->dialect() == SMTP::Submit )
+            respond( 0, "SIZE " + fn( SmtpClient::observedSize() ) );
         respond( 0, "BINARYMIME" );
         respond( 0, "PIPELINING" );
         respond( 0, "8BITMIME" );

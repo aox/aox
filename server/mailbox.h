@@ -36,6 +36,8 @@ public:
     bool deleted() const;
     bool view() const;
 
+    bool needsUpdate() const;
+
     bool isHome() const;
     uint owner() const;
 
@@ -79,9 +81,10 @@ public:
     void removeSession( class Session * );
     List<class Session> * sessions() const;
 
-    class Threader * threader() const;
-
     static bool refreshing();
+
+    void writeBackMessageState();
+    void addWriteBackMessages( const IntegerSet & );
 
 private:
     class MailboxData * d;

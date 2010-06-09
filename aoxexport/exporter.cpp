@@ -155,8 +155,11 @@ void Exporter::execute()
         from.appendNumber( id.year() );
         from.append( "\r\n" );
         EString rfc822 = m->rfc822();
-        ::write( 1, from.data(), from.length() );
-        ::write( 1, rfc822.data(), rfc822.length() );
+        int r = ::write( 1, from.data(), from.length() ) +
+                ::write( 1, rfc822.data(), rfc822.length() );
+        // we don't really care whether the write succeeds or not, so
+        // just fool the compiler.
+        r = r;
     }
 
     EventLoop::global()->stop();

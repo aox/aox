@@ -176,13 +176,33 @@ create table permissions (
 );
 
 
+-- One entry per subject (to help IMAP THREAD=REFERENCES)
+
+create table base_subjects (
+    -- Grant: select, insert
+    id          serial primary key,
+    subject     text unique;
+);
+
+
+-- One entry for each Message-ID that begins a thread (for THREAD=REFS)
+
+create table thread_roots (
+    -- Grant: select, insert, update
+    id          serial primary key,
+    messageid   text not null unique
+);
+
+
 -- One entry per message stored
 
 create table messages (
     -- Grant: select, insert
     id          serial primary key,
     idate       integer not null,
-    rfc822size  integer
+    rfc822size  integer,
+    base_subject integer references base_subjects(id),
+    thread_root integer references thread_roots(id)
 );
 
 
@@ -313,18 +333,6 @@ create table thread_members (
                 references mailbox_messages(mailbox, uid)
                 on delete cascade
 );
-
-
--- One entry for each Message-ID that begins a thread (for THREAD=REFS)
-
-create table thread_roots (
-    -- Grant: select, insert, update
-    id          serial primary key,
-    messageid   text not null unique
-);
-
-
-alter table messages add thread_root integer references thread_roots(id);
 
 
 -- One entry per user-defined flag name to be used in flags.

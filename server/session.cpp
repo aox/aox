@@ -91,17 +91,15 @@ Session::Session( Mailbox * m, Connection * c, bool readOnly )
         d->msns.add( other->d->unannounced );
         d->msns.remove( other->d->expunges );
     }
-    else {
-        if ( cache ) {
-            SessionData::CachedData * cd = cache->data.find( m->id() );
-            if ( cd ) {
-                d->uidnext = cd->uidnext;
-                d->nextModSeq = cd->nextModSeq;
-                d->msns.add( cd->msns );
-            }
+    else if ( cache ) {
+        SessionData::CachedData * cd = cache->data.find( m->id() );
+        if ( cd ) {
+            d->uidnext = cd->uidnext;
+            d->nextModSeq = cd->nextModSeq;
+            d->msns.add( cd->msns );
         }
-        (void)new SessionInitialiser( m, 0 );
     }
+    (void)new SessionInitialiser( m, 0 );
 }
 
 
@@ -136,6 +134,9 @@ void Session::end()
     if ( d->mailbox->sessions() )
         return;
 
+    if ( d->readOnly )
+        return;
+
     if ( !::cache )
         ::cache = new SessionData::SessionCache;
     SessionData::CachedData * cd = ::cache->data.find( d->mailbox->id() );
@@ -145,17 +146,8 @@ void Session::end()
     }
     cd->uidnext = d->uidnext;
     cd->msns = d->msns;
+    cd->nextModSeq = d->nextModSeq;
     cd->msns.remove( d->expunges );
-
-    // the session initialiser assumes that if it has all the messages
-    // and the modseq, then it also has the recent ones. but if this
-    // session is readonly and contains recent messages, then the next
-    // one may also need to set recent on something, even if no new
-    // mail has arrived.
-    if ( d->readOnly && !d->recent.isEmpty() )
-        cd->nextModSeq = d->nextModSeq - 1;
-    else
-        cd->nextModSeq = d->nextModSeq;
 }
 
 
@@ -439,7 +431,7 @@ public:
 */
 
 /*! Constructs an SessionInitialiser for \a mailbox. If \a t is
-    non-null, then thr initialiser will use a subtransaction of \a t
+    non-null, then the initialiser will use a subtransaction of \a t
     for its work.
 */
 
@@ -541,9 +533,17 @@ void SessionInitialiser::findSessions()
                 d->oldModSeq = s->nextModSeq();
         }
     }
-    if ( d->newUidnext <= d->oldUidnext &&
-         d->newModSeq <= d->oldModSeq )
+    // if some session is behind the mailbox, carry out an update
+    if ( d->newUidnext > d->oldUidnext ||
+         d->newModSeq > d->oldModSeq )
+        return;
+    // if none are, and the mailbox is ordinary, we don't need anything
+    if ( d->mailbox->ordinary() )
         d->sessions.clear();
+    // if none are, and the view is up to date, we don't need anything
+    if ( !d->mailbox->needsUpdate() )
+        d->sessions.clear();
+    // otherwise we may need to do work
 }
 
 
@@ -710,6 +710,7 @@ void SessionInitialiser::findViewChanges()
     want->append( "uid" );
     want->append( "modseq" );
     want->append( "message" );
+    want->append( "seen" );
 
     d->messages = sel->query( 0, d->mailbox->source(), 0, this,
                               true, want, false );
@@ -721,6 +722,7 @@ void SessionInitialiser::findViewChanges()
     EString s( "select m.id, "
               "v.uid as vuid, v.modseq as vmodseq, "
               "s.uid as suid, s.modseq as smodseq, "
+              "s.seen as sseen, "
               "s.message as smessage "
               "from messages m "
               "left join mailbox_messages v "
@@ -782,7 +784,7 @@ void SessionInitialiser::writeViewChanges()
             // want to add it to the db
             if ( !add )
                 add = new Query ( "copy mailbox_messages "
-                                  "(mailbox,uid,message,modseq) "
+                                  "(mailbox,uid,message,modseq,seen,deleted) "
                                   "from stdin with binary", 0 );
             vuid = d->newUidnext;
             d->newUidnext++;
@@ -790,6 +792,8 @@ void SessionInitialiser::writeViewChanges()
             add->bind( 2, vuid );
             add->bind( 3, r->getInt( "smessage" ) );
             add->bind( 4, d->newModSeq-1 );
+            add->bind( 5, r->getBoolean( "sseen" ) );
+            add->bind( 6, false );
             add->submitLine();
             addToSessions( vuid, d->newModSeq-1 );
         }

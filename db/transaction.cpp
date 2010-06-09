@@ -316,6 +316,7 @@ void Transaction::enqueue( Query *q )
     q->setTransaction( this );
     d->queries->append( q );
     q->setState( Query::Submitted );
+    q->checkParameters();
 }
 
 

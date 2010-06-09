@@ -451,6 +451,7 @@ void Query::submitLine()
 
 void Query::execute()
 {
+    checkParameters();
     Database::submit( this );
 }
 
@@ -1052,4 +1053,42 @@ void Query::cancel()
         Database::cancelQuery( this );
     else if ( d->transaction )
         d->transaction->rollback();
+}
+
+
+/*! Checks to see if the values actually bound to this query match the
+    (number of) values we expect.
+*/
+
+void Query::checkParameters()
+{
+    Scope x( log() );
+
+    // We expect values 1..n with no holes and no repeats.
+
+    uint last = 0;
+
+    Query::InputLine * line = d->values;
+    if ( d->inputLines )
+        line = d->inputLines->first();
+
+    Query::InputLine::Iterator it( line );
+    while ( it ) {
+        Query::Value v( *it );
+        last++;
+        if ( v.position() != last ) {
+            ::log( "Parameter number " + fn( v.position() ) + " found at "
+                   "position " + fn( last ) + " in query " + description(),
+                   Log::Error );
+        }
+        ++it;
+    }
+
+    // There's more we could do here:
+    //
+    // 1. Parse the query to find the highest $n and make sure it is
+    // equal to last.
+    // 2. Fail the query if the parameters bound aren't sensible.
+    //
+    // Later.
 }

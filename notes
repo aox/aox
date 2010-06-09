@@ -1,12 +1,25 @@
 3.1.4: 2010-xx-xx
 
   IMAP QUOTA works.
+  Smarthost SIZE is forwarded to SMTP submit clients.
+
+  When The Seen flag is changed in a view, the change is eventually
+  propagated to the backing mailbox. Not at once. Probably when the
+  client closes. However, a bug appears to prevent seen-based views
+  from deleting the relevant message from themselves when the backing
+  mailbox' seen changes.
 
 
 SEARCH=ADDRESS
 
   Hack roundcube to use S=A, S=I and blah in order to present
   gmail-like a thread/address view.
+
+
+HelperRowCreator
+
+  If that were to use a Cache, message injection would be speeded up
+  significantly.
 
 
 DWIM, the 80% way
@@ -27,6 +40,8 @@ Open Bug: aox add view broken
 
   1b149d fixed the immediate view creation problem, but the view doesn't
   work yet. -- AMS 20100413
+
+  Views now work, but threaded views still don't.
 
   Notify: Ron Peterson <rpeterso@mtholyoke.edu>
   Message-Id: <20100405132205.GL27702@mtholyoke.edu>

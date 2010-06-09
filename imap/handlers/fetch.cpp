@@ -699,7 +699,7 @@ void Fetch::execute()
             }
             if ( d->those ) {
                 if ( d->changedSince )
-                    d->those->bind( 2, d->changedSince );
+                    d->those->bind( 3, d->changedSince );
                 if ( d->modseq ) {
                     if ( !d->peek ) {
                         // if we aren't peeking, then we have to lock

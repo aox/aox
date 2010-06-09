@@ -15,7 +15,6 @@
 #include "fetcher.h"
 #include "session.h"
 #include "dbsignal.h"
-#include "threader.h"
 #include "eventloop.h"
 #include "allocator.h"
 #include "integerset.h"
@@ -36,7 +35,7 @@ public:
         : type( Mailbox::Ordinary ), id( 0 ),
           uidnext( 0 ), uidvalidity( 0 ), owner( 0 ),
           parent( 0 ), children( 0 ),
-          sessions( 0 ), threader( 0 ),
+          sessions( 0 ),
           nextModSeq( 1 ),
           source( 0 ),
           views( 0 )
@@ -54,14 +53,21 @@ public:
     Mailbox * parent;
     List< Mailbox > * children;
     List<Session> * sessions;
-    Threader * threader;
 
     int64 nextModSeq;
 
     uint source;
     EString selector;
+    int64 viewnms;
+    IntegerSet modifiedMessages;
 
     List<Mailbox> * views;
+
+    class Ignorer
+        : public EventHandler {
+    public:
+        void execute() {};
+    };
 };
 
 
@@ -151,8 +157,9 @@ void MailboxReader::execute() {
         if ( m->type() == Mailbox::View ) {
             m->d->source = r->getInt( "source" );
             m->d->selector = r->getEString( "selector" );
+            m->d->viewnms = r->getBigint( "viewnms" );
             m->setUidnextAndNextModSeq( r->getInt( "uidnext" ),
-                                        r->getBigint( "viewnms" ),
+                                        r->getBigint( "nextmodseq" ),
                                         q->transaction() );
         }
         else {
@@ -381,6 +388,22 @@ bool Mailbox::deleted() const
 bool Mailbox::view() const
 {
     return d->type == View;
+}
+
+
+/*! Returns true if this mailbox is a view and may require an
+    update. Returns false if it isn't a view, or if it is known not to
+    require an update.
+*/
+
+bool Mailbox::needsUpdate() const
+{
+    Mailbox * s = source();
+    if ( !s )
+        return false;
+    if ( s->nextModSeq() <= d->viewnms )
+        return false;
+    return true;
 }
 
 
@@ -777,11 +800,10 @@ void Mailbox::removeSession( Session * s )
     d->sessions->remove( s );
     log( "Removed session from mailbox " + name().utf8() +
          ", new count " + fn( d->sessions->count() ), Log::Debug );
-    if ( d->sessions->isEmpty() ) {
+    if ( d->sessions->isEmpty() )
         d->sessions = 0;
-        d->threader = 0;
-    }
     if ( d->source ) {
+        writeBackMessageState();
         Mailbox * sm = source();
         if ( sm->d->views )
             sm->d->views->remove( this );
@@ -829,22 +851,6 @@ bool Mailbox::validName( const UString & s )
     if ( s.contains( "//" ) )
         return false;
     return true;
-}
-
-
-/*! Returns a pointer to the Threader for this Mailbox. This is never
-    a null pointer; if Mailbox doesn't have one it will create one.
-
-    The Threader usually lives until you stop caring about it, but if
-    removeSession() removes the last Session, it also removes the
-    Threader.
-*/
-
-class Threader * Mailbox::threader() const
-{
-    if ( !d->threader )
-        d->threader = new Threader( this );
-    return d->threader;
 }
 
 
@@ -940,4 +946,66 @@ void Mailbox::abortSessions()
         ++it;
         s->abort();
     }
+}
+
+
+
+/*! Updates the backing mailbox with flag and annotation changes made
+    in this mailbox. Does not update the backing mailbox' "\deleted"
+    flag, and only updates those messages for which
+    addWriteBackMessages() have been called.
+*/
+
+void Mailbox::writeBackMessageState()
+{
+    if ( d->modifiedMessages.isEmpty() )
+        return;
+    Mailbox * s = source();
+    if ( !s )
+        return;
+
+    // we don't really care about this transaction. we do want it to
+    // go through, but nothing very bad happens if it fails, so we
+    // just ignore its results.
+    Transaction * t = new Transaction( new MailboxData::Ignorer );
+
+    Query * q
+        = new Query( "select * from mailboxes where id=$1 for update", 0 );
+    q->bind( 1, s->id() );
+    t->enqueue( q );
+
+    q = new Query( "update mailbox_messages mm "
+                   "set seen=vmm.seen, modseq=mb.nextmodseq "
+                   "from messages m, mailbox_messages vmm, mailboxes mb "
+                   "where mm.message=vmm.message and "
+                   "vmm.mailbox=$1 and vmm.uid=any($2) and mm.mailbox=$3 and "
+                   "mb.id=mm.mailbox", 0 );
+    q->bind( 1, id() );
+    q->bind( 2, d->modifiedMessages );
+    q->bind( 3, s->id() );
+    t->enqueue( q );
+
+    q = new Query( "update mailboxes "
+                   "set nextmodseq=nextmodseq+1 "
+                   "where id=$1", 0 );
+    q->bind( 1, s->id() );
+    t->enqueue( q );
+
+    t->enqueue( "notify mailboxes_updated" );
+
+    t->commit();
+
+    d->modifiedMessages.clear();
+}
+
+
+/*! Records that the messages in \a s have been changed in this
+    Mailbox, and that the changes should eventually be propagated back
+    to the backing mailbox. Does nothing if this message isn't a view.
+*/
+
+void Mailbox::addWriteBackMessages( const IntegerSet & s )
+{
+    if ( d->type == View )
+        d->modifiedMessages.add( s );
 }

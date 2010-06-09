@@ -546,7 +546,7 @@ void Selector::simplify()
 
     The search results will be ordered if \a order is true (this is
     the default). The order is ascending and uses whatever is
-    specified in \a wanted of mailbox, uid, message and idate.
+    specified in \a wanted of mailbox, thread_root, uid, message and idate.
 
     Each Query Row will have the result columns named in \a wanted, or
     "uid", "modseq" and "message" if \a wanted is left at the default
