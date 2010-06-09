@@ -4,6 +4,7 @@
 
 #include "imapsession.h"
 #include "imapparser.h"
+#include "message.h"
 #include "address.h"
 #include "field.h"
 #include "query.h"
@@ -34,14 +35,14 @@ public:
     public:
         Node()
             : Garbage(),
-              uid( 0 ), threadRoot( 0 ), baseSubject( 0 ),
+              uid( 0 ), threadRoot( 0 ),
               idate( 0 ),
               reported( false ), added( false ),
               parent( 0 ) {}
 
         uint uid;
         uint threadRoot;
-        uint baseSubject;
+        UString baseSubject;
         uint idate;
         EString references;
         EString messageId;
@@ -125,49 +126,36 @@ void Thread::execute()
         want->append( "uid" );
         want->append( "message" );
         want->append( "idate" );
-        want->append( "base_subject" );
         want->append( "thread_root" );
-        bool h = false;
-        if ( d->threadAlg == ThreadData::Refs ||
-             d->threadAlg == ThreadData::References )
-            h = true;
-        if ( h ) {
-            want->append( "tmid.value as messageid" );
-            want->append( "tref.value as references" );
-        }
-        else {
-            // inefficient implementation of 'thread orderedsubject'. oh no.
-            want->append( "null as messageid" );
-            want->append( "null as references" );
+        want->append( "tmid.value as messageid" );
+        want->append( "tref.value as references" );
+        EString ts;
+        if ( d->threadAlg == ThreadData::References ) {
+            want->append( "tsubj.value as subject" );
+            ts = "left join header_fields tsubj on"
+                 " (m.id=tsubj.message and"
+                 " tsubj.field=" + fn( HeaderField::Subject ) +
+                 " and tsubj.part='') ";
         }
 
         d->find = d->s->query( imap()->user(),
                                d->session->mailbox(), d->session,
                                this, false, want );
         EString j = d->find->string();
-        if ( h ) {
-            // we need to get the References and Message-Id fields as well
-            const char * x = "left join";
-            if ( !j.contains( x ) )
-                x = "where";
-            j.replace( x,
-                       "left join header_fields tref on"
-                       " (m.id=tref.message and"
-                       " tref.field=" + fn( HeaderField::References ) +
-                       " and tref.part='') "
-                       "left join header_fields tmid on"
-                       " (m.id=tmid.message and"
-                       " tmid.field=" + fn( HeaderField::MessageId ) +
-                       " and tmid.part='') " + x );
-        }
-        // we report threads ordered by date. this, however, does not
-        // order by the idate of the thread's root, but instead by the
-        // idate of the thread's oldest message.
 
-        if ( h )
-            j.append( " order by m.idate" );
-        else
-            j.append( " order by m.base_subject, m.idate" );
+        // we need to get the References and Message-Id fields as well
+        const char * x = "left join";
+        if ( !j.contains( x ) )
+            x = "where";
+        j.replace( x,
+                   "left join header_fields tref on"
+                   " (m.id=tref.message and"
+                   " tref.field=" + fn( HeaderField::References ) +
+                   " and tref.part='') "
+                   "left join header_fields tmid on"
+                   " (m.id=tmid.message and"
+                   " tmid.field=" + fn( HeaderField::MessageId ) +
+                   " and tmid.part='') " + ts + x );
 
         d->find->setString( j );
 
@@ -182,8 +170,9 @@ void Thread::execute()
         n->idate = r->getInt( "idate" );
         if ( !r->isNull( "thread_root" ) )
             n->threadRoot = r->getInt( "thread_root" );
-        if ( !r->isNull( "base_subject" ) )
-            n->threadRoot = r->getInt( "base_subject" );
+        if ( d->threadAlg == ThreadData::References &&
+             !r->isNull( "base_subject" ) )
+            n->baseSubject = Message::BaseSubject( r->getUString( "subject" ) );
         if ( !r->isNull( "references" ) )
             n->references = r->getEString( "references" );
         if ( !r->isNull( "messageid" ) )
@@ -251,7 +240,7 @@ void Thread::execute()
     // if thread=references is used, we need to jump through extra hoops
     if ( d->threadAlg == ThreadData::References ) {
         Dict<ThreadData::Node>::Iterator i( d->nodes );
-        Map<ThreadData::Node> subjects;
+        UDict<ThreadData::Node> subjects;
         while ( i ) {
             if ( !i->parent ) {
                 ThreadData::Node * potential = subjects.find( i->baseSubject );
@@ -351,7 +340,7 @@ void ThreadData::splice( List<ThreadData::Node> * l )
         }
     }
 }
-        
+
 void ThreadData::append( EString & r, List<ThreadData::Node> * l, bool t )
 {
     if ( l->isEmpty() ) {
