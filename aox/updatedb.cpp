@@ -20,7 +20,7 @@ class DbMessage
 {
 public:
     DbMessage()
-        : ThreadRootCreator::Message(), id( 0 ) {}
+        : ThreadRootCreator::Message(), id( 0 ), t( 0 ) {}
 
     EStringList references() const { return ids; }
     EString messageId() const { return mid; }
@@ -29,8 +29,10 @@ public:
 
     EStringList ids;
     EString mid;
+    UString s;
 
     uint id;
+    Transaction * t;
 };
 
 
@@ -41,25 +43,22 @@ public:
     UpdateDatabaseData()
         : Garbage(), t( 0 ),
           findMessages( 0 ),
-          threader( 0 ), base( 0 ),
+          threader( 0 ),
           messages( 0 ),
           report( 0 ), temp( 0 ), update( 0 ),
-          id1( 0 ), id2( 0 ),
-          threading( true )
+          sofar( 0 )
         {}
 
     Transaction * t;
     Query * findMessages;
     ThreadRootCreator * threader;
-    BaseSubjectCreator * base;
-    List<class DbMessage> * messages;
+    List<ThreadRootCreator::Message> * messages;
 
     Query * report;
     Query * temp;
     Query * update;
 
-    uint id1;
-    uint id2;
+    uint sofar;
 
     bool threading;
 };
@@ -90,23 +89,17 @@ void UpdateDatabase::execute()
 {
     if ( !d->report ) {
         d->report
-            = new Query(
-                "select "
-                "(select count(*) from messages where thread_root is null)"
-                " as threadnull, "
-                "(select count(*) from messages where base_subject is null)"
-                " as basenull",
-                this );
+            = new Query( "select count(*) as threadnull "
+                         "from messages where thread_root is null",
+                         this );
         d->report->execute();
     }
     if ( !d->report->done() )
         return;
     if ( d->report->hasResults() ) {
         Row * r = d->report->nextRow();
-        printf( "Messages needing threading: %d.\n"
-                "Messages needing subject classification: %d.\n",
-                r->getInt( "threadnull" ),
-                r->getInt( "basenull" ) );
+        printf( "Messages needing threading: %d.\n",
+                r->getInt( "threadnull" ) );
     }
 
     if ( d->t && d->t->done() ) {
@@ -120,15 +113,6 @@ void UpdateDatabase::execute()
 
     end();
 
-    if ( d->threading )
-        thread();
-    if ( !d->threading )
-        subject();
-}
-
-
-void UpdateDatabase::thread()
-{
     if ( !d->t ) {
         printf( "Looking for 32768 more messages to thread.\n" );
         d->t = new Transaction( this );
@@ -140,10 +124,10 @@ void UpdateDatabase::thread()
                          "left join header_fields ref on (m.id=msgid.message and ref.field=(select id from field_names where name='References')) "
                          "where m.thread_root is null and m.id>$1"
                          "order by id limit 32768", this );
-        d->findMessages->bind( 1, d->id1 );
+        d->findMessages->bind( 1, d->sofar );
         d->t->enqueue( d->findMessages );
         d->t->execute();
-        d->messages = new List<DbMessage>();
+        d->messages = new List<ThreadRootCreator::Message>();
         d->threader = 0;
         d->temp = 0;
         d->update = 0;
@@ -153,8 +137,9 @@ void UpdateDatabase::thread()
         Row * r = d->findMessages->nextRow();
         DbMessage * m = new DbMessage;
         m->id = r->getInt( "id" );
-        if ( m->id > d->id1 )
-            d->id1 = m->id;
+        m->t = d->t;
+        if ( m->id > d->sofar )
+            d->sofar = m->id;
         if ( !r->isNull( "messageid" ) ) {
             m->mid = r->getEString( "messageid" );
         }
@@ -190,7 +175,7 @@ void UpdateDatabase::thread()
                              "messageid text,"
                              "thread_root integer"
                              ")", this );
-        d->temp->enqueue( d->temp );
+        d->t->enqueue( d->temp );
         d->t->execute();
     }
 
@@ -201,9 +186,9 @@ void UpdateDatabase::thread()
         Query * q = new Query( "copy md( messageid, thread_root ) "
                              "from stdin with binary", 0 );
         Dict<ThreadRootCreator::ThreadNode>::Iterator
-            i( d->threader->nodes() );
+            i( d->threader->threadNodes() );
         while ( i ) {
-            ThreadRootCreator::Node * n = i;
+            ThreadRootCreator::ThreadNode * n = i;
             q->bind( 1, n->id );
             while ( n->parent )
                 n = n->parent;
@@ -233,7 +218,7 @@ void UpdateDatabase::thread()
         d->update = new Query( "update messages set "
                                "thread_root=md.thread_root "
                                "from md "
-                               "where id=md.message" );
+                               "where id=md.message", this );
         d->t->enqueue( d->update );
         // update modseq on all affected messages
         d->t->enqueue( "update mailbox_messages set "
@@ -251,115 +236,15 @@ void UpdateDatabase::thread()
     }
 }
 
-
-/*! Does all base subject computations. Subject is a verb, so this
-    function is properly named by my very own standards. Even its
-    name shows some frustration.
-*/
-
-void UpdateDatabase::subject()
+void DbMessage::mergeThreads( uint to, uint from )
 {
-    if ( !d->t ) {
-        printf( "Looking for 32768 more messages to classify by subject.\n" );
-        d->t = new Transaction( this );
-        d->findMessages
-            = new Query( "select m.id, s.value as subject "
-                         "from messages m "
-                         "left join header_fields s on (m.id=msgid.message and msgid.field=(select id from field_names where name='Subject')) "
-                         "where m.base_subject is null and m.id>$1 "
-                         "order by id limit 32768", this );
-        d->findMessages->bind( 1, d->id2 );
-        d->t->enqueue( d->findMessages );
-        d->t->execute();
-        d->messages = new List<DbMessage>();
-        d->base = 0;
-        d->temp = 0;
-        d->update = 0;
-    }
-
-    while ( d->findMessages->hasResults() ) {
-        Row * r = d->findMessages->nextRow();
-        DbMessage * m = new DbMessage;
-        m->id = r->getInt( "id" );
-        if ( !r->isNull( "subject" ) )
-            m->s = Message::baseSubject( r->getUString( "subject" ) );
-        d->messages->append( m );
-    }
-
-    if ( !d->findMessages->done() )
-        return;
-
-    if ( !d->base ) {
-        UStringList s;
-        List<DbMessage>::Iterator i( d->messages );
-        while ( i ) {
-            s.append( m->s );
-            ++i;
-        }
-        s.removeDuplicates();
-
-    if ( s.isEmpty() ) {
-        printf( "All messages are now classified by subject.\n" );
-        d->t->commit();
-        finish();
-        return;
-    }
-
-        d->base = = new BaseSubjectCreator( s, d->t );
-        d->base->execute();
-        d->temp = new Query( "create temporary table md ("
-                             "message integer,"
-                             "base_subject integer"
-                             ")", this );
-        d->temp->enqueue( d->temp );
-        d->t->execute();
-    }
-
-    if ( !d->temp->done() )
-        return;
-
-    if ( !d->update ) {
-        Query * q = new Query( "copy md( message, base_subject ) "
-                             "from stdin with binary", 0 );
-        List<DbMessage>::Iterator i( d->messages );
-        while ( i ) {
-            uint bsid = d->base->id( m->s );
-            if ( bsid > 0 ) {
-                q->bind( 1, i->id );
-                q->bind( 2, d->base->id( m->s ) );
-                q->submitLine();
-                if ( i->id > d->id2 )
-                    d->id2 = i->id;
-            }
-            ++i;
-        }
-        d->t->enqueue( q );
-
-        // lock for nextmodseq in the right order
-        d->t->enqueue( "select * from mailbox_messages "
-                       "where id in ("
-                       "select mm.mailbox from mailbox_messages mm "
-                       "join md using (message)"
-                       ") order by id for update" );
-        // write the changes from the temptable
-        d->update = new Query( "update messages set "
-                               "base_subject=md.base_subject "
-                               "from md "
-                               "where id=md.message" );
-        d->t->enqueue( d->update );
-        // update modseq on all affected messages
-        d->t->enqueue( "update mailbox_messages set "
-                       "modseq=mb.nextmodseq "
-                       "where message in (select message from md)" );
-        // ... and the mailboxes' nextmodseq
-        d->t->enqueue( "update mailboxes set nextmodseq=nextmodseq+1 "
-                       "where id in ("
-                       "select mm.mailbox from mailbox_messages mm "
-                       "join md using (message)"
-                       ")" );
-        d->t->enqueue( "notify mailboxes_updated" );
-        d->t->enqueue( "drop table md" );
-        d->t->commit();
-    }
-
+    Query * q;
+    q = new Query( "update messages set thread_root=$1 "
+                   "where thread_root=$2", 0 );
+    q->bind( 1, to );
+    q->bind( 1, from );
+    t->enqueue( q );
+    q = new Query( "delete from thread_roots where id=$1", 0 );
+    q->bind( 1, from );
+    t->enqueue( q );
 }

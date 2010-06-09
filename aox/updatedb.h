@@ -13,9 +13,6 @@ public:
     UpdateDatabase( EStringList * );
     void execute();
 
-    void thread();
-    void subject();
-    
 private:
     class UpdateDatabaseData * d;
 };

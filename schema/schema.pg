@@ -176,15 +176,6 @@ create table permissions (
 );
 
 
--- One entry per subject (to help IMAP THREAD=REFERENCES)
-
-create table base_subjects (
-    -- Grant: select, insert
-    id          serial primary key,
-    subject     text unique;
-);
-
-
 -- One entry for each Message-ID that begins a thread (for THREAD=REFS)
 
 create table thread_roots (
@@ -201,7 +192,6 @@ create table messages (
     id          serial primary key,
     idate       integer not null,
     rfc822size  integer,
-    base_subject integer references base_subjects(id),
     thread_root integer references thread_roots(id)
 );
 

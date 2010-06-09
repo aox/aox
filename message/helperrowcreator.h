@@ -6,6 +6,7 @@
 #include "injector.h"
 #include "estringlist.h"
 #include "ustringlist.h"
+#include "integerset.h"
 #include "dict.h"
 
 
@@ -115,21 +116,6 @@ private:
 };
 
 
-class BaseSubjectCreator
-    : public HelperRowCreator
-{
-public:
-    BaseSubjectCreator( const class UStringList &, class Transaction * );
-
-private:
-    Query * makeSelect();
-    Query * makeCopy();
-
-private:
-    UStringList subjects;
-};
-
-
 class ThreadRootCreator
     : public HelperRowCreator
 {
@@ -139,6 +125,7 @@ public:
     {
     public:
         Message(): Garbage() {}
+        virtual ~Message() {}
 
         virtual EStringList references() const = 0;
         virtual EString messageId() const = 0;
@@ -161,6 +148,8 @@ public:
         uint trid;
     };
 
+    Dict<ThreadNode> * threadNodes() const { return nodes; }
+
 private:
     Query * makeSelect();
     Query * makeCopy();
@@ -172,6 +161,7 @@ private:
     List<Message> * messages;
     Dict<ThreadNode> * nodes;
     bool first;
+    IntegerSet merged;
 };
 
 

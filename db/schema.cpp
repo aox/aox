@@ -4355,3 +4355,15 @@ bool Schema::stepTo95()
                    "references thread_roots(id)" );
     return true;
 }
+
+
+
+/*! Drop thread_members and threads; foo thread=orderedsubject . */
+
+bool Schema::stepTo96()
+{
+    describeStep( "Dropping subject-based threading for improved performance" );
+    d->t->enqueue( "drop table thread_members" );
+    d->t->enqueue( "drop table threads" );
+    return true;
+}

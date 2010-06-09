@@ -75,7 +75,6 @@ public:
           state( Inactive ), failed( false ), retried( 0 ), transaction( 0 ),
           mailboxesCreated( 0 ),
           fieldNameCreator( 0 ), flagCreator( 0 ), annotationNameCreator( 0 ),
-          baseSubjectCreator( 0 ),
           lockUidnext( 0 ), select( 0 ), insert( 0 ),
           substate( 0 ), subtransaction( 0 ),
           findParents( 0 ), findReferences( 0 ),
@@ -127,7 +126,6 @@ public:
     HelperRowCreator * fieldNameCreator;
     HelperRowCreator * flagCreator;
     HelperRowCreator * annotationNameCreator;
-    BaseSubjectCreator * baseSubjectCreator;
 
     Query * lockUidnext;
     Query * select;
@@ -575,13 +573,6 @@ void Injector::findDependencies()
 
             ++mi;
         }
-
-        // It probably also contains a subject using which it may need
-        // threading. Foo how I love subject threading.
-
-        HeaderField * sf = m->header()->field( HeaderField::Subject );
-        if ( sf )
-            d->baseSubjects.append( m->baseSubject( sf->value().titlecased() ) );
     }
 
     d->flags.removeDuplicates();
@@ -662,12 +653,6 @@ void Injector::createDependencies()
         d->annotationNameCreator =
             new AnnotationNameCreator( d->annotationNames, d->transaction );
         d->annotationNameCreator->execute();
-    }
-
-    if ( !d->baseSubjects.isEmpty() ) {
-        d->baseSubjectCreator =
-            new BaseSubjectCreator( d->baseSubjects, d->transaction );
-        d->baseSubjectCreator->execute();
     }
 
     if ( !d->addresses.isEmpty() ) {
@@ -1310,7 +1295,7 @@ void Injector::selectMessageIds()
 
     Query * copy
         = new Query( "copy messages "
-                     "(id,rfc822size,idate,thread_root,base_subject) "
+                     "(id,rfc822size,idate,thread_root) "
                      "from stdin with binary", this );
 
     List<Injectee>::Iterator m( d->messages );
@@ -1328,13 +1313,6 @@ void Injector::selectMessageIds()
             copy->bind( 4, m->threadRoot() );
         else
             copy->bindNull( 4 );
-        HeaderField * sf = m->header()->field( HeaderField::Subject );
-        if ( sf )
-            copy->bind( 5, d->baseSubjectCreator->id(
-                            m->baseSubject(
-                                sf->value().titlecased() ).utf8() ) );
-        else
-            copy->bindNull( 5 );
         copy->submitLine();
         ++m;
     }
