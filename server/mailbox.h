@@ -81,8 +81,6 @@ public:
     void removeSession( class Session * );
     List<class Session> * sessions() const;
 
-    class Threader * threader() const;
-
     static bool refreshing();
 
     void writeBackMessageState();

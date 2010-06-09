@@ -5,6 +5,7 @@
 
 #include "injector.h"
 #include "estringlist.h"
+#include "ustringlist.h"
 #include "dict.h"
 
 
@@ -18,12 +19,12 @@ public:
 
     void execute();
 
-    uint id( const EString & );
+    virtual uint id( const EString & );
 
     bool inserted() const;
 
 protected:
-    void add( const EString &, uint );
+    virtual void add( const EString &, uint );
 
 private:
     virtual Query * makeSelect() = 0;
@@ -113,6 +114,65 @@ private:
     Query * obtain;
 };
 
+
+class BaseSubjectCreator
+    : public HelperRowCreator
+{
+public:
+    BaseSubjectCreator( const class UStringList &, class Transaction * );
+
+private:
+    Query * makeSelect();
+    Query * makeCopy();
+
+private:
+    UStringList subjects;
+};
+
+
+class ThreadRootCreator
+    : public HelperRowCreator
+{
+public:
+    class Message
+        : public Garbage
+    {
+    public:
+        Message(): Garbage() {}
+
+        virtual EStringList references() const = 0;
+        virtual EString messageId() const = 0;
+
+        virtual void mergeThreads( uint, uint ) = 0;
+    };
+
+    ThreadRootCreator( List<class ThreadRootCreator::Message> *,
+                       class Transaction * );
+
+    class ThreadNode
+        : public Garbage
+    {
+    public:
+        ThreadNode( const EString & messageId )
+            : Garbage(), id( messageId ), parent( 0 ), trid( 0 ) {}
+
+        EString id;
+        class ThreadNode * parent;
+        uint trid;
+    };
+
+private:
+    Query * makeSelect();
+    Query * makeCopy();
+
+    uint id( const EString & );
+    void add( const EString &, uint );
+
+private:
+    List<Message> * messages;
+    Dict<ThreadNode> * nodes;
+    bool first;
+};
 
 
 

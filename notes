@@ -16,6 +16,12 @@ SEARCH=ADDRESS
   gmail-like a thread/address view.
 
 
+HelperRowCreator
+
+  If that were to use a Cache, message injection would be speeded up
+  significantly.
+
+
 DWIM, the 80% way
 
   A new configuration variable, use-inbox-flag-views. If that's set,
@@ -34,6 +40,8 @@ Open Bug: aox add view broken
 
   1b149d fixed the immediate view creation problem, but the view doesn't
   work yet. -- AMS 20100413
+
+  Views now work, but threaded views still don't.
 
   Notify: Ron Peterson <rpeterso@mtholyoke.edu>
   Message-Id: <20100405132205.GL27702@mtholyoke.edu>

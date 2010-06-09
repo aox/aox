@@ -257,8 +257,11 @@ bool File::valid() const
 
 void File::write( const EString & s )
 {
-    if ( d->fd >= 0 && s.length() > 0 )
-        ::write( d->fd, s.data(), s.length() );
+    if ( d->fd >= 0 && s.length() > 0 ) {
+        if ( ::write( d->fd, s.data(), s.length() ) ) {
+            // no attempt at recovering from failure
+        }
+    }
 }
 
 

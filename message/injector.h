@@ -80,8 +80,6 @@ private:
     void addMoreReferences();
     void convertThreadIndex();
     void insertThreadIndexes();
-    void mergeThreads( uint, uint );
-    void insertThreadRoots();
     void insertBodyparts();
     void addBodypartRow( Bodypart * );
     void selectMessageIds();

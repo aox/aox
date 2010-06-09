@@ -15,7 +15,6 @@
 #include "fetcher.h"
 #include "session.h"
 #include "dbsignal.h"
-#include "threader.h"
 #include "eventloop.h"
 #include "allocator.h"
 #include "integerset.h"
@@ -36,7 +35,7 @@ public:
         : type( Mailbox::Ordinary ), id( 0 ),
           uidnext( 0 ), uidvalidity( 0 ), owner( 0 ),
           parent( 0 ), children( 0 ),
-          sessions( 0 ), threader( 0 ),
+          sessions( 0 ),
           nextModSeq( 1 ),
           source( 0 ),
           views( 0 )
@@ -54,7 +53,6 @@ public:
     Mailbox * parent;
     List< Mailbox > * children;
     List<Session> * sessions;
-    Threader * threader;
 
     int64 nextModSeq;
 
@@ -802,10 +800,8 @@ void Mailbox::removeSession( Session * s )
     d->sessions->remove( s );
     log( "Removed session from mailbox " + name().utf8() +
          ", new count " + fn( d->sessions->count() ), Log::Debug );
-    if ( d->sessions->isEmpty() ) {
+    if ( d->sessions->isEmpty() )
         d->sessions = 0;
-        d->threader = 0;
-    }
     if ( d->source ) {
         writeBackMessageState();
         Mailbox * sm = source();
@@ -855,22 +851,6 @@ bool Mailbox::validName( const UString & s )
     if ( s.contains( "//" ) )
         return false;
     return true;
-}
-
-
-/*! Returns a pointer to the Threader for this Mailbox. This is never
-    a null pointer; if Mailbox doesn't have one it will create one.
-
-    The Threader usually lives until you stop caring about it, but if
-    removeSession() removes the last Session, it also removes the
-    Threader.
-*/
-
-class Threader * Mailbox::threader() const
-{
-    if ( !d->threader )
-        d->threader = new Threader( this );
-    return d->threader;
 }
 
 
@@ -989,7 +969,7 @@ void Mailbox::writeBackMessageState()
     // just ignore its results.
     Transaction * t = new Transaction( new MailboxData::Ignorer );
 
-    Query * q 
+    Query * q
         = new Query( "select * from mailboxes where id=$1 for update", 0 );
     q->bind( 1, s->id() );
     t->enqueue( q );

@@ -91,17 +91,15 @@ Session::Session( Mailbox * m, Connection * c, bool readOnly )
         d->msns.add( other->d->unannounced );
         d->msns.remove( other->d->expunges );
     }
-    else {
-        if ( cache ) {
-            SessionData::CachedData * cd = cache->data.find( m->id() );
-            if ( cd ) {
-                d->uidnext = cd->uidnext;
-                d->nextModSeq = cd->nextModSeq;
-                d->msns.add( cd->msns );
-            }
+    else if ( cache ) {
+        SessionData::CachedData * cd = cache->data.find( m->id() );
+        if ( cd ) {
+            d->uidnext = cd->uidnext;
+            d->nextModSeq = cd->nextModSeq;
+            d->msns.add( cd->msns );
         }
-        (void)new SessionInitialiser( m, 0 );
     }
+    (void)new SessionInitialiser( m, 0 );
 }
 
 
@@ -433,7 +431,7 @@ public:
 */
 
 /*! Constructs an SessionInitialiser for \a mailbox. If \a t is
-    non-null, then thr initialiser will use a subtransaction of \a t
+    non-null, then the initialiser will use a subtransaction of \a t
     for its work.
 */
 

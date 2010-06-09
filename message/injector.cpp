@@ -75,11 +75,11 @@ public:
           state( Inactive ), failed( false ), retried( 0 ), transaction( 0 ),
           mailboxesCreated( 0 ),
           fieldNameCreator( 0 ), flagCreator( 0 ), annotationNameCreator( 0 ),
+          baseSubjectCreator( 0 ),
           lockUidnext( 0 ), select( 0 ), insert( 0 ),
           substate( 0 ), subtransaction( 0 ),
           findParents( 0 ), findReferences( 0 ),
-          findBlah( 0 ), findMessagesInOutlookThreads( 0 ),
-          threadRoots( 0 ), findThreadRoots( 0 )
+          findBlah( 0 ), findMessagesInOutlookThreads( 0 )
     {}
 
     struct Delivery
@@ -110,6 +110,7 @@ public:
     EStringList flags;
     EStringList fields;
     EStringList annotationNames;
+    UStringList baseSubjects;
     Dict<Address> addresses;
     List< ::Mailbox > * mailboxesCreated;
 
@@ -126,6 +127,7 @@ public:
     HelperRowCreator * fieldNameCreator;
     HelperRowCreator * flagCreator;
     HelperRowCreator * annotationNameCreator;
+    BaseSubjectCreator * baseSubjectCreator;
 
     Query * lockUidnext;
     Query * select;
@@ -155,19 +157,6 @@ public:
         EString references;
         EString messageId;
     };
-
-    // for insertThreadRoots
-    struct ThreadRootInfo
-        : public Garbage
-    {
-    public:
-        ThreadRootInfo(): Garbage(), threadRoot( 0 ) {}
-
-        EString messageId;
-        uint threadRoot;
-    };
-    Dict<ThreadRootInfo> * threadRoots;
-    Query * findThreadRoots;
 };
 
 
@@ -586,10 +575,18 @@ void Injector::findDependencies()
 
             ++mi;
         }
+
+        // It probably also contains a subject using which it may need
+        // threading. Foo how I love subject threading.
+
+        HeaderField * sf = m->header()->field( HeaderField::Subject );
+        if ( sf )
+            d->baseSubjects.append( m->baseSubject( sf->value().titlecased() ) );
     }
 
     d->flags.removeDuplicates();
     d->annotationNames.removeDuplicates( true );
+    d->baseSubjects.removeDuplicates( true );
 
     // Rows destined for deliveries/delivery_recipients also contain
     // addresses that need to be looked up.
@@ -667,6 +664,12 @@ void Injector::createDependencies()
         d->annotationNameCreator->execute();
     }
 
+    if ( !d->baseSubjects.isEmpty() ) {
+        d->baseSubjectCreator =
+            new BaseSubjectCreator( d->baseSubjects, d->transaction );
+        d->baseSubjectCreator->execute();
+    }
+
     if ( !d->addresses.isEmpty() ) {
         AddressCreator * ac
             = new AddressCreator( &d->addresses, d->transaction );
@@ -730,8 +733,8 @@ void Injector::convertInReplyTo()
         // found above
         d->findParents = new Query( "", this );
         EString s = "select message, value "
-                   "from header_fields "
-                   "where field=";
+                    "from header_fields "
+                    "where field=";
         s.appendNumber( HeaderField::MessageId );
         if ( ids.count() < 100 ) {
             s.append( " and (" );
@@ -1051,150 +1054,6 @@ void Injector::insertThreadIndexes()
 }
 
 
-/*! This private helper merges two threads, updating both in-RAM data
-    structures and the messages table. \a to is to be kept, \a from is
-    to be dereferenced.
-*/
-
-void Injector::mergeThreads( uint to, uint from )
-{
-    if ( !d->threadRoots )
-        return;
-    Dict<InjectorData::ThreadRootInfo>::Iterator i( d->threadRoots );
-    while ( i ) {
-        if ( i->threadRoot == from )
-            i->threadRoot = to;
-        ++i;
-    }
-
-    Query * q = new Query( "merge_threads( $1, $2 )", 0 );
-    q->bind( 1, to );
-    q->bind( 2, from );
-    d->transaction->enqueue( q );
-}
-
-
-/*! Inserts rows into the thread_roots table and records to which
-    thread_roots row each Injectee belong.
-*/
-
-void Injector::insertThreadRoots()
-{
-    if ( !d->threadRoots ) {
-        EStringList messageIds;
-        List<Injectee>::Iterator m( d->injectables );
-        while ( m ) {
-            messageIds.append( m->header()->messageId() );
-            AddressField * ref
-                = m->header()->addressField( HeaderField::References );
-            if ( ref ) {
-                List<Address>::Iterator ai( ref->addresses() );
-                while ( ai ) {
-                    messageIds.append( ai->lpdomain() );
-                    ++ai;
-                }
-            }
-            ++m;
-        }
-        messageIds.removeDuplicates();
-        d->threadRoots = new Dict<InjectorData::ThreadRootInfo>();
-        EStringList::Iterator i( messageIds );
-        while ( i ) {
-            InjectorData::ThreadRootInfo * r
-                = new InjectorData::ThreadRootInfo;
-            r->messageId = *i;
-            d->threadRoots->insert( r->messageId, r );
-        }
-        if ( !messageIds.isEmpty() ) {
-            d->findThreadRoots = new Query(
-                "select id, messageid from thread_roots "
-                "where messageid=any($1::text[]) "
-                "union "
-                "select m.thread_root as id, v.value as messageid "
-                "from messages m join header_fields hf on "
-                "(m.id=hf.message and hf.field=13) "
-                "where hf.value=any($1::text[])",
-                this );
-            d->findThreadRoots->bind( 1, messageIds );
-            d->transaction->enqueue( d->findThreadRoots );
-            d->transaction->execute();
-        }
-    }
-
-    while ( d->findThreadRoots && d->findThreadRoots->hasResults() ) {
-        Row * r = d->findThreadRoots->nextRow();
-        EString msgid = r->getEString( "messageid" );
-        InjectorData::ThreadRootInfo * tr = d->threadRoots->find( msgid );
-        if ( tr )
-            tr->threadRoot = r->getInt( "id" );
-    }
-
-    if ( d->findThreadRoots && d->findThreadRoots->done() ) {
-        // we've received some answers. do we have an answer for each
-        // message? collect a list of message-ids for which we don't
-        // have an answer, and for which we really want one.
-        EStringList missing;
-        List<Injectee>::Iterator m( d->injectables );
-        while ( m ) {
-            EStringList l;
-            l.append( m->header()->messageId() );
-            AddressField * ref
-                = m->header()->addressField( HeaderField::References );
-            if ( ref ) {
-                List<Address>::Iterator ai( ref->addresses() );
-                while ( ai ) {
-                    l.append( ai->lpdomain() );
-                    ++ai;
-                }
-            }
-            uint root = 0;
-            EString oldestId;
-            EStringList::Iterator s( l );
-            while ( s ) {
-                if ( !s->isEmpty() ) {
-                    InjectorData::ThreadRootInfo * t 
-                        = d->threadRoots->find( *s );
-                    if ( !t || !t->threadRoot )
-                        oldestId = *s;
-                    else if ( !root )
-                        root = t->threadRoot;
-                    else if ( root != t->threadRoot )
-                        mergeThreads( root, t->threadRoot );
-                }
-                ++s;
-            }
-            if ( !root && !oldestId.isEmpty() )
-                missing.append( oldestId );
-            ++m;
-        }
-        missing.removeDuplicates();
-
-        if ( missing.isEmpty() ) {
-            // lovely. we're done.
-            next();
-        }
-        else {
-            Query * q = new Query( "copy thread_roots( messageid ) "
-                                   "from stdin with binary", 0 );
-            List<EString>::Iterator i( missing );
-            while ( i ) {
-                q->bind( 1, *i );
-                q->submitLine();
-            }
-            d->transaction->enqueue( q );
-
-            d->findThreadRoots = new Query(
-                "select id, messageid from thread_roots "
-                "where messageid=any($1::text[])",
-                this );
-            d->findThreadRoots->bind( 1, missing );
-            d->transaction->enqueue( d->findThreadRoots );
-            d->transaction->execute();
-        }
-    }
-}
-
-
 /*! Inserts all unique bodyparts in the messages into the bodyparts
     table, and updates the in-memory objects with the newly-created
     bodyparts.ids. */
@@ -1450,7 +1309,8 @@ void Injector::selectMessageIds()
         return;
 
     Query * copy
-        = new Query( "copy messages (id,rfc822size,idate,thread_root) "
+        = new Query( "copy messages "
+                     "(id,rfc822size,idate,thread_root,base_subject) "
                      "from stdin with binary", this );
 
     List<Injectee>::Iterator m( d->messages );
@@ -1468,6 +1328,13 @@ void Injector::selectMessageIds()
             copy->bind( 4, m->threadRoot() );
         else
             copy->bindNull( 4 );
+        HeaderField * sf = m->header()->field( HeaderField::Subject );
+        if ( sf )
+            copy->bind( 5, d->baseSubjectCreator->id(
+                            m->baseSubject(
+                                sf->value().titlecased() ).utf8() ) );
+        else
+            copy->bindNull( 5 );
         copy->submitLine();
         ++m;
     }

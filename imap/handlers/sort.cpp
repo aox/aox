@@ -5,7 +5,6 @@
 #include "user.h"
 #include "field.h"
 #include "mailbox.h"
-#include "threader.h"
 #include "imapparser.h"
 #include "imapsession.h"
 
@@ -169,14 +168,6 @@ void Sort::execute()
 {
     if ( state() != Executing )
         return;
-
-    if ( d->usingCriterionType( SortData::Subject ) ) {
-        Threader * t = session()->mailbox()->threader();
-        if ( !t->updated( true ) ) {
-            t->refresh( this );
-            return;
-        }
-    }
 
     if ( !d->q ) {
         d->s->simplify();
