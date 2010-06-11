@@ -290,8 +290,8 @@ Command * Command::create( IMAP * imap,
             c = new Unselect;
         else if ( n == "sort" )
             c = new Sort( uid );
-        else if ( n == "move" && uid )
-            c = new Move();
+        else if ( n == "move" )
+            c = new Move( uid );
 
         if ( c )
             selected = true;

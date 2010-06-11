@@ -10,7 +10,7 @@ class Move
     : public Copy
 {
 public:
-    Move();
+    Move( bool );
 };
 
 

@@ -8,10 +8,12 @@
 */
 
 
-/*! Persuades Copy to do what Move needs. */
+/*! Persuades Copy to do what Move needs. \a uid is true for UID MOVE,
+    false for MOVE.
+*/
 
-Move::Move()
-    : Copy( true )
+Move::Move( bool uid )
+    : Copy( uid )
 {
     setMove();
 }
