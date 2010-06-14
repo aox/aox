@@ -122,9 +122,9 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "UIDPLUS" );
         c.append( "UNSELECT" );
         c.append( "URLAUTH" );
-    }
-    if ( all || login )
         c.append( "WITHIN" );
+        c.append( "XAOL-MOVE" );
+    }
 
     return c.join( " " );
 }
