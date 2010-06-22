@@ -110,5 +110,18 @@ returns int as $$
 begin
     alter table messages drop thread_root;
     drop table thread_roots;
+    drop function merge_threads;
+    create table threads (
+        id serial primary key,
+        mailbox integer not null references mailboxes(id),
+        subject text unique
+    );
+    create table thread_members (
+        thread integer not null references threads(id),
+        mailbox integer not null,
+        uid integer not null,
+        foreign key (mailbox,uid) references messages(mailbox,uid)
+            on delete cascade
+    );
     return 0;
 end;$$ language 'plpgsql';

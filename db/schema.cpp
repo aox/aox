@@ -4353,17 +4353,16 @@ bool Schema::stepTo95()
                    "messageid text not null unique)" );
     d->t->enqueue( "alter table messages add thread_root integer "
                    "references thread_roots(id)" );
-    return true;
-}
-
-
-
-/*! Drop thread_members and threads; foo thread=orderedsubject . */
-
-bool Schema::stepTo96()
-{
-    describeStep( "Dropping subject-based threading for improved performance" );
+    d->t->enqueue( "create or replace function merge_threads(int t,int f) "
+                   "returns int as $$ "
+                   "begin;"
+                   "update messages set thread_root=t where thread_root=f;"
+                   "return 0;"
+                   "end;$$ language 'plpgsql' security definer" );
+    d->t->enqueue( "grant execute on merge_threads(int,int) to" +
+                   d->dbuser.unquoted() );
     d->t->enqueue( "drop table thread_members" );
     d->t->enqueue( "drop table threads" );
+
     return true;
 }
