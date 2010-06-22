@@ -704,76 +704,8 @@ void AddressCreator::execute()
 }
 
 
-/*! \class BaseSubjectCreator helperrowcreator.h
-
-    The BaseSubjectCreator is a HelperRowCreator to insert rows into
-    the base_subjects table. Nothing particular.
-*/
-
-
-/*!  Constructs a BaseSubjectCreator to make sure \a l is in
-     base_subjects, using \a t.
-
-     \a l has to be a UTF8-encoded version of the base subjects and
-     already header-cased.
-*/
-
-BaseSubjectCreator::BaseSubjectCreator( const UStringList & f,
-                                        Transaction * t )
-    : HelperRowCreator( "base_subjects", t, "base_subjects_subject_key" ),
-      subjects( f )
-{
-}
-
-
-Query * BaseSubjectCreator::makeSelect()
-{
-    Query * q = new Query( "select id, subject as name "
-                           "from base_subjects where "
-                           "subject=any($1::text[])", this );
-
-    UStringList sl;
-    UStringList::Iterator it( subjects );
-    while ( it ) {
-        UString name( *it );
-        if ( id( name.utf8() ) == 0 )
-            sl.append( name );
-        ++it;
-    }
-    if ( sl.isEmpty() )
-        return 0;
-
-    q->bind( 1, sl );
-    log( "Looking up " + fn( sl.count() ) + " base subjects", Log::Debug );
-    return q;
-}
-
-
-Query * BaseSubjectCreator::makeCopy()
-{
-    Query * q = new Query( "copy base_subjects (subject) "
-                           "from stdin with binary", this );
-    UStringList::Iterator it( subjects );
-    uint count = 0;
-    while ( it ) {
-        if ( id( it->utf8() ) == 0 ) {
-            count++;
-            q->bind( 1, *it );
-            q->submitLine();
-        }
-        ++it;
-    }
-
-    if ( !count )
-        return 0;
-    log( "Inserting " + fn( count ) + " new base subjects" );
-    return q;
-    
-}
-
-
 /*! \class ThreadRootCreator helperrowcreator.h
-  
+
     The ThreadRootCreator class thread_roots rows. The only particular
     here is that id() works on all the message-ids, not just the root
     ids.
@@ -784,7 +716,7 @@ Query * BaseSubjectCreator::makeCopy()
      t for all db work.
 */
 
-ThreadRootCreator::ThreadRootCreator( List<ThreadRootCreator::Message> * l, 
+ThreadRootCreator::ThreadRootCreator( List<ThreadRootCreator::Message> * l,
                                       Transaction * t )
     : HelperRowCreator( "thread_roots", t, "thread_roots_messageid_key" ),
       messages( l ), nodes( new Dict<ThreadNode> ), first( true )
@@ -894,8 +826,24 @@ void ThreadRootCreator::add( const EString & id, uint i )
         n = new ThreadNode( id );
         nodes->insert( id, n );
     }
-    while ( n->parent )
+    while ( n->parent ) {
+        if ( n->trid && n->trid != i ) {
+            uint old = n->trid;
+            if ( !merged.contains( old ) ) {
+                Dict<ThreadNode>::Iterator o( nodes );
+                while ( o ) {
+                    if ( o->trid == old )
+                        o->trid = i;
+                    ++o;
+                }
+                ThreadRootCreator::Message * hack = messages->first();
+                if ( hack )
+                    hack->mergeThreads( i, old );
+                merged.add( old );
+            }
+        }
         n = n->parent;
+    }
     n->trid = i;
     HelperRowCreator::add( n->id, i );
 }
