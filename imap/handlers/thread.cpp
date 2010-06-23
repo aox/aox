@@ -42,7 +42,7 @@ public:
 
         uint uid;
         uint threadRoot;
-        UString baseSubject;
+        UString subject;
         uint idate;
         EString references;
         EString messageId;
@@ -174,6 +174,8 @@ void Thread::execute()
             n->references = r->getEString( "references" );
         if ( !r->isNull( "messageid" ) )
             n->messageId = r->getEString( "messageid" );
+        if ( !r->isNull( "subject" ) )
+            n->subject = Message::baseSubject( r->getUString( "subject" ) );
 
         d->result.append( n );
         if ( !n->messageId.isEmpty() )
@@ -190,7 +192,7 @@ void Thread::execute()
             ThreadData::Node * n = ri;
             ++ri;
 
-            if ( !prev || prev->baseSubject != n->baseSubject )
+            if ( !prev || prev->subject != n->subject )
                 d->roots.append( n );
             else
                 prev->children.append( n );
@@ -240,11 +242,11 @@ void Thread::execute()
         UDict<ThreadData::Node> subjects;
         while ( i ) {
             if ( !i->parent ) {
-                ThreadData::Node * potential = subjects.find( i->baseSubject );
+                ThreadData::Node * potential = subjects.find( i->subject );
                 if ( potential )
                     i->parent = potential;
                 else
-                    subjects.insert( i->baseSubject, i );
+                    subjects.insert( i->subject, i );
             }
             ++i;
         }
