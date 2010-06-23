@@ -46,7 +46,7 @@ public:
           threader( 0 ),
           messages( 0 ),
           report( 0 ), temp( 0 ), update( 0 ),
-          sofar( 0 )
+          sofar( 0 ), threading( true )
         {}
 
     Transaction * t;
@@ -79,17 +79,20 @@ f( "update", "database", "Update the database contents.",
 */
 
 UpdateDatabase::UpdateDatabase( EStringList * args )
-    : AoxCommand( args )
+    : AoxCommand( args ), d( new UpdateDatabaseData )
 {
-    d = 0;
 }
 
 
 void UpdateDatabase::execute()
 {
+    if ( !d->threading )
+        return;
+
     if ( !d->report ) {
+        database( true );
         d->report
-            = new Query( "select count(*) as threadnull "
+            = new Query( "select count(*)::integer as threadnull "
                          "from messages where thread_root is null",
                          this );
         d->report->execute();
