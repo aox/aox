@@ -59,6 +59,7 @@ enum State {
     CreatingDependencies,
     ConvertingInReplyTo, AddingMoreReferences,
     ConvertingThreadIndex,
+    CreatingThreadRoots,
     InsertingBodyparts,
     SelectingMessageIds, SelectingUids,
     InsertingMessages,
@@ -154,6 +155,49 @@ public:
 
         EString references;
         EString messageId;
+    };
+
+    struct ThreadInjectee
+        : public ThreadRootCreator::Message
+    {
+    public:
+        ThreadInjectee( Injectee * i, Transaction * tr )
+            : ThreadRootCreator::Message(), m( i ), t( tr ) {}
+
+        Injectee * m;
+        Transaction * t;
+
+        EStringList references() const {
+            EStringList result;
+            AddressField * r = 0;
+            Header * h = m->header();
+            if ( h )
+                r = h->addressField( HeaderField::References );
+            if ( r ) {
+                List<Address>::Iterator i( r->addresses() );
+                while ( i ) {
+                    if ( !i->lpdomain().isEmpty() )
+                        result.append( i->lpdomain() );
+                    ++i;
+                }
+            }
+            return result;
+        }
+
+        EString messageId() const {
+            Header * h = m->header();
+            if ( h )
+                return h->messageId();
+            return "";
+        }
+
+        void mergeThreads( uint to, uint from ) {
+            Query * q = new Query( "merge_threads( $1, $2 )", 0 );
+            q->bind( 1, to );
+            q->bind( 1, from );
+            t->enqueue( q );
+        }
+        
     };
 };
 
@@ -330,6 +374,11 @@ void Injector::execute()
 
         case ConvertingThreadIndex:
             convertThreadIndex();
+            break;
+
+        case CreatingThreadRoots:
+            insertThreadRoots();
+            next();
             break;
 
         case InsertingBodyparts:
@@ -1036,6 +1085,24 @@ void Injector::insertThreadIndexes()
     }
 
     d->transaction->enqueue( q );
+}
+
+
+/*! Inserts rows into the thread_roots table, so that insertMessages()
+    can reference what it needs to.
+*/
+
+void Injector::insertThreadRoots()
+{
+    List<ThreadRootCreator::Message> * l
+        = new List<ThreadRootCreator::Message>;
+    List<Injectee>::Iterator i( d->messages );
+    while ( i ) {
+        l->append( new InjectorData::ThreadInjectee( i, d->transaction ) );
+        ++i;
+    }
+    HelperRowCreator * h = new ThreadRootCreator( l, d->transaction );
+    h->execute();
 }
 
 
