@@ -711,9 +711,9 @@ void AddressCreator::execute()
     ids.
 */
 
-/*!  Constructs a ThreadRootCreator that will make sure that the
-     messages in \a l are all threadable, using a subtransaction of \a
-     t for all db work.
+/*! Constructs a ThreadRootCreator that will make sure that the
+    messages in \a l are all threadable, using a subtransaction of \a
+    t for all db work.
 */
 
 ThreadRootCreator::ThreadRootCreator( List<ThreadRootCreator::Message> * l,
@@ -734,7 +734,13 @@ ThreadRootCreator::ThreadRootCreator( List<ThreadRootCreator::Message> * l,
                     n = new ThreadNode( *s );
                     nodes->insert( *s, n );
                 }
-                if ( parent ) {
+                ThreadNode * p = parent;
+                while ( p && p != n )
+                    p = p->parent;
+                if ( parent && !p ) {
+                    // if we do have a parent, and it's not a child of
+                    // n, then make n and its parents children of the
+                    // desired parent
                     ThreadNode * f = n;
                     while ( f->parent && f->parent != parent )
                         f = f->parent;
