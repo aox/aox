@@ -95,6 +95,10 @@ void Thread::parse()
     EString threadAlg = atom();
     if ( threadAlg == "orderedsubject" )
         d->threadAlg = ThreadData::OrderedSubject;
+    else if ( threadAlg == "refs" )
+        d->threadAlg = ThreadData::Refs;
+    else if ( threadAlg == "references" )
+        d->threadAlg = ThreadData::References;
     else
         error( Bad, "Unsupported thread algorithm" );
     space();
