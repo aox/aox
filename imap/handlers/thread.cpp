@@ -170,9 +170,6 @@ void Thread::execute()
         n->idate = r->getInt( "idate" );
         if ( !r->isNull( "thread_root" ) )
             n->threadRoot = r->getInt( "thread_root" );
-        if ( d->threadAlg == ThreadData::References &&
-             !r->isNull( "base_subject" ) )
-            n->baseSubject = Message::BaseSubject( r->getUString( "subject" ) );
         if ( !r->isNull( "references" ) )
             n->references = r->getEString( "references" );
         if ( !r->isNull( "messageid" ) )
