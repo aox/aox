@@ -110,7 +110,7 @@ returns int as $$
 begin
     alter table messages drop thread_root;
     drop table thread_roots;
-    drop function merge_threads(int,int);
+    drop function merge_threads(integer,integer);
     create table threads (
         id serial primary key,
         mailbox integer not null references mailboxes(id),
