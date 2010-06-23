@@ -768,7 +768,7 @@ Query * ThreadRootCreator::makeSelect()
         q = new Query( "select id, messageid as name from thread_roots "
                        "where messageid=any($1::text[]) "
                        "union "
-                       "select m.thread_root as id, v.value as name "
+                       "select m.thread_root as id, hf.value as name "
                        "from messages m join header_fields hf on "
                        "(m.id=hf.message and hf.field=13) "
                        "where hf.value=any($1::text[])",
