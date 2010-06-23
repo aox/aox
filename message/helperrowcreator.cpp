@@ -734,17 +734,38 @@ ThreadRootCreator::ThreadRootCreator( List<ThreadRootCreator::Message> * l,
                     n = new ThreadNode( *s );
                     nodes->insert( *s, n );
                 }
-                ThreadNode * p = parent;
-                while ( p && p != n )
-                    p = p->parent;
-                if ( parent && !p ) {
-                    // if we do have a parent, and it's not a child of
-                    // n, then make n and its parents children of the
-                    // desired parent
+                if ( parent ) {
+                    // if we have a parent, and the parent is a child
+                    // of the supposed child, then
+                    ThreadNode * p = parent;
+                    while ( p && p != n )
+                        p = p->parent;
+                    if ( p == n )
+                        parent = 0; // then don't use that parent
+                }
+                if ( n == parent ) {
+                    // evil case. let's not do anything
+                }
+                else if ( parent && n->parent == parent ) {
+                    // nice case, hopefully common. no need to act.
+                }
+                else if ( parent && n->parent ) {
+                    // the DAG disagrees with the references chain
+                    // we're processing. go up to both roots, and
+                    // merge them if they differ.
+                    ThreadNode * p = parent;
+                    while ( p->parent )
+                        p = p->parent;
                     ThreadNode * f = n;
-                    while ( f->parent && f->parent != parent )
+                    while ( f->parent )
                         f = f->parent;
-                    f->parent = parent;
+                    if ( p != f )
+                        p->parent = f;
+                }
+                else if ( parent ) {
+                    // we didn't know about a parent for this
+                    // message-id, now we do. record it.
+                    n->parent = parent;
                 }
                 parent = n;
             }
