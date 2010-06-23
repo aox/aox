@@ -79,7 +79,8 @@ public:
           lockUidnext( 0 ), select( 0 ), insert( 0 ),
           substate( 0 ), subtransaction( 0 ),
           findParents( 0 ), findReferences( 0 ),
-          findBlah( 0 ), findMessagesInOutlookThreads( 0 )
+          findBlah( 0 ), findMessagesInOutlookThreads( 0 ),
+          threads( 0 )
     {}
 
     struct Delivery
@@ -199,6 +200,8 @@ public:
         }
         
     };
+
+    ThreadRootCreator * threads;
 };
 
 
@@ -1101,8 +1104,8 @@ void Injector::insertThreadRoots()
         l->append( new InjectorData::ThreadInjectee( i, d->transaction ) );
         ++i;
     }
-    HelperRowCreator * h = new ThreadRootCreator( l, d->transaction );
-    h->execute();
+    d->threads = new ThreadRootCreator( l, d->transaction );
+    d->threads->execute();
 }
 
 
@@ -1376,8 +1379,9 @@ void Injector::selectMessageIds()
         }
         copy->bind( 2, m->rfc822Size() );
         copy->bind( 3, internalDate( m ) );
-        if ( m->threadRoot() )
-            copy->bind( 4, m->threadRoot() );
+        uint tr = d->threads->id( m->header()->messageId() );
+        if ( tr )
+            copy->bind( 4, tr );
         else
             copy->bindNull( 4 );
         copy->submitLine();
@@ -2019,7 +2023,7 @@ class InjecteeData
     : public Garbage
 {
 public:
-    InjecteeData(): Garbage(), threadRoot( 0 ) {}
+    InjecteeData(): Garbage() {}
 
     class Mailbox
         : public Garbage
@@ -2037,7 +2041,6 @@ public:
     };
 
     List<Mailbox> mailboxes;
-    uint threadRoot;
 
     Mailbox * mailbox( ::Mailbox * mb, bool create = false ) {
         if ( mailboxes.firstElement() &&
@@ -2354,24 +2357,4 @@ Injectee * Injectee::wrapUnparsableMessage( const EString & message,
     m->parse( wrapper );
     m->setWrapped( true );
     return m;
-}
-
-
-/*! Records that this Injectee has thread root number \a n. \a n must
-    not be 0.
-*/
-
-void Injectee::setThreadRoot( uint n )
-{
-    d->threadRoot = n;
-}
-
-
-/*! Returns what setThreadRoot() recorded, or 0 if setThreadRoot() has
-    not been called.
-*/
-
-uint Injectee::threadRoot() const
-{
-    return d->threadRoot;
 }

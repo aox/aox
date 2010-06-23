@@ -150,11 +150,12 @@ public:
 
     Dict<ThreadNode> * threadNodes() const { return nodes; }
 
+    uint id( const EString & );
+
 private:
     Query * makeSelect();
     Query * makeCopy();
 
-    uint id( const EString & );
     void add( const EString &, uint );
 
 private:
