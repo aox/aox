@@ -227,7 +227,8 @@ void UpdateDatabase::execute()
         d->t->enqueue( "update mailbox_messages "
                        "set modseq=mailboxes.nextmodseq "
                        "from md, mailboxes "
-                       "where message=md.message and mailbox=mailboxes.id" );
+                       "where mailbox_messages.message=md.message "
+                       "and mailbox=mailboxes.id" );
         // ... and the mailboxes' nextmodseq
         d->t->enqueue( "update mailboxes set nextmodseq=nextmodseq+1 "
                        "where id in ("
