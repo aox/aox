@@ -53,6 +53,9 @@ void Id::parse()
         log( "Client: " + client + ", version " + version );
     else if ( !client.isEmpty() )
         log( "Client: " + client );
+
+    if ( client == "iPhone Mail" && version == "8A293" )
+        imap()->setClientBug( IMAP::NoUnsolicitedResponses );
 }
 
 

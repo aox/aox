@@ -45,6 +45,9 @@ public:
         uint i = 0;
         while ( i < IMAP::NumClientCapabilities )
             clientCapabilities[i++] = false;
+        i = 0;
+        while ( i < IMAP::NumClientBugs )
+            clientBugs[i++] = false;
         EventFilterSpec * normal = new EventFilterSpec;
         normal->setNotificationWanted( EventFilterSpec::FlagChange, true );
         normal->setNotificationWanted( EventFilterSpec::NewMessage, true );
@@ -73,6 +76,7 @@ public:
     uint bytesArrived;
 
     bool clientCapabilities[IMAP::NumClientCapabilities];
+    bool clientBugs[IMAP::NumClientBugs];
 
     List<MailboxGroup> possibleGroups;
 
@@ -724,6 +728,24 @@ void IMAP::setClientSupports( ClientCapability capability )
 }
 
 
+/*! Returns true if the server thinks the client may have \a bug, and
+    false otherwise.
+*/
+
+bool IMAP::clientHasBug( ClientBug bug ) const
+{
+    return d->clientBugs[bug];
+}
+
+
+/*! Records that the client is presumed to suffer from \a bug. */
+
+void IMAP::setClientBug( ClientBug bug )
+{
+    d->clientBugs[bug] = true;
+}
+
+
 /*! Returns a list of all Command objects currently known by this IMAP
     server. First received command first. Commands in all states may
     be in the list, except Retired.
@@ -780,6 +802,9 @@ void IMAP::respond( class ImapResponse * response )
 
 void IMAP::emitResponses()
 {
+    if ( clientHasBug( NoUnsolicitedResponses ) && commands()->isEmpty() )
+        return;
+
     // first, see if expunges are permitted
     bool can = false;
     bool cannot = false;

@@ -31,6 +31,10 @@ public:
     bool clientSupports( ClientCapability ) const;
     void setClientSupports( ClientCapability );
 
+    enum ClientBug { NoUnsolicitedResponses, NumClientBugs };
+    bool clientHasBug( ClientBug ) const;
+    void setClientBug( ClientBug );
+
     bool idle() const;
 
     void beginSession( ImapSession * );
