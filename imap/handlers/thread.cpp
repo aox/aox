@@ -125,12 +125,15 @@ void Thread::execute()
     if ( state() != Executing )
         return;
 
+    if ( !d->session )
+        d->session = session();
+
     if ( !d->find ) {
         EStringList * want = new EStringList;
         want->append( "uid" );
         want->append( "message" );
-        want->append( "idate" );
-        want->append( "thread_root" );
+        want->append( "m.idate" );
+        want->append( "m.thread_root" );
         want->append( "tmid.value as messageid" );
         want->append( "tref.value as references" );
         EString ts;

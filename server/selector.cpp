@@ -576,11 +576,23 @@ Query * Selector::query( User * user, Mailbox * mailbox,
         d->mm = new EString( "dm" );
     else
         d->mm = new EString( "mm" );
-    EString q = "select " + mm() + ".";
-    if ( wanted )
-        q.append( wanted->join( ", " + mm() + "." ) );
-    else
-        q.append( "uid, " + mm() + ".modseq, " + mm() + ".message" );
+    EString q = "select ";
+    if ( wanted ) {
+        EStringList::Iterator i( wanted );
+        while ( i ) {
+            if ( i->contains( "." ) )
+                q.append( *i );
+            else
+                q.append( mm() + "." + *i );
+            ++i;
+            if ( i )
+                q.append( ", " );
+        }
+    }
+    else {
+        q.append( mm() + ".uid, " + mm() + ".modseq, " + mm() + ".message" );
+    }
+        
     if ( deleted )
         q.append( " from deleted_messages " + mm() );
     else
@@ -588,6 +600,9 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     EString w = where();
     if ( d->a == And && w.startsWith( "(" ) && w.endsWith( ")" ) )
         w = w.mid( 1, w.length() - 2 );
+
+    if ( wanted && wanted->contains( "m.idate" ) )
+        d->needMessages = true;
 
     if ( d->needDateFields )
         q.append( " join date_fields df on "
@@ -603,9 +618,6 @@ Query * Selector::query( User * user, Mailbox * mailbox,
 
     q.append( d->extraJoins.join( "" ) );
     q.append( d->leftJoins.join( "" ) );
-
-    if ( wanted && wanted->contains( "idate" ) )
-        d->needMessages = true;
 
     EString mboxClause;
     if ( mboxId ) {
@@ -676,7 +688,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
             q.append( " order by " + mm() + ".uid" );
         else if ( wanted->contains( "message" ) )
             q.append( " order by " + mm() + ".message" );
-        else if ( wanted->contains( "idate" ) )
+        else if ( wanted->contains( "m.idate" ) )
             q.append( " order by m.idate" );
     }
 
