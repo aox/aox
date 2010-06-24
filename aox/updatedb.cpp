@@ -125,7 +125,7 @@ void UpdateDatabase::execute()
                          "from messages m "
                          "left join header_fields msgid on (m.id=msgid.message and msgid.field=(select id from field_names where name='Message-Id')) "
                          "left join header_fields ref on (m.id=msgid.message and ref.field=(select id from field_names where name='References')) "
-                         "where m.thread_root is null and m.id>$1"
+                         "where m.thread_root is null and m.id>$1 "
                          "order by id limit 32768", this );
         d->findMessages->bind( 1, d->sofar );
         d->t->enqueue( d->findMessages );
