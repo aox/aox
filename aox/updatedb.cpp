@@ -212,7 +212,7 @@ void UpdateDatabase::execute()
             " where m.thread_root is not null)" );
 
         // lock for nextmodseq in the right order
-        d->t->enqueue( "select * from mailbox_messages "
+        d->t->enqueue( "select * from mailboxes "
                        "where id in ("
                        "select mm.mailbox from mailbox_messages mm "
                        "join md using (message)"
