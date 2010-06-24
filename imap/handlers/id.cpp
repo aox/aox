@@ -21,7 +21,7 @@
 void Id::parse()
 {
     space();
-    EString name;
+    EString client;
     EString version;
     if ( nextChar() == '(' ) {
         step();
@@ -34,7 +34,7 @@ void Id::parse()
             if ( ok() && !name.isEmpty() && !value.isEmpty() ) {
                 name = name.lower().simplified();
                 if ( name == "name" )
-                    name = value.simplified();
+                    client = value.simplified();
                 else if ( name == "version" )
                     version = value.simplified();
                 log( "Client ID: " + name.simplified() +
@@ -49,10 +49,10 @@ void Id::parse()
     }
     end();
 
-    if ( !name.isEmpty() && !version.isEmpty() )
-        log( "Client: " + name + ", version " + version );
-    else if ( !name.isEmpty() )
-        log( "Client: " + name );
+    if ( !client.isEmpty() && !version.isEmpty() )
+        log( "Client: " + client + ", version " + version );
+    else if ( !client.isEmpty() )
+        log( "Client: " + client );
 }
 
 
