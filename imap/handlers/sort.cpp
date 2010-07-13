@@ -273,11 +273,10 @@ void SortData::addCondition( EString & t, class SortData::SortCriterion * c )
         break;
     case Subject:
         addJoin( t,
-                 "left join thread_members sstm on "
-                 "(mm.mailbox=sstm.mailbox and mm.uid=sstm.uid) "
-                 "left join threads sst on "
-                 "(sstm.thread=sst.id) ",
-                 "sst.subject",
+                 "left join header_fields sshf on "
+                 "(mm.message=sshf.message and sshf.field=" +
+                 fn( HeaderField::Subject ) + ") ",
+                 "sshf.value",
                  c->reverse );
         break;
     case To:
