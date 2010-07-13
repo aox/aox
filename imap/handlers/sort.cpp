@@ -225,13 +225,13 @@ void SortData::addCondition( EString & t, class SortData::SortCriterion * c )
         break;
     case Date:
         addJoin( t,
-                 "join date_fields sddf on (mm.message=sddf.message) ",
+                 "left join date_fields sddf on (mm.message=sddf.message) ",
                  "sddf.value",
                  c->reverse );
         break;
     case From:
         addJoin( t,
-                 "join address_fields sfaf on "
+                 "left join address_fields sfaf on "
                  "(mm.message=sfaf.message and "
                  " sfaf.part='' and sfaf.number=0 and"
                  " sfaf.field=" + fn( HeaderField::From ) + ") "
@@ -241,7 +241,7 @@ void SortData::addCondition( EString & t, class SortData::SortCriterion * c )
         break;
     case DisplayFrom:
         addJoin( t,
-                 "join address_fields sdfaf on "
+                 "left join address_fields sdfaf on "
                  "(mm.message=sdfaf.message and "
                  " sdfaf.part='' and sdfaf.number=0 and"
                  " sdfaf.field=" + fn( HeaderField::From ) + ") "
@@ -254,7 +254,7 @@ void SortData::addCondition( EString & t, class SortData::SortCriterion * c )
         break;
     case DisplayTo:
         addJoin( t,
-                 "join address_fields sdtaf on "
+                 "left join address_fields sdtaf on "
                  "(mm.message=sdtaf.message and "
                  " sdtaf.part='' and sdtaf.number=0 and"
                  " sdtaf.field=" + fn( HeaderField::To ) + ") "
