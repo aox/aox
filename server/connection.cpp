@@ -597,44 +597,6 @@ void Connection::enqueue( const EString &s )
 */
 
 
-class Halfpipe : public Connection {
-private:
-    Halfpipe *partner;
-
-public:
-    Halfpipe( int fd )
-        : Connection( fd, Connection::Pipe ), partner( 0 )
-    {
-        EventLoop::global()->addConnection( this );
-    }
-
-    ~Halfpipe()
-    {
-        EventLoop::global()->removeConnection( this );
-    }
-
-    void connect( Halfpipe *b ) {
-        partner = b;
-        b->partner = this;
-        b->setState( Connected );
-        setState( Connected );
-    }
-
-    void react( Event e ) {
-        if ( e == Read ) {
-            uint n = readBuffer()->size();
-            EString data = readBuffer()->string( n );
-            partner->enqueue( data );
-            partner->write();
-            readBuffer()->remove( n );
-        }
-        else if ( e == Close ) {
-            partner->setState( Closing );
-        }
-    }
-};
-
-
 /*! Starts TLS negotiation using \a s on this connection. */
 
 void Connection::startTls( TlsServer * s )
