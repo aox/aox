@@ -171,8 +171,10 @@ void ManPage::addClass( const EString & text, Class * c )
 
 void ManPage::output( const EString & s )
 {
-    if ( fd >= 0 && !s.isEmpty() )
-        ::write( fd, s.data(), s.length() );
+    if ( fd < 0 || s.isEmpty() )
+        return;
+    int r = ::write( fd, s.data(), s.length() );
+    r = r;
 }
 
 
