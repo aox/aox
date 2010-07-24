@@ -52,7 +52,6 @@ public:
 
     private:
         friend class PatriciaTree;
-        friend class PatriciaTree::Iterator;
         Node * zero;
         Node * one;
         Node * parent;
