@@ -592,7 +592,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     else {
         q.append( mm() + ".uid, " + mm() + ".modseq, " + mm() + ".message" );
     }
-        
+
     if ( deleted )
         q.append( " from deleted_messages " + mm() );
     else
@@ -1778,17 +1778,17 @@ EString Selector::whereMailbox()
 EString Selector::whereInThread()
 {
     d->mm = 0;
+    EString m = "m" + fn( ++root()->d->join );
     EString join = fn( ++root()->d->join );
+    EString sm = "m" + join;
     root()->d->extraJoins.append(
-        " join thread_members tmp" + join +
-        " on (" + mm() + ".mailbox=tmp" + join + ".mailbox"
-        " and " + mm() + ".uid=tmp" + join + ".uid)"
-        " join thread_members tm" + join +
-        " on (tmp" + join + ".mailbox=tm" + join + ".mailbox"
-        " and tmp" + join + ".thread=tm" + join + ".thread)"
+        " join messages " + m +
+        " on (" + mm() + ".message=" + m + ".id) "
+        " join messages " + sm +
+        " on (" + m + ".thread_root=" + sm + ".thread_root)"
         " join mailbox_messages mm" + join +
-        " on (tm" + join + ".mailbox=mm" + join + ".mailbox"
-        " and tm" + join + ".uid=mm" + join + ".uid)"
+        " on (mm" + join + ".message=" + sm + ".id"
+        " and " + mm() + ".mailbox=mm" + join + ".mailbox)"
         );
     d->mm = new EString( "mm" + join );
     return d->children->first()->where();
