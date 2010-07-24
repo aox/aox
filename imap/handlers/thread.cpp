@@ -215,7 +215,7 @@ void Thread::execute()
             AddressParser * ap = AddressParser::references( n->references );
             List<Address>::Iterator a( ap->addresses() );
             while ( a ) {
-                l.append( a->lpdomain() );
+                l.append( "<" + a->lpdomain() + ">" );
                 ++a;
             }
             l.append( n->messageId );
