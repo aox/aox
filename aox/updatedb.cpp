@@ -209,7 +209,7 @@ void UpdateDatabase::execute()
         d->t->enqueue(
             "update md set message=header_fields.message "
             "from header_fields "
-            "where header_fields.id=13 and header_fields.value=messageid" );
+            "where header_fields.field=13 and header_fields.value=messageid" );
         d->t->enqueue(
             "delete from md where message is null or message in ("
             "select id from messages m join md on (m.id=md.message)"
