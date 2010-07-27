@@ -798,7 +798,8 @@ Query * ThreadRootCreator::makeSelect()
                        "select m.thread_root as id, hf.value as name "
                        "from messages m join header_fields hf on "
                        "(m.id=hf.message and hf.field=13) "
-                       "where hf.value=any($1::text[])",
+                       "where hf.value=any($1::text[]) "
+                       "and m.thread_root is not null",
                        this );
         first = false;
     }
