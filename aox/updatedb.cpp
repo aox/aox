@@ -106,7 +106,7 @@ void UpdateDatabase::execute()
     }
 
     if ( d->t && d->t->done() ) {
-        if ( !d->t->failed() )
+        if ( d->t->failed() )
             error( "Transaction failed: " + d->t->error() );
         d->t = 0;
         if ( d->update && d->update->rows() )
