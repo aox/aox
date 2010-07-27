@@ -160,7 +160,7 @@ void UpdateDatabase::execute()
                 ++i;
             }
         }
-        if ( !m->mid.isEmpty() && m->ids.isEmpty() )
+        if ( !m->mid.isEmpty() )
             d->messages->append( m );
     }
 
