@@ -123,11 +123,15 @@ void UpdateDatabase::execute()
             = new Query( "select m.id, msgid.value as messageid, "
                          "ref.value as references "
                          "from messages m "
-                         "left join header_fields msgid on (m.id=msgid.message and msgid.field=(select id from field_names where name='Message-Id')) "
-                         "left join header_fields ref on (m.id=msgid.message and ref.field=(select id from field_names where name='References')) "
+                         "left join header_fields msgid on"
+                         " (m.id=msgid.message and msgid.field=$2) "
+                         "left join header_fields ref on"
+                         " (m.id=ref.message and ref.field=$3) "
                          "where m.thread_root is null and m.id>$1 "
                          "order by id limit 32768", this );
         d->findMessages->bind( 1, d->sofar );
+        d->findMessages->bind( 2, HeaderField::MessageID );
+        d->findMessages->bind( 3, HeaderField::References );
         d->t->enqueue( d->findMessages );
         d->t->execute();
         d->messages = new List<ThreadRootCreator::Message>();
