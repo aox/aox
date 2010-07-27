@@ -1,13 +1,25 @@
 3.1.4: 2010-xx-xx
 
   IMAP QUOTA works.
+
   Smarthost SIZE is forwarded to SMTP submit clients.
 
-  When The Seen flag is changed in a view, the change is eventually
-  propagated to the backing mailbox. Not at once. Probably when the
-  client closes. However, a bug appears to prevent seen-based views
-  from deleting the relevant message from themselves when the backing
-  mailbox' seen changes.
+  Several bugs and one missing feature:
+
+  1. INTHREAD doesn't work now. Not sure why.
+
+  2. INTHREAD OLDER and similar searches don't work; the date-based
+     searches look at the outer message.
+
+  3. THREAD needs retesting. It may be broken.
+
+  4. COMPRESS breaks the iphone 4. I want to get rid of Filter and
+     instead compress in IMAP::emitResponses() and decompress in
+     parse()... but what about reserve()? Or maybe compress/decompress
+     on the way into Buffer.
+
+  And the feature: automatic flag-based views. Almost everything is
+  ready.
 
 
 SEARCH=ADDRESS
