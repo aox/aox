@@ -124,9 +124,9 @@ void UpdateDatabase::execute()
                          "ref.value as references "
                          "from messages m "
                          "left join header_fields msgid on"
-                         " (m.id=msgid.message and msgid.field=$2) "
+                         " (m.id=msgid.message and msgid.field=$2 and msgid.part='') "
                          "left join header_fields ref on"
-                         " (m.id=ref.message and ref.field=$3) "
+                         " (m.id=ref.message and ref.field=$3 and ref.part='') "
                          "where m.thread_root is null and m.id>$1 "
                          "order by id limit 32768", this );
         d->findMessages->bind( 1, d->sofar );
