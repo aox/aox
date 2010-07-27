@@ -130,7 +130,7 @@ void UpdateDatabase::execute()
                          "where m.thread_root is null and m.id>$1 "
                          "order by id limit 32768", this );
         d->findMessages->bind( 1, d->sofar );
-        d->findMessages->bind( 2, HeaderField::MessageID );
+        d->findMessages->bind( 2, HeaderField::MessageId );
         d->findMessages->bind( 3, HeaderField::References );
         d->t->enqueue( d->findMessages );
         d->t->execute();
