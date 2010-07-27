@@ -156,7 +156,7 @@ void UpdateDatabase::execute()
             List<Address>::Iterator i( ap->addresses() );
             while ( i ) {
                 if ( !i->lpdomain().isEmpty() )
-                    m->ids.append( i->lpdomain() );
+                    m->ids.append( "<" + i->lpdomain() + ">" );
                 ++i;
             }
         }
