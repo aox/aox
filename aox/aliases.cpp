@@ -155,11 +155,15 @@ void CreateAlias::execute()
     if ( !d->q ) {
         if ( d->destination ) {
             d->q = new Query( "insert into aliases (address, mailbox) "
-                              "select $1, mailbox from aliases "
-                              "where address=$2",
+                              "select $1, mailbox from aliases al "
+                              "join addresses a on (al.address=a.id) "
+                              "where lower(a.localpart)=$2"
+                              " and lower(a.domain)=$3 "
+                              "limit 1",
                               this );
             d->q->bind( 1, d->address->id() );
-            d->q->bind( 2, d->destination->id() );
+            d->q->bind( 2, d->destination->localpart().lower() );
+            d->q->bind( 3, d->destination->domain().lower() );
         }
         else {
             d->q = new Query( "insert into aliases (address, mailbox) "
