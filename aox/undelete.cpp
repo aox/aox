@@ -196,7 +196,13 @@ void Undelete::execute()
 
         Mailbox::refreshMailboxes( d->t );
 
-        d->t->commit();
+        if ( opt( 'n' ) ) {
+            printf( "aox: Cancelling undeleting due to -n. Rerun without -n to actually undelete.\n" );
+            d->t->rollback();
+        }
+        else {
+            d->t->commit();
+        }
         d->state = 4;
     }
 
