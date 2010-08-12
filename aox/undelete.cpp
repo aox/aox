@@ -34,11 +34,12 @@ public:
 
 static AoxFactory<Undelete>
 f( "undelete", "", "Recover a message that has been deleted.",
-   "    Synopsis: undelete <mailbox> <search>\n\n"
+   "    Synopsis: undelete [-n] <mailbox> <search>\n\n"
    "    Searches for deleted messages in the specified mailbox and\n"
    "    recovers those that match the search.\n"
+   "    The -n option causes a dummy undelete.\n"
    "    Messages can be restored after an IMAP EXPUNGE or POP3 DELE\n"
-   "    until aox vacuum permanently removes them (some days) later.\n" );
+   "    until aox vacuum permanently removes them (some weeks) later.\n" );
 
 /*! \class Undelete Undelete.h
     This class handles the "aox undelete" command.
