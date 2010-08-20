@@ -40,14 +40,6 @@ Buffer::Buffer()
 }
 
 
-/*! Appends a null-terminated string starting at \a s to the Buffer.
-*/
-
-void Buffer::append( const char * s )
-{
-    append( s, strlen( s ) );
-}
-
 /*! Appends \a l bytes starting at \a s to the Buffer. */
 
 void Buffer::append( const char *s, uint l )

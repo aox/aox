@@ -21,7 +21,6 @@ public:
 
     void append( const EString & );
     void append( const char *, uint );
-    void append( const char * );
 
     void read( int );
     void write( int );
