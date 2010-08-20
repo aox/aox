@@ -13,10 +13,9 @@
 
   3. THREAD needs retesting. It may be broken.
 
-  4. COMPRESS breaks the iphone 4. I want to get rid of Filter and
-     instead compress in IMAP::emitResponses() and decompress in
-     parse()... but what about reserve()? Or maybe compress/decompress
-     on the way into Buffer.
+  4. COMPRESS now reimplemented, and may work better with iphone 4.
+
+     IMAP::emitResponses still needs a tweak or two.
 
   And the feature: automatic flag-based views. Almost everything is
   ready.
