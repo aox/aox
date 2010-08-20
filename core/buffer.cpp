@@ -40,14 +40,18 @@ Buffer::Buffer()
 }
 
 
-/*! Appends \a l bytes starting at \a s to the Buffer. If \a l is 0 (the
-    default), \a s is considered to be NUL-terminated.
+/*! Appends a null-terminated string starting at \a s to the Buffer.
 */
+
+void Buffer::append( const char * s )
+{
+    append( s, strlen( s ) );
+}
+
+/*! Appends \a l bytes starting at \a s to the Buffer. */
 
 void Buffer::append( const char *s, uint l )
 {
-    if ( l == 0 )
-        l = strlen( s );
     if ( l == 0 )
         return;
 

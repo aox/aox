@@ -20,7 +20,8 @@ public:
     void addFilter( Filter * );
 
     void append( const EString & );
-    void append( const char *, uint = 0 );
+    void append( const char *, uint );
+    void append( const char * );
 
     void read( int );
     void write( int );
