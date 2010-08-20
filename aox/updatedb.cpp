@@ -175,7 +175,9 @@ void UpdateDatabase::execute()
     }
 
     if ( !d->threader ) {
-        printf( "Threading " + fn( d->messages->count() ) + " messages.\n" );
+        printf( "%s",
+                ("Threading " + fn( d->messages->count() ) +
+                 " messages.\n").cstr() );
         d->threader = new ThreadRootCreator( d->messages, d->t );
         d->threader->execute();
         d->temp = new Query( "create temporary table md ("
