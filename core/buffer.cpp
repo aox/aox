@@ -46,8 +46,7 @@ Buffer::Buffer()
 }
 
 
-/*! Appends \a l bytes starting at \a s to the Buffer.
-*/
+/*! Appends \a l bytes starting at \a s to the Buffer. */
 
 void Buffer::append( const char * s, uint l )
 {
@@ -383,7 +382,7 @@ static void deallocwrapper( void *, void * x ) {
 
 /*! Instructs this Buffer to compress any data added if \a c is
     Compressing, and to decompress if \a c is Decompressing.
-  
+
     \a c should never be None; that's the initial state, and it's
     impossible to get back to the initial state.
 */
