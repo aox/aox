@@ -3,7 +3,6 @@
 #include "buffer.h"
 
 #include "list.h"
-#include "filter.h"
 #include "estring.h"
 #include "allocator.h"
 
@@ -13,6 +12,13 @@
 #include <unistd.h>
 // strlen, memmove
 #include <string.h>
+
+#include <zlib.h>
+
+
+static const uint bufsiz = 8192;
+static char buffer[bufsiz];
+
 
 
 /*! \class Buffer buffer.h
@@ -33,24 +39,93 @@
 /*! Creates an empty Buffer. */
 
 Buffer::Buffer()
-    : filter( 0 ), next( 0 ),
+    : filter( None ), zs( 0 ),
       firstused( 0 ), firstfree( 0 ),
       bytes( 0 )
 {
 }
 
 
-/*! Appends \a l bytes starting at \a s to the Buffer. If \a l is 0 (the
-    default), \a s is considered to be NUL-terminated.
+/*! Appends \a l bytes starting at \a s to the Buffer.
 */
 
-void Buffer::append( const char *s, uint l )
+void Buffer::append( const char * s, uint l )
 {
-    if ( l == 0 )
-        l = strlen( s );
-    if ( l == 0 )
-        return;
+    if ( l )
+        append( s, l, true );
+}
 
+
+/*! This private helper is the only way to actually write data into
+    the Buffer. read() and append() always call this.
+
+    \a s points to the start of the bytes to be appended and should
+    not be null. \a l is the length, which may be 0. If \a f is true,
+    then all of \a s is pushed through zlib, while if \a f is false,
+    zlib is given the option of looking at later input to compress
+    better.
+*/
+
+void Buffer::append( const char * s, uint l, bool f )
+{
+    int r = Z_OK;
+    bool progress = true;
+
+    switch ( filter ) {
+    case Compressing:
+        zs->avail_in = l;
+        zs->next_in = (Bytef*)s;
+        while ( zs->avail_in && progress && r == Z_OK ) {
+            zs->next_out = (Bytef*)buffer;
+            zs->avail_out = bufsiz;
+            r = ::deflate( zs, Z_NO_FLUSH );
+            if ( zs->avail_out < bufsiz )
+                append2( buffer, bufsiz - zs->avail_out );
+            else
+                progress = false;
+        }
+        if ( f ) {
+            zs->next_out = (Bytef*)buffer;
+            zs->avail_out = bufsiz;
+            r = ::deflate( zs, Z_SYNC_FLUSH );
+            if ( zs->avail_out < bufsiz )
+                append2( buffer, bufsiz - zs->avail_out );
+        }
+        if ( zs->avail_in ) {
+            // should not happen
+        }
+        break;
+
+    case Decompressing:
+        zs->avail_in = l;
+        zs->next_in = (Bytef*)s;
+        while ( zs->avail_in && progress && r == Z_OK ) {
+            zs->next_out = (Bytef*)buffer;
+            zs->avail_out = bufsiz;
+            r = ::inflate( zs, Z_SYNC_FLUSH );
+            if ( zs->avail_out < bufsiz )
+                append2( buffer, bufsiz - zs->avail_out );
+            else
+                progress = false;
+        }
+        break;
+
+    case None:
+        append2( s, l );
+        break;
+    }
+}
+
+
+/*! This internal helper for append writes already-compressed or
+    already-decompressed data to the internal buffer. \a s and \a l
+    are as for append(), but de-/compressed.
+
+    \a s must not be null, \a l must not be zero.
+*/
+
+void Buffer::append2( const char * s, uint l )
+{
     bytes += l;
 
     // First, we copy as much as we can into the last vector.
@@ -95,7 +170,7 @@ void Buffer::append( const char *s, uint l )
     Appends the EString \a s to a Buffer.
 */
 
-void Buffer::append(const EString &s)
+void Buffer::append( const EString &s )
 {
     if ( s.length() > 0 )
         append( s.data(), s.length() );
@@ -109,20 +184,13 @@ void Buffer::append(const EString &s)
 
 void Buffer::read( int fd )
 {
-    if ( next )
-        next->read( fd );
+    char buf[32768];
 
-    char buf[8184];
-
-    int n = 0;
-    do {
-        if ( filter )
-            n = filter->read( buf, 8184, next );
-        else
-            n = ::read( fd, &buf, 8184 );
-        if ( n > 0 )
-            append( buf, n );
-    } while ( n > 0 );
+    int n = ::read( fd, &buf, 32768 );
+    while ( n > 0 ) {
+        append( buf, n );
+        n = ::read( fd, &buf, 32768 );
+    }
 }
 
 
@@ -146,18 +214,11 @@ void Buffer::write( int fd )
 
         if ( n <= 0 || !v )
             written = 0;
-        else if ( filter )
-            written = filter->write( (char*)v->base+firstused, n, next );
         else
             written = ::write( fd, v->base+firstused, n );
         if ( written > 0 )
             remove( written );
     }
-
-    if ( filter )
-        filter->flush( next );
-    if ( next )
-        next->write( fd );
 }
 
 
@@ -277,24 +338,6 @@ EString Buffer::string( uint num ) const
 }
 
 
-/*! Adds \a f to this Buffer, creating another Buffer behind \a
-    f. All current contents are moved to the Buffer behind \a f.
-
-    This implies that for a read buffer, all unread contents will be
-    filtered.
-*/
-
-void Buffer::addFilter( Filter * f )
-{
-    filter = f;
-    next = new Buffer;
-
-    uint s = size();
-    next->append( string( s ) );
-    remove( s );
-}
-
-
 /*! This function removes a line (terminated by LF or CRLF) of at most
     \a s bytes from the Buffer, and returns a pointer to a EString with
     the line ending removed. If the Buffer does not contain a complete
@@ -326,4 +369,45 @@ EString * Buffer::removeLine( uint s )
     r = new EString( string( i ) );
     remove( i+n );
     return r;
+}
+
+
+static void * allocwrapper( void *, uint i, uint s ) {
+    return Allocator::alloc( i*s );
+}
+
+static void deallocwrapper( void *, void * x ) {
+    Allocator::dealloc( x );
+}
+
+
+/*! Instructs this Buffer to compress any data added if \a c is
+    Compressing, and to decompress if \a c is Decompressing.
+  
+    \a c should never be None; that's the initial state, and it's
+    impossible to get back to the initial state.
+*/
+
+void Buffer::setCompression( Compression c )
+{
+    zs = (z_stream *)Allocator::alloc( sizeof( z_stream ) );
+    zs->zalloc = &allocwrapper;
+    zs->zfree = &deallocwrapper;
+    zs->opaque = 0;
+    if ( c == Compressing )
+        ::deflateInit2( zs, 9, Z_DEFLATED,
+                        -15, 9, Z_DEFAULT_STRATEGY );
+    else if ( c == Decompressing )
+        ::inflateInit2( zs, -15 );
+    filter = c;
+}
+
+
+/*! Returns Compressing, Decompressing or None depending on what's
+    done to data added to the Buff. The initial value is None.
+*/
+
+Buffer::Compression Buffer::compression() const
+{
+    return filter;
 }

@@ -8,7 +8,6 @@
 
 
 class EString;
-class Filter;
 
 
 class Buffer
@@ -17,10 +16,12 @@ class Buffer
 public:
     Buffer();
 
-    void addFilter( Filter * );
+    enum Compression{ None, Compressing, Decompressing };
+    void setCompression( Compression );
+    Compression compression() const;
 
     void append( const EString & );
-    void append( const char *, uint = 0 );
+    void append( const char *, uint );
 
     void read( int );
     void write( int );
@@ -46,6 +47,9 @@ private:
     char at( uint ) const;
 
 private:
+    void append( const char *, uint, bool );
+    void append2( const char *, uint );
+
     struct Vector
         : public Garbage
     {
@@ -58,8 +62,8 @@ private:
     };
 
     List< Vector > vecs;
-    Filter * filter;
-    Buffer * next;
+    Compression filter;
+    struct z_stream_s * zs;
     uint firstused, firstfree;
     uint bytes;
 };

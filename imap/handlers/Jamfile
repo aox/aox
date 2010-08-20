@@ -38,5 +38,3 @@ Build imap :
     unselect.cpp
     urlfetch.cpp
     ;
-
-UseLibrary compress.cpp : z ;
