@@ -725,6 +725,7 @@ ThreadRootCreator::ThreadRootCreator( List<ThreadRootCreator::Message> * l,
     while ( m ) {
         EStringList l = m->references();
         l.append( m->messageId() );
+        ++m;
         EStringList::Iterator s( l );
         ThreadNode * parent = 0;
         while ( s ) {
@@ -771,7 +772,6 @@ ThreadRootCreator::ThreadRootCreator( List<ThreadRootCreator::Message> * l,
             }
             ++s;
         };
-        ++m;
     }
 }
 
