@@ -246,7 +246,7 @@ bool PopCommand::auth()
         EString t = nextArg().lower();
         d->m = SaslMechanism::create( t, this, d->pop );
         if ( !d->m ) {
-            d->pop->err( "SASL mechanism " + t + " not available" );
+            d->pop->err( "SASL mechanism " + t.quoted() + " not available" );
             return true;
         }
 
