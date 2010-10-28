@@ -2,6 +2,7 @@
 
 #include "sieveaction.h"
 
+#include "ustringlist.h"
 #include "ustring.h"
 #include "estring.h"
 
@@ -18,6 +19,7 @@ public:
 
     SieveAction::Type type;
     Mailbox * mailbox;
+    UStringList flags;
     Address * sender;
     Address * recipient;
     Injectee * message;
@@ -223,4 +225,26 @@ void SieveAction::setExpiry( uint n )
 uint SieveAction::expiry() const
 {
     return d->expiry;
+}
+
+
+/*! Records that the message() should be stored into mailbox() using
+    \a flags.
+
+    The default is an empty list.
+*/
+
+void SieveAction::setFlags( const UStringList & flags )
+{
+    d->flags = flags;
+}
+
+
+/*! Returns a list containing all flags which will be used when
+    storing message() into mailbox().
+*/
+
+UStringList SieveAction::flags() const
+{
+    return d->flags;
 }

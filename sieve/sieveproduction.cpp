@@ -202,8 +202,8 @@ EString SieveProduction::error() const
     The extensions are: BODY from RFC 5173. COPY from RFC 3894. DATE
     from RFC 5260.  EREJECT from RFC 5429, IHAVE from RFC 5463. RFC
     5228 defines several optional capabilities, we implement all (I
-    think).  RELATIONAL is from RFC 5231, SUBADDRESS is from RFC 5233
-    and VACATION from RFC 5230.
+    think).  RELATIONAL is from RFC 5231, SUBADDRESS is from RFC 5233,
+    VACATION from RFC 5230 and IMAP4FLAGS from RFC 5232.
 
     RFC 5260 also defines INDEX, which we don't implement, it doesn't
     seem useful.
@@ -227,6 +227,7 @@ EStringList * SieveProduction::supportedExtensions()
     r->append( "envelope" );
     r->append( "fileinto" );
     r->append( "ihave" );
+    r->append( "imap4flags" );
     r->append( "reject" );
     r->append( "relational" );
     r->append( "subaddress" );
@@ -1155,7 +1156,12 @@ void SieveCommand::parse( const EString & previous )
     }
     else if ( i == "fileinto" ) {
         require( "fileinto" );
-        (void)arguments()->findTag( ":copy" );
+        if ( arguments()->findTag( ":copy" ) )
+            require( "copy" );
+        if ( arguments()->findTag( ":flags" ) ) {
+            require( "imap4flags" );
+            (void)arguments()->takeTaggedStringList( ":copy" );
+        }
         arguments()->numberRemainingArguments();
         UString mailbox = arguments()->takeString( 1 );
         UString p;
@@ -1268,6 +1274,12 @@ void SieveCommand::parse( const EString & previous )
             if ( reason.isEmpty() )
                 setError( "Empty vacation text does not make sense" );
         }
+    }
+    else if ( i == "setflag" ||
+              i == "addflags" ||
+              i == "removeflag" ) {
+        arguments()->numberRemainingArguments();
+        (void)arguments()->takeStringList( 1 );
     }
     else if ( i == "notify" ) {
         require( "enotify" );

@@ -75,6 +75,7 @@ public:
         UString prefix;
         User * user;
         EventHandler * handler;
+        UStringList flags;
 
         bool evaluate( SieveCommand * );
         enum Result { True, False, Undecidable };
@@ -699,11 +700,16 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
     }
     else if ( c->identifier() == "fileinto" ) {
         SieveAction * a = new SieveAction( SieveAction::FileInto );
+        UStringList * flags = c->arguments()->takeTaggedStringList( ":flags" );
         UString arg = c->arguments()->takeString( 1 );
         UString n = arg;
         if ( !arg.startsWith( "/" ) )
             n = prefix + arg;
         a->setMailbox( Mailbox::find( n ) );
+        if ( flags && d->currentRecipient )
+            d->currentRecipient->flags = *flags; 
+        if ( d->currentRecipient )
+            a->setFlags( d->currentRecipient->flags );
         if ( !a->mailbox() ||
              ( user && user->id() != a->mailbox()->owner() ) ) {
             if ( !a->mailbox() )
@@ -1001,6 +1007,42 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             a->setRecipientAddress( d->sender );
             a->setHandle( handle );
             a->setExpiry( days );
+        }
+    }
+    else if ( c->identifier() == "setflag" ||
+              c->identifier() == "addflags" ||
+              c->identifier() == "removeflag" ) {
+        UStringList * a = c->arguments()->takeStringList( 1 );
+        if ( a && a->count() == 1 && a->first()->contains( ' ' ) ) {
+            // Alexey, why did you have to do this? Any other reader:
+            // RFC 5232 specifies an alternative way to specify string
+            // lists. It's possible to use sieve syntax, and also
+            // possible to use Alexey's extra syntax. *sigh*
+            a = UStringList::split( ' ', a->first()->simplified() );
+        }
+        if ( c->identifier() == "setflag" ) {
+            d->currentRecipient->flags = *a;
+        }
+        else if ( c->identifier() == "removeflag" ) {
+            uint n = a->count();
+            a->append( d->currentRecipient->flags );
+            a->removeDuplicates( false );
+            // now skip the ones we want to remove...
+            UStringList::Iterator i( *a );
+            while ( n && i ) {
+                i++;
+                n--;
+            }
+            // clear the current list
+            d->currentRecipient->flags.clear();
+            // and the rest is plain addflag. what a hack.
+            while ( i ) {
+                d->currentRecipient->flags.append( *i );
+                ++i;
+            }
+        }
+        else { // addflag
+            d->currentRecipient->flags.append( *a );
         }
     }
     else if ( c->identifier() == "notify" ) {

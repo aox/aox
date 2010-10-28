@@ -4,6 +4,7 @@
 #define SIEVEACTION_H
 
 #include "global.h"
+#include "ustringlist.h"
 
 class EString;
 class UString;
@@ -43,6 +44,9 @@ public:
 
     void setErrorMessage( const EString & );
     EString errorMessage() const;
+
+    void setFlags( const UStringList & );
+    UStringList flags() const;
 
     bool done() const;
     bool failed() const;
