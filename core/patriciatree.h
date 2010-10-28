@@ -50,7 +50,7 @@ public:
             parent = 0;
         }
 
-    private:
+    public: // really want private, but g++ 4.0.3 throws a fit
         friend class PatriciaTree;
         Node * zero;
         Node * one;
