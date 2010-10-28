@@ -198,7 +198,7 @@ public:
             q->bind( 1, from );
             t->enqueue( q );
         }
-        
+
     };
 
     ThreadRootCreator * threads;
@@ -2147,7 +2147,7 @@ void Injectee::setFlags( Mailbox * mailbox, const EStringList * list )
 }
 
 
-/*! Returns a pointer ot this message's annotations in \a
+/*! Returns a pointer to this message's annotations in \a
     mailbox. Never returns a null pointer.
 */
 
