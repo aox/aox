@@ -15,6 +15,13 @@ public:
 
     void append( UString * s ) { List<UString>::append( s ); }
     void append( const UString & );
+    void append( const UStringList & other ) {
+        Iterator o( other );
+        while ( o ) {
+            append( o );
+            ++o;
+        }
+    }
 
     void removeDuplicates( bool = true );
     bool contains( const UString & ) const;
@@ -25,11 +32,7 @@ public:
 
     UStringList &operator =( const UStringList & other ) {
         clear();
-        Iterator o( other );
-        while ( o ) {
-            append( o );
-            ++o;
-        }
+        append( other );
         return *this;
     }
 };
