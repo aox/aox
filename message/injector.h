@@ -13,6 +13,7 @@ class Address;
 class Mailbox;
 class Bodypart;
 class Annotation;
+class UStringList;
 
 
 class Injectee
@@ -29,6 +30,7 @@ public:
 
     EStringList * flags( Mailbox * ) const;
     void setFlags( Mailbox *, const EStringList * );
+    void setFlags( Mailbox *, const UStringList * );
     List<Annotation> * annotations( Mailbox * ) const;
     void setAnnotations( Mailbox *, List<Annotation> * );
 

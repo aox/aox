@@ -13,13 +13,14 @@ class SieveActionData
 public:
     SieveActionData()
         : type( SieveAction::FileInto ),
-          mailbox( 0 ), sender( 0 ), recipient( 0 ), message( 0 ),
+          mailbox( 0 ), flags( new UStringList ),
+          sender( 0 ), recipient( 0 ), message( 0 ),
           expiry( 0 )
         {}
 
     SieveAction::Type type;
     Mailbox * mailbox;
-    UStringList flags;
+    UStringList * flags;
     Address * sender;
     Address * recipient;
     Injectee * message;
@@ -236,7 +237,7 @@ uint SieveAction::expiry() const
 
 void SieveAction::setFlags( const UStringList & flags )
 {
-    d->flags = flags;
+    d->flags = new UStringList( flags );
 }
 
 
@@ -244,7 +245,7 @@ void SieveAction::setFlags( const UStringList & flags )
     storing message() into mailbox().
 */
 
-UStringList SieveAction::flags() const
+UStringList * SieveAction::flags() const
 {
     return d->flags;
 }

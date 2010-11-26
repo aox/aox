@@ -2147,6 +2147,27 @@ void Injectee::setFlags( Mailbox * mailbox, const EStringList * list )
 }
 
 
+/*! Notifies this message that its flags in \a mailbox are exactly \a
+    list.
+
+    \a list is a UStringList, but since IMAP does not allow non-ASCII
+    flags, any non-ASCII strings in \a list are silently discarded.
+
+*/
+
+void Injectee::setFlags( Mailbox * mailbox, const UStringList * list )
+{
+    InjecteeData::Mailbox * m = d->mailbox( mailbox, true );
+    m->flags->clear();
+    UStringList::Iterator i( list );
+    while ( i ) {
+        if ( i->isAscii() )
+            m->flags->append( i->ascii() );
+        ++i;
+    }
+}
+
+
 /*! Returns a pointer to this message's annotations in \a
     mailbox. Never returns a null pointer.
 */

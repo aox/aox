@@ -325,10 +325,14 @@ void Sieve::execute()
 
     // 2: injection of all messages
     if ( d->state == 2 ) {
-        List<Mailbox>::Iterator i( mailboxes() );
-        EStringList flags;
+        List<SieveData::Recipient>::Iterator i( d->recipients );
         while ( i ) {
-            d->message->setFlags( i, &flags );
+            List<SieveAction>::Iterator a( i->actions );
+            while ( a ) {
+                if ( a->type() == SieveAction::FileInto )
+                    d->message->setFlags( a->mailbox(), a->flags() );
+                ++a;
+            }
             ++i;
         }
 
@@ -707,7 +711,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             n = prefix + arg;
         a->setMailbox( Mailbox::find( n ) );
         if ( flags && d->currentRecipient )
-            d->currentRecipient->flags = *flags; 
+            d->currentRecipient->flags = *flags;
         if ( d->currentRecipient )
             a->setFlags( d->currentRecipient->flags );
         if ( !a->mailbox() ||

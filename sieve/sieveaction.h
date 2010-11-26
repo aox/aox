@@ -46,7 +46,7 @@ public:
     EString errorMessage() const;
 
     void setFlags( const UStringList & );
-    UStringList flags() const;
+    UStringList * flags() const;
 
     bool done() const;
     bool failed() const;
