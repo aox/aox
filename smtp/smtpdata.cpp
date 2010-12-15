@@ -222,8 +222,8 @@ void SmtpData::execute()
         if ( remotes )
             ::messagesSubmitted->tick();
 
-        server()->sieve()->act( this );
         d->state = 3;
+        server()->sieve()->act( this );
     }
 
     // state 3: the injector is working, we're waiting for it to finish.
@@ -248,6 +248,7 @@ void SmtpData::execute()
             d->state = 4;
         }
         else {
+            d->state = 5;
             if ( soft )
                 respond( 451, "Injection error: " + server()->sieve()->error(),
                          "4.6.0" );
