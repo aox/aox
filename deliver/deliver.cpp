@@ -68,7 +68,7 @@ public:
             q->bindNull( 1 );
             q->bindNull( 2 );
         }
-        q->bind( 2, user.lower() );
+        q->bind( 3, user.lower() );
         q->execute();
     }
 
