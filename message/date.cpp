@@ -373,6 +373,9 @@ void Date::setRfc822( const EString & s )
             // Some programs (which urgently need potty training) put a dot
             // after the month's name.
             (void)p.present( "." );
+            // Other programs (thankfully long extinct) put a comma there
+            // after month/day.
+            (void)p.present( "," );
         }
 
         a = p.string();
