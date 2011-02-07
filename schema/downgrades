@@ -114,13 +114,15 @@ begin
     create table threads (
         id serial primary key,
         mailbox integer not null references mailboxes(id),
-        subject text unique
+        subject text,
+        unique (mailbox, subject)
     );
     create table thread_members (
         thread integer not null references threads(id),
         mailbox integer not null,
         uid integer not null,
-        foreign key (mailbox,uid) references messages(mailbox,uid)
+        primary key (thread, mailbox, uid),
+        foreign key (mailbox, uid) references mailbox_messages(mailbox, uid)
             on delete cascade
     );
     return 0;
