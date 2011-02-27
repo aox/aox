@@ -300,31 +300,6 @@ create table date_fields (
 create index df_m on date_fields(message);
 
 
--- One entry per unique thread.
-
-create table threads (
-    -- Grant: select, insert, update
-    id          serial primary key,
-    mailbox     integer not null references mailboxes(id),
-    subject     text,
-    unique (mailbox, subject)
-);
-
-
--- One entry per message in each thread.
-
-create table thread_members (
-    -- Grant: select, insert
-    thread      integer not null references threads(id),
-    mailbox     integer not null,
-    uid         integer not null,
-    primary key (thread, mailbox, uid),
-    foreign key (mailbox, uid)
-                references mailbox_messages(mailbox, uid)
-                on delete cascade
-);
-
-
 -- One entry per user-defined flag name to be used in flags.
 
 create table flag_names (
@@ -592,3 +567,11 @@ after insert or update or delete
 on retention_policies
 for each statement
 execute procedure notify_retention_policies();
+
+create or replace function merge_threads(t integer, f integer) returns int as $$
+begin
+    -- Grant: execute
+    update messages set thread_root=t where thread_root=f;
+    return 0;
+end;
+$$ language 'plpgsql' security definer;

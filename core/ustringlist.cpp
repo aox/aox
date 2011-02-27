@@ -37,6 +37,11 @@ void UStringList::append( const UString & s )
 }
 
 
+/*! \fn void UStringList::append( const UStringList & other )
+    Appends each string in the given list \a other to this one.
+*/
+
+
 /*! Returns a string containing every UString in this list, with \a
     separator between the items.
 
