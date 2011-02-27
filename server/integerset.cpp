@@ -441,8 +441,9 @@ IntegerSet IntegerSet::intersection( const IntegerSet & other ) const
     while ( mine && hers ) {
         while ( mine && mine->start < hers->start )
             ++mine;
-        while ( hers && hers->start < mine->start )
-            ++hers;
+        if ( mine )
+            while ( hers && hers->start < mine->start )
+                ++hers;
         if ( mine && hers ) {
             SetData::Block * b = new SetData::Block( mine->start );
             uint u = 0;
