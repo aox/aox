@@ -407,6 +407,7 @@ bool checkSocket( EString * sock )
 
 void readPassword()
 {
+    char * s;
     char passwd[128];
     struct termios term;
     struct termios newt;
@@ -421,8 +422,10 @@ void readPassword()
         error( "Couldn't set terminal attributes (-" +
                fn( errno ) + ")." );
     printf( "Password: " );
-    fgets( passwd, 128, stdin );
+    s = fgets( passwd, 128, stdin );
     tcsetattr( 0, TCSANOW, &term );
+    if ( !s )
+        error( "Couldn't read password" );
     dbpgpass = new EString( passwd );
     dbpgpass->truncate( dbpgpass->length()-1 );
     Allocator::addEternal( dbpgpass, "DBPGPASS" );
@@ -2211,7 +2214,7 @@ int psql( const EString &cmd )
     else {
         int status = 0;
         if ( pid > 0 ) {
-            write( fd[1], cmd.cstr(), cmd.length() );
+            (void)write( fd[1], cmd.cstr(), cmd.length() );
             close( fd[1] );
             waitpid( pid, &status, 0 );
         }

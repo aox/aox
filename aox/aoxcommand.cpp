@@ -316,6 +316,7 @@ bool AoxCommand::validUsername( const UString & s )
 
 EString AoxCommand::readPassword( const EString & s )
 {
+    char * str;
     char passwd[128];
     struct termios term;
     struct termios newt;
@@ -329,8 +330,11 @@ EString AoxCommand::readPassword( const EString & s )
         error( "Couldn't set terminal attributes (-" + fn( errno ) + ")." );
 
     printf( "%s ", s.cstr() );
-    fgets( passwd, 128, stdin );
+    str = fgets( passwd, 128, stdin );
     tcsetattr( 0, TCSANOW, &term );
+
+    if ( !str )
+        error( "Couldn't read password" );
 
     EString p( passwd );
     p.truncate( p.length()-1 );
