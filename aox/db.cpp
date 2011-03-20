@@ -400,10 +400,6 @@ struct TunableIndex {
       "CREATE INDEX pn_b ON part_numbers "
       "USING btree (bodypart)",
       false, true, true },
-    { "ald", "addresses",
-      "CREATE INDEX ald ON addresses "
-      "USING btree (lower(localpart), lower(domain))",
-      false, true, true },
     { "af_mp", "address_fields",
       "CREATE INDEX af_mp ON address_fields "
       "USING btree (message, part)",

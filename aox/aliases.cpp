@@ -157,8 +157,8 @@ void CreateAlias::execute()
             d->q = new Query( "insert into aliases (address, mailbox) "
                               "select $1, mailbox from aliases al "
                               "join addresses a on (al.address=a.id) "
-                              "where lower(a.localpart)=$2"
-                              " and lower(a.domain)=$3 "
+                              "where a.localpart=$2"
+                              " and a.domain=$3 "
                               "limit 1",
                               this );
             d->q->bind( 1, d->address->id() );
@@ -226,11 +226,11 @@ void DeleteAlias::execute()
         EString rm = "delete from aliases where address=any(select a.id "
                      "from addresses a "
                      "join aliases al on (a.id=al.address) "
-                     "where lower(a.localpart)=$1 and lower(a.domain)=$2)";
+                     "where a.localpart=$1 and a.domain=$2)";
         EString tx = " and mailbox=any(select mb.id from mailboxes mb "
                      "join aliases al on (mb.id=a.mailbox) "
                      "join addresses a on (al.address=a.id) "
-                     "where lower(a.localpart)=$3 and lower(a.domain)=$4)";
+                     "where a.localpart=$3 and a.domain=$4)";
         if ( target )
             q = new Query( rm + tx, this );
         else

@@ -259,18 +259,18 @@ void Sieve::execute()
                     d->autoresponses->bind( n, i->handle() );
                     s.append( " and sent_from in "
                               "(select id from addresses "
-                              " where lower(localpart)=$" );
+                              " where localpart=$" );
                     s.appendNumber( n+1 );
-                    s.append( " and lower(domain)=$" );
+                    s.append( " and domain=$" );
                     s.appendNumber( n+2 );
                     Address * f = i->senderAddress();
                     d->autoresponses->bind( n+1, f->localpart() );
                     d->autoresponses->bind( n+2, f->domain() );
                     s.append( ") and sent_to in "
                               "(select id from addresses "
-                              " where lower(localpart)=$" );
+                              " where localpart=$" );
                     s.appendNumber( n+3 );
-                    s.append( " and lower(domain)=$" );
+                    s.append( " and domain=$" );
                     s.appendNumber( n+4 );
                     Address * r = i->recipientAddress();
                     d->autoresponses->bind( n+3, r->localpart() );
@@ -490,7 +490,7 @@ void Sieve::addRecipient( Address * address, EventHandler * user )
                        "left join users u on (s.owner=u.id) "
                        "left join namespaces n on (u.parentspace=n.id) "
                        "where m.deleted='f' and "
-                       "lower(a.localpart)=$1 and lower(a.domain)=$2", this );
+                       "a.localpart=$1 and a.domain=$2", this );
     UString localpart( address->localpart() );
     if ( Configuration::toggle( Configuration::UseSubaddressing ) ) {
         EString sep( Configuration::text( Configuration::AddressSeparator ) );

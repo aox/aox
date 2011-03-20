@@ -88,11 +88,11 @@ void ShowQueue::execute()
 
             EString s(
                 "select action, status, "
-                "lower(a.domain) as domain, a.localpart, "
+                "a.domain, a.localpart, "
                 "a.localpart||'@'||a.domain as recipient "
                 "from delivery_recipients dr join addresses a "
                 "on (dr.recipient=a.id) where dr.delivery=$1 "
-                "order by dr.action, lower(a.domain), a.localpart"
+                "order by dr.action, a.domain, a.localpart"
             );
             qr = new Query( s, this );
             qr->bind( 1, delivery );
