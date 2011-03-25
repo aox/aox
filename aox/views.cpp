@@ -109,10 +109,12 @@ void CreateView::execute()
         q = new Query( "insert into views "
                        "(view, selector, source, nextmodseq) values "
                        "((select id from mailboxes where name=$1),"
-                       "$2, $3, 1::bigint)", this );
+                       "$2, "
+                       "((select id from mailboxes where name=$3), "
+                       "1::bigint)", this );
         q->bind( 1, d->name );
         q->bind( 2, d->selector->string() );
-        q->bind( 3, d->ms->id() );
+        q->bind( 3, d->ms->name() );
         d->t->enqueue( q );
         d->t->commit();
     }
