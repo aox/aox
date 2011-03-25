@@ -15,7 +15,7 @@
 
   4. COMPRESS now reimplemented, and may work better with iphone 4.
 
-     IMAP::emitResponses still needs a tweak or two.
+  IMAP::emitResponses still needs a tweak or two.
 
   And the feature: automatic flag-based views. Almost everything is
   ready.
