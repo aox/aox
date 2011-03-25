@@ -133,6 +133,7 @@ public:
         UseStatistics,
         SoftBounce,
         CheckSenderAddresses,
+        AutoFlagViews,
         // additional toggles go ABOVE THIS LINE
         NumToggles
     };

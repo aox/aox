@@ -242,7 +242,8 @@ static struct {
     { "use-subaddressing", Configuration::UseSubaddressing, false },
     { "use-statistics", Configuration::UseStatistics, false },
     { "soft-bounce", Configuration::SoftBounce, true },
-    { "check-sender-addresses", Configuration::CheckSenderAddresses, false }
+    { "check-sender-addresses", Configuration::CheckSenderAddresses, false },
+    { "auto-flag-views", Configuration::AutoFlagViews, false }
 };
 
 
