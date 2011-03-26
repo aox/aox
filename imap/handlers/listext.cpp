@@ -434,15 +434,13 @@ void Listext::makeResponse( Row * row )
     // then there's subscription
     bool include = false;
     EString ext = "";
-    if ( row->hasColumn( "sid" ) || row->hasColumn( "csub" ) ) {
-        if ( !row->isNull( "sid" ) ) {
-            a.append( "\\subscribed" );
-            include = true;
-        }
-        if ( row->getBoolean( "csub" ) ) {
-            ext = ( " ((\"childinfo\" (\"subscribed\")))" );
-            include = true;
-        }
+    if ( row->hasColumn( "sid" ) && !row->isNull( "sid" ) ) {
+        a.append( "\\subscribed" );
+        include = true;
+    }
+    if ( row->hasColumn( "csub" ) && row->getBoolean( "csub" ) ) {
+        ext = ( " ((\"childinfo\" (\"subscribed\")))" );
+        include = true;
     }
 
     if ( d->selectSubscribed && !include )
