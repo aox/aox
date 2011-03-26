@@ -5,11 +5,13 @@
 #include "log.h"
 #include "list.h"
 #include "timer.h"
+#include "query.h"
 #include "scope.h"
 #include "estring.h"
 #include "buffer.h"
 #include "mailbox.h"
 #include "eventloop.h"
+#include "transaction.h"
 #include "imapsession.h"
 #include "configuration.h"
 #include "handlers/capability.h"
@@ -430,6 +432,76 @@ bool IMAP::idle() const
 }
 
 
+class FlagViewsCreator
+    : public EventHandler
+{
+public:
+    FlagViewsCreator( User * user ):
+        u( user ), q( 0 ), t( 0 )
+    {
+	q = new Query( "select distinct fn.name from flag_names fn "
+                       " join flags f on (fn.id=f.flag)"
+                       " where f.mailbox=$1", this );
+        q->bind( 1, user->inbox()->id() );
+        q->execute();
+        consider( us( "unseen" ) );
+        consider( us( "seen" ) );
+    }
+    virtual ~FlagViewsCreator();
+    void execute();
+    void consider( const UString & );
+
+    User * u;
+    Query * q;
+    Transaction * t;
+};
+
+
+void FlagViewsCreator::execute()
+{
+    while ( q->hasResults() )
+        consider( q->nextRow()->getUString( "name" ) );
+    if ( q->done() && t )
+        t->commit();
+}
+
+
+void FlagViewsCreator::consider( const UString & name )
+{
+    Mailbox * n = Mailbox::obtain( u->inbox()->name() + "/" + name, true );
+    if ( n->id() && !n->deleted() )
+        return;
+
+    if ( !t )
+        t = new Transaction( this );
+
+    n->create( t, u );
+
+    Selector * s = 0;
+    if ( name.ascii() == "seen" ) {
+        s = new Selector( Selector::Flags, Selector::Contains, "\\seen" );
+    }
+    else if ( name.ascii() == "unseen" ) {
+        s = new Selector( Selector::Not );
+        s->add( new Selector( Selector::Flags, Selector::Contains,
+                              "\\seen" ) );
+    }
+    else {
+        s = new Selector( Selector::Flags, Selector::Contains, name.utf8() );
+    }
+
+    Query * q = new Query(
+        "insert into views "
+        "(view, selector, source, nextmodseq) values "
+        "((select id from mailboxes where name=$1),"
+        "$2, $3, 1::bigint)", this );
+    q->bind( 1, n->name() );
+    q->bind( 2, s->string() );
+    q->bind( 3, u->inbox()->id() );
+    t->enqueue( q );
+}
+
+
 /*! Notifies the IMAP object that \a user was successfully
     authenticated by way of \a mechanism. This changes the state() of
     the IMAP object to Authenticated.
@@ -441,6 +513,8 @@ void IMAP::setUser( User * user, const EString & mechanism )
          mechanism, Log::Significant );
     SaslConnection::setUser( user, mechanism );
     setState( Authenticated );
+    if ( Configuration::toggle( Configuration::AutoFlagViews ) )
+        (void)new FlagViewsCreator( user );
 }
 
 
