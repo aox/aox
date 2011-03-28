@@ -10,6 +10,7 @@
 #include "estring.h"
 #include "buffer.h"
 #include "mailbox.h"
+#include "selector.h"
 #include "eventloop.h"
 #include "transaction.h"
 #include "imapsession.h"
