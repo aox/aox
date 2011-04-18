@@ -124,7 +124,7 @@ ManageSieveCommand::ManageSieveCommand( ManageSieve * sieve,
 
 /*! Tells this command to parse \a args. This is usually the command's
     own arguments, but can also be supplementary data supplied
-    later. SASL authentication uses supplmenetary data.
+    later. SASL authentication uses supplementary data.
 */
 
 void ManageSieveCommand::setArguments( const EString & args )
@@ -298,7 +298,7 @@ bool ManageSieveCommand::authenticate()
          d->arg.length() > d->pos )
         d->m->readResponse( new EString( string() ) );
 
-    if ( !d->m->done() )
+    if ( !d->m->done() || done() )
         return false;
 
     if ( d->m->state() == SaslMechanism::Succeeded ) {
