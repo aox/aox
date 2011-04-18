@@ -448,7 +448,7 @@ public:
         consider( us( "unseen" ) );
         consider( us( "seen" ) );
     }
-    virtual ~FlagViewsCreator();
+    virtual ~FlagViewsCreator() {}
     void execute();
     void consider( const UString & );
 
