@@ -331,7 +331,12 @@ bool PopCommand::pass()
         }
         d->m->setState( SaslMechanism::Authenticating );
         d->m->setLogin( d->pop->user()->login() );
-        d->m->setSecret( nextArg() );
+        EString pw=nextArg();
+        while ( d->args->count() ) {
+            pw += " ";
+            pw += nextArg();
+        }
+        d->m->setSecret( pw );
         d->m->execute();
     }
 
