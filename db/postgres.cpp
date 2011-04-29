@@ -190,7 +190,7 @@ void Postgres::processQueue()
         l = d->transaction->submittedQueries();
     }
     else {
-        if ( listener != this && numHandles() > 1 )
+        if ( listener == this && numHandles() > 1 )
             l = Database::firstSubmittedQuery( false );
         else
             l = Database::firstSubmittedQuery( true );
