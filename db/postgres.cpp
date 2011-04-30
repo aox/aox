@@ -77,8 +77,9 @@ public:
             Scope x( log() );
             q = new Query(
                 "select h.pid::int, a.xact_start::text,"
-                " a.client_addr::text, a.current_query::text,"
-                " a.usename::text, a.client_addr,"
+                " coalesce(a.client_addr::text,''::text) as client_addr, "
+                " a.current_query::text, "
+                " a.usename::text, "
                 " a.current_query,"
                 " w.locktype::text "
                 "from pg_locks h join pg_locks w using (locktype) "
