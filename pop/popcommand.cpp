@@ -290,9 +290,9 @@ bool PopCommand::user()
             return true;
         }
         d->user = new ::User;
-        d->pop->setUser( d->user, "POP3 login" );
         Utf8Codec c;
         d->user->setLogin( c.toUnicode( nextArg() ) );
+        d->pop->setUser( d->user, "POP3 login" );
         if ( c.valid() ) {
             d->user->refresh( this );
         }
