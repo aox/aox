@@ -77,8 +77,6 @@ EStringList Resolver::resolve( const EString & name )
 
     Resolver * r = resolver();
     r->d->host = name.lower();
-    if ( r->d->names.contains( r->d->host ) )
-        return *r->d->names.find( r->d->host );
 
     EStringList * results = new EStringList;
     if ( r->d->host == "localhost" ) {
@@ -111,6 +109,8 @@ EStringList Resolver::resolve( const EString & name )
             r->query( T_AAAA, results );
         if ( use4 )
             r->query( T_A, results );
+        if ( results->isEmpty() && r->d->names.contains( r->d->host ) )
+            return *r->d->names.find( r->d->host );
         r->d->names.insert( r->d->host, results );
     }
     return *results;
