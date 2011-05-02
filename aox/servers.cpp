@@ -362,8 +362,14 @@ static void checkListener( bool use,
                            Configuration::Scalar port,
                            const EString & description )
 {
-    if ( !use )
+    if ( !use ) {
+        if ( Configuration::present( address ) ||
+             Configuration::present( port ) )
+            fprintf( stderr,
+                     "Warning: %s is configured, but disabled",
+                     description.cstr() );
         return;
+    }
 
     EString a( Configuration::text( address ) );
     uint p( Configuration::scalar( port ) );
