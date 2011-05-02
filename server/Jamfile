@@ -29,5 +29,5 @@ Build server : tlsthread.cpp ;
 UseLibrary tlsthread.cpp : ssl ;
 # UseLibrary tlsthread.cpp : pthread ;
 C++FLAGS += -pthread ;
-LINKFLAGS += -pthread ;
+LINKFLAGS += -pthread -lcrypto ;
 

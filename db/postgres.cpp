@@ -77,15 +77,18 @@ public:
             Scope x( log() );
             q = new Query(
                 "select h.pid::int, a.xact_start::text,"
-                " a.client_addr::text, a.current_query::text,"
-                " a.usename::text, a.client_addr,"
+                " coalesce(a.client_addr::text,''::text) as client_addr, "
+                " a.current_query::text, "
+                " a.usename::text, "
                 " a.current_query,"
                 " w.locktype::text "
                 "from pg_locks h join pg_locks w using (locktype) "
                 "join pg_stat_activity a on (h.pid=a.procpid) "
                 "where h.granted and not w.granted and w.pid=$1 and "
-                "coalesce(h.relation, h.page, h.tuple, h.transactionid, h.virtualxid)="
-                "coalesce(w.relation, w.page, w.tuple, w.transactionid, w.virtualxid)",
+                "coalesce(h.relation::text, h.page::text, h.tuple::text, "
+                " h.transactionid::text, h.virtualxid)="
+                "coalesce(w.relation::text, w.page::text, w.tuple::text, "
+                " w.transactionid::text, w.virtualxid)",
                 this );
             q->bind( 1, p );
             q->execute();

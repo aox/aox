@@ -319,7 +319,7 @@ void POP::parse()
                     d->sawUser = true;
                     newCommand( d->commands, this, PopCommand::User, args );
                 }
-                else if ( d->sawUser && cmd == "pass" && args->count() == 1 ) {
+                else if ( d->sawUser && cmd == "pass" && args->count() >= 1 ) {
                     d->sawUser = false;
                     newCommand( d->commands, this, PopCommand::Pass, args );
                 }
