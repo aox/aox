@@ -601,6 +601,8 @@ void IMAP::runCommands()
         delayNeeded = (int)d->lastBadTime + delayNeeded - (int)::time(0);
         if ( delayNeeded < 0 )
             delayNeeded = 0;
+        if ( user() && !user()->inbox() && delayNeeded < 4 )
+            delayNeeded = 4;
         if ( delayNeeded > 0 && !d->commands.isEmpty() ) {
             log( "Delaying next IMAP command for " + fn( delayNeeded ) +
                  " seconds (because of " + fn( syntaxErrors() ) +
