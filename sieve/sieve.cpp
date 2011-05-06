@@ -602,6 +602,10 @@ void Sieve::evaluate()
                     r.append( ", to " );
                     r.append( a->recipientAddress()->toString() );
                     break;
+                case SieveAction::MailtoNotification:
+                    r = "notification, to ";
+                    r.append( a->recipientAddress()->toString() );
+                    break;
                 case SieveAction::Error:
                     r = "error";
                     break;
@@ -1053,12 +1057,11 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         SieveNotifyMethod * m
             = new SieveNotifyMethod( c->arguments()->takeString( 1 ),
                                      0, c );
-        if ( c->arguments()->findTag( ":from" ) ) {
+        m->setOwner( d->currentRecipient->address );
+        if ( c->arguments()->findTag( ":from" ) )
             m->setFrom( c->arguments()->takeTaggedString( ":from" ), c );
-        }
-        else {
+        else
             m->setFrom( d->currentRecipient->address );
-        }
 
         // we disregard :importance entirely. $#@$ featuritis.
 
@@ -1112,8 +1115,14 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             }
             m->setMessage( b, c );
         }
-        // this is where we want to start with 'm' and move towards an
-        // entry in the deliveries table.
+
+        SieveAction * a = new SieveAction( SieveAction::MailtoNotification );
+        actions.append( a );
+        Injectee * mtn = m->mailtoMessage();
+        a->setMessage( mtn );
+        a->setSenderAddress( m->owner() );
+        a->setRecipientAddress( mtn->header()->addressField( HeaderField::To )
+                                ->addresses()->first() );
     }
     else {
         // ?

@@ -994,6 +994,10 @@ bool ManageSieveCommand::explain()
             r.append( "@" );
             r.append( sa->recipientAddress()->domain() );
             break;
+        case SieveAction::MailtoNotification:
+            r.append( "mailto notification to " );
+            r.append( sa->recipientAddress()->lpdomain() );
+            break;
         case SieveAction::Discard:
             r.append( "discard" );
             break;

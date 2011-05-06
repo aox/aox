@@ -6,10 +6,6 @@
 #include "ustring.h"
 #include "estring.h"
 
-class SieveProduction;
-class SieveArgument;
-class Address;
-
 
 class SieveNotifyMethod
     : public Garbage
@@ -20,10 +16,12 @@ public:
                        class SieveProduction * );
 
     void setFrom( const UString &, SieveProduction * );
-    void setFrom( Address * );
-    void setMessage( const UString &, SieveProduction * );
+    void setFrom( class Address * );
+    void setOwner( class Address * );
+    class Address * owner() const;
+    void setMessage( const UString &, class SieveProduction * );
 
-    SieveProduction * command() const;
+    class SieveProduction * command() const;
 
     bool valid();
 
@@ -33,6 +31,7 @@ public:
     };
 
     Type type() const;
+    class Injectee * mailtoMessage() const;
 
     enum Reachability {
         Immediate,
