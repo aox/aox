@@ -199,7 +199,7 @@ void Copy::execute()
             q = new Query(
                 "insert into deleted_messages "
                 "(mailbox,uid,message,modseq,deleted_by,reason) "
-                "select $1, t.uid, t.message, $2, $3"
+                "select $1, t.uid, t.message, $2, $3, "
                 " 'moved to mailbox '||$4||' uid '||t.nuid "
                 "from t", 0 );
             q->bind( 1, session()->mailbox()->id() );

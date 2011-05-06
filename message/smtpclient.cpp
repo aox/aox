@@ -570,7 +570,7 @@ void SmtpClient::send( DSN * dsn, EventHandler * user )
     }
     s.append( ", from " );
     s.append( dsn->sender()->toString() );
-    log( s );
+    log( s, Log::Significant );
 
     d->dsn = dsn;
     d->dotted.truncate();
