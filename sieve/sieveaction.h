@@ -18,7 +18,7 @@ class SieveAction
     : public Garbage
 {
 public:
-    enum Type { Reject, FileInto, Redirect, Discard, Vacation, Error };
+    enum Type { Reject, FileInto, Redirect, Discard, Vacation, MailtoNotification, Error };
 
     SieveAction( Type );
 

@@ -5,9 +5,12 @@
 #include "sieveproduction.h"
 #include "addressfield.h"
 #include "estringlist.h"
+#include "bodypart.h"
+#include "injector.h"
 #include "address.h"
 #include "header.h"
 #include "field.h"
+#include "date.h"
 
 
 class SieveNotifyMethodData
@@ -18,6 +21,7 @@ public:
         : Garbage(),
           command( 0 ),
           type( SieveNotifyMethod::Invalid ),
+          owner( 0 ),
           header( 0 )
         {}
 
@@ -27,8 +31,12 @@ public:
 
     UString message;
 
+    Address * owner;
+
     // if the type is Mailto
     Header * header;
+
+
 
 };
 
@@ -103,7 +111,7 @@ SieveNotifyMethod::SieveNotifyMethod( const UString & url,
         }
 
         if ( !d->header->addresses( HeaderField::From ) )
-            d->header->add( "From", "invalid@invalid.invalid" ); // XXX
+            d->header->add( "From", "invalid@invalid.invalid" );
 
         if ( !d->header->valid() )
             reportError( "Header for mailto message will be bad: " +
@@ -162,6 +170,27 @@ void SieveNotifyMethod::setFrom( Address * f )
 }
 
 
+/*! Records that \a a is somehow the owner of this notification. The
+    owner is used e.g. to generate the owner-email token in
+    Auto-Submitted. See RFC5436 for more.
+*/
+
+void SieveNotifyMethod::setOwner( Address * a )
+{
+    d->owner = a;
+}
+
+
+/*! Returns what setOwner() recorded, or a null pointer if setOwner()
+    has not been called.
+*/
+
+Address * SieveNotifyMethod::owner() const
+{
+    return d->owner;
+}
+
+
 /*! Records that \a m should be sent as body text.
 
     This may cause errors. If it does, then they'll be reported via \a a.
@@ -217,4 +246,31 @@ SieveNotifyMethod::Reachability SieveNotifyMethod::reachability() const
 SieveNotifyMethod::Type SieveNotifyMethod::type() const
 {
     return d->type;
+}
+
+
+/*! Returns a Message suitable for sending as Mailto. */
+
+Injectee * SieveNotifyMethod::mailtoMessage() const
+{
+    Injectee * i = new Injectee;
+    i->setHeader( d->header );
+
+    Bodypart * bp = new Bodypart( 0, i );
+    bp->setText( d->message );
+    i->children()->append( bp );
+
+    Date * now = new Date;
+    now->setCurrentTime();
+    d->header->add( "Date", now->rfc822() );
+
+    if ( d->owner )
+        d->header->add( "Auto-Submitted",
+                        "auto-notified; owner-email=" + d->owner->lpdomain() );
+    else // this will be illegal. maybe better to return 0?
+        d->header->add( "Auto-Submitted", "auto-notified" );
+
+    i->addMessageId();
+
+    return i;
 }
