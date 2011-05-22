@@ -72,6 +72,7 @@ public:
     bool isQuoted( char = '"', char = '\\' ) const;
     EString unquoted( char = '"', char = '\\' ) const;
     EString quoted( char = '"', char = '\\' ) const;
+    EString forlog() const { return !d || !d->len ? "<>" : *this ; };
 
     enum Boring { Totally, IMAP, MIME };
     bool boring( Boring = Totally ) const;
