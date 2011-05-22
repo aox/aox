@@ -212,6 +212,8 @@ void POP::setState( State s )
             }
         };
 
+        d->session->earlydeletems( d->toBeDeleted );
+
         PopDeleter * pd = new PopDeleter( user(), d->session->mailbox(),
                                           d->toBeDeleted );
         pd->execute();
