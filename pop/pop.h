@@ -37,6 +37,7 @@ public:
 
     void ok( const EString & );
     void err( const EString & );
+    void abort( const EString & );
 
     void setReserved( bool );
     void setReader( class PopCommand * );

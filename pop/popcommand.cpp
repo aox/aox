@@ -664,7 +664,13 @@ bool PopCommand::retr( bool lines )
             d->message->hasAddresses() ) )
         return false;
 
-    d->pop->ok( "Done" );
+    if ( d->message->rfc822Size() > 2 )
+        d->pop->ok( "Done" );
+    else {
+        log( "Aborting due to overlapping session", Log::Significant );
+        d->pop->abort( "Overlapping sessions" );
+	return true;
+    }
 
     Buffer * b = new Buffer;
     b->append( d->message->rfc822( true ) ); // XXX always downgrades

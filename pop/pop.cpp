@@ -395,6 +395,14 @@ void POP::err( const EString &s )
     setReader( 0 );
 }
 
+/*! Sends \a s as a negative -ERR response and drops the connection. */
+
+void POP::abort( const EString &s )
+{
+    err( s );
+    react( Error );
+}
+
 
 /*! The POP server maintains a list of commands received from the
     client and processes them one at a time in the order they were
