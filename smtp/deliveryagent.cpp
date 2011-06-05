@@ -116,8 +116,7 @@ void DeliveryAgent::execute()
             "extract(epoch from last_attempt)::integer as last_attempt "
             "from delivery_recipients dr join addresses "
             "on (recipient=addresses.id) "
-            "where delivery=$1 "
-            "order by reverse(lower(domain)), lower(localpart)",
+            "where delivery=$1",
             this );
         d->qr->bind( 1, d->deliveryId );
         d->t->enqueue( d->qr );
