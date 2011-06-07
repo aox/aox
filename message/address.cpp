@@ -1223,7 +1223,7 @@ void AddressParser::space( int & i )
 void AddressParser::comment( int & i )
 {
     space( i );
-    while ( i >= 0 && d->s[i] == ')' ) {
+    while ( i > 0 && d->s[i] == ')' ) {
         int j = i;
         // ctext    = NO-WS-CTL /     ; Non white space controls
         //
@@ -1243,8 +1243,8 @@ void AddressParser::comment( int & i )
             EmailParser p( d->s.mid( i, j+1-i ) );
             d->lastComment = p.comment();
         }
-        --i;
-        space( i );
+        if ( i )
+            space( --i );
     }
 }
 
