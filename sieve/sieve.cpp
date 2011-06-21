@@ -377,7 +377,7 @@ void Sieve::execute()
                     "(sent_from, sent_to, expires_at, handle) "
                     "values ($1, $2, $3, $4)", this );
             q->bind( 1, d->injector->addressId( i->senderAddress() ) );
-            q->bind( 1, d->injector->addressId( i->recipientAddress() ) );
+            q->bind( 2, d->injector->addressId( i->recipientAddress() ) );
             Date e;
             e.setCurrentTime();
             e.setUnixTime( e.unixTime() + 86400 * i->expiry() );
