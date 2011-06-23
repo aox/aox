@@ -64,6 +64,9 @@ public:
 
     void recordSyntaxError();
 
+    void restartNatDefeater();
+    void defeatNat();
+
 private:
     class IMAPData *d;
 
