@@ -1054,6 +1054,9 @@ void IMAP::recordSyntaxError()
 
 void IMAP::restartNatDefeater()
 {
+    if ( !clientHasBug( Nat ) )
+        return;
+
     if ( state() == NotAuthenticated || state() == Logout )
         return;
 
