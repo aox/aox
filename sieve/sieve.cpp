@@ -168,31 +168,32 @@ void Sieve::execute()
         bool wasReady = ready();
         List<SieveData::Recipient>::Iterator i( d->recipients );
         while ( i ) {
-            if ( i->sq ) {
-                Row * r = i->sq->nextRow();
-                if ( r || i->sq->done() )
-                    i->sq = 0;
-                if ( r ) {
+            if ( i->sq && i->sq->hasResults() ) {
+                Row * r;
+                SieveData::Recipient *in = i;
+                for ( in = i ;
+                      (r = i->sq->nextRow()) ;
+                      in = new SieveData::Recipient( i->address, 0, d) ) {
                     if ( !r->isNull( "mailbox" ) )
-                        i->mailbox = Mailbox::find( r->getInt( "mailbox" ) );
+                        in->mailbox = Mailbox::find( r->getInt( "mailbox" ) );
                     if ( !r->isNull( "script" ) ) {
-                        i->prefix = r->getUString( "namespace" ) + "/" +
+                        in->prefix = r->getUString( "namespace" ) + "/" +
                                     r->getUString( "login" ) + "/";
-                        i->user = new User;
-                        i->user->setLogin( r->getUString( "login" ) );
-                        i->user->setId( r->getInt( "userid" ) );
-                        i->user->setAddress( new Address(
+                        in->user = new User;
+                        in->user->setLogin( r->getUString( "login" ) );
+                        in->user->setId( r->getInt( "userid" ) );
+                        in->user->setAddress( new Address(
                                                  r->getUString( "name" ),
                                                  r->getEString( "localpart" ),
                                                  r->getEString( "domain" ) ) );
-                        i->script->parse( r->getEString( "script" ).crlf() );
-                        EString errors = i->script->parseErrors();
+                        in->script->parse( r->getEString( "script" ).crlf() );
+                        EString errors = in->script->parseErrors();
                         if ( !errors.isEmpty() ) {
                             log( "Note: Sieve script for " +
-                                 i->user->login().utf8() +
+                                 in->user->login().utf8() +
                                  "had parse errors.", Log::Error );
                             EString prefix = "Sieve script for " +
-                                            i->user->login().utf8();
+                                            in->user->login().utf8();
                             EStringList::Iterator i(
                                 EStringList::split( '\n', errors ) );
                             while ( i ) {
@@ -201,13 +202,14 @@ void Sieve::execute()
                             }
                         }
                         List<SieveCommand>::Iterator
-                            c(i->script->topLevelCommands());
+                            c(in->script->topLevelCommands());
                         while ( c ) {
-                            i->pending.append( c );
+                            in->pending.append( c );
                             ++c;
                         }
                     }
                 }
+                i->sq = 0;
             }
             ++i;
         }
