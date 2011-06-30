@@ -249,13 +249,11 @@ void Sieve::execute()
                 d->autoresponses = new Query( "", this );
                 EString s = "select handle from autoresponses "
                            "where expires_at > current_timestamp "
-                           "and (";
-                bool first = true;
+                           "and ( false ";
                 int n = 1;
                 List<SieveAction>::Iterator i( d->vacations );
                 while ( i ) {
-                    if ( !first )
-                        s.append( " or " );
+                    s.append( " or " );
                     s.append( "(handle=$" );
                     s.appendNumber( n );
                     d->autoresponses->bind( n, i->handle() );
@@ -280,7 +278,6 @@ void Sieve::execute()
                     s.append( "))" );
                     ++i;
                     n += 5;
-                    first = false;
                 }
                 s.append( ")" );
                 d->autoresponses->setString( s );
