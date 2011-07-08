@@ -227,9 +227,11 @@ void DeleteAlias::execute()
 
         database( true );
         Address * a = p.addresses()->first();
-        q = new Query( "delete from aliases where address=any(select id "
-                       "from addresses where lower(localpart)=$1 and "
-                       "lower(domain)=$2 and name='')", this );
+        q = new Query( "delete from aliases where address=any(select a.id "
+                       "from addresses a "
+                       "join aliases al on (a.id=al.address) "
+                       "where lower(a.localpart)=$1 and lower(a.domain)=$2)",
+                       this );
         q->bind( 1, a->localpart().lower() );
         q->bind( 2, a->domain().lower() );
         q->execute();

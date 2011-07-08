@@ -43,7 +43,8 @@ public:
           literalSize( 0 ), session( 0 ), mailbox( 0 ),
           bytesArrived( 0 ),
           eventMap( new EventMap ),
-          lastBadTime( 0 )
+          lastBadTime( 0 ),
+          nextOkTime( 0 )
     {
         uint i = 0;
         while ( i < IMAP::NumClientCapabilities )
@@ -97,6 +98,19 @@ public:
 
         IMAP * i;
     };
+
+    class NatDefeater
+        : public EventHandler
+    {
+    public:
+        NatDefeater( IMAP * owner ) : i( owner ) {}
+
+        void execute() { i->defeatNat(); }
+
+        IMAP * i;
+    };
+
+    uint nextOkTime;
 };
 
 
@@ -352,6 +366,7 @@ void IMAP::addCommand()
     }
 
     d->commands.append( cmd );
+    d->nextOkTime = time( 0 ) + 117;
 
     Scope x( cmd->log() );
     if ( name.lower() != "login" && name.lower() != "authenticate" )
@@ -661,10 +676,13 @@ void IMAP::runCommands()
         else
             ++i;
     }
-    if ( d->commands.isEmpty() &&
-         EventLoop::global()->inShutdown() &&
-         Connection::state() == Connected )
-        Connection::setState( Closing );
+    if ( d->commands.isEmpty() ) {
+        if ( EventLoop::global()->inShutdown() &&
+             Connection::state() == Connected )
+            Connection::setState( Closing );
+        else
+            restartNatDefeater();
+    }
 }
 
 
@@ -1027,4 +1045,54 @@ void IMAP::recordSyntaxError()
 {
     SaslConnection::recordSyntaxError();
     d->lastBadTime = time( 0 );
+}
+
+
+/*! Restarts the timing logic we use to send little OK response in
+    order to defeat too-quick NAT timeouts.
+*/
+
+void IMAP::restartNatDefeater()
+{
+    if ( !clientHasBug( Nat ) )
+        return;
+
+    if ( state() == NotAuthenticated || state() == Logout )
+        return;
+
+    uint now = time( 0 );
+    uint next = now + 4;
+    // if we've already set up a suitable timer, just quit
+    if ( d->nextOkTime >= next && d->nextOkTime < now + 6 )
+        return;
+    // otherwise, set one up
+    d->nextOkTime = next;
+    (void)new Timer( new IMAPData::NatDefeater( this ), 6 );
+}
+
+
+/*! Called regularly to ensure that we send an untagged OK every
+    minute or so, in order to ensure a steady stream of packets. Some
+    NAT gateways will kill the connection after as little as two
+    minutes if no traffic is seen.
+*/
+
+void IMAP::defeatNat()
+{
+    if ( !idle() )
+        return;
+    if ( Connection::state() != Connection::Connected )
+        return;
+    if ( state() == NotAuthenticated || state() == Logout )
+        return;
+
+    uint now = time( 0 );
+    if ( now < d->nextOkTime )
+        return;
+
+    d->nextOkTime = now + 117;
+    (void)new Timer( new IMAPData::NatDefeater( this ), d->nextOkTime - now );
+    Date x;
+    x.setUnixTime( now );
+    enqueue( "* OK (NAT keepalive: " + x.isoTime() + ")\r\n" );
 }

@@ -27,6 +27,8 @@
 #include <sys/wait.h>
 // time()
 #include <time.h>
+// trunc()
+#include <math.h>
 
 // our own includes, _after_ the system header files. lots of system
 // header files break if we've already defined UINT_MAX, etc.
@@ -317,8 +319,14 @@ static void shutdownLoop( int )
         return;
     }
 
-    EventLoop::global()->stop( 10800 );
-    (void)alarm( 10800 );
+    uint used = Allocator::inUse() / 1024 + Allocator::allocated() / 1024;
+    uint limit = Configuration::scalar( Configuration::MemoryLimit );
+    if ( used > limit )
+        used = limit;
+    uint shorter = trunc( 10797.0 * used / limit );
+    
+    EventLoop::global()->stop( 10800 - shorter );
+    (void)alarm( 10800 - shorter );
 }
 
 

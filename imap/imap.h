@@ -31,7 +31,7 @@ public:
     bool clientSupports( ClientCapability ) const;
     void setClientSupports( ClientCapability );
 
-    enum ClientBug { NoUnsolicitedResponses, NumClientBugs };
+    enum ClientBug { NoUnsolicitedResponses, Nat, NumClientBugs };
     bool clientHasBug( ClientBug ) const;
     void setClientBug( ClientBug );
 
@@ -63,6 +63,9 @@ public:
     void setEventMap( class EventMap * );
 
     void recordSyntaxError();
+
+    void restartNatDefeater();
+    void defeatNat();
 
 private:
     class IMAPData *d;
