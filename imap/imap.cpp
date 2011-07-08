@@ -531,6 +531,17 @@ void IMAP::setUser( User * user, const EString & mechanism )
     setState( Authenticated );
     if ( Configuration::toggle( Configuration::AutoFlagViews ) )
         (void)new FlagViewsCreator( user );
+
+    bool possiblyOutlook = true;
+    List< Command >::Iterator i( d->commands );
+    while ( i && possiblyOutlook ) {
+        EString tag = i->tag();
+        ++i;
+        if ( tag.length() != 4 || tag.contains( '.' ) )
+            possiblyOutlook = false;
+    }
+    if ( possiblyOutlook )
+        setClientBug( Nat )
 }
 
 
@@ -551,9 +562,10 @@ void IMAP::reserve( Command * command )
 
 void IMAP::unblockCommands()
 {
-    while ( d->commands.firstElement() &&
-            d->commands.firstElement()->state() == Command::Retired )
-        d->commands.shift();
+    if ( d->state != NotAuthenticated )
+        while ( d->commands.firstElement() &&
+                d->commands.firstElement()->state() == Command::Retired )
+            d->commands.shift();
     if ( d->runningCommands )
         d->runCommandsAgain = true;
     else
