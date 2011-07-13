@@ -541,7 +541,7 @@ void IMAP::setUser( User * user, const EString & mechanism )
             possiblyOutlook = false;
     }
     if ( possiblyOutlook )
-        setClientBug( Nat )
+        setClientBug( Nat );
 }
 
 
@@ -845,11 +845,19 @@ bool IMAP::clientHasBug( ClientBug bug ) const
 }
 
 
+static const char * clientBugMessages[IMAP::NumClientBugs] = {
+   "Mishandling of unsolicited responses",
+   "NAT"
+};
+
 /*! Records that the client is presumed to suffer from \a bug. */
 
 void IMAP::setClientBug( ClientBug bug )
 {
     d->clientBugs[bug] = true;
+    (void)new ImapResponse( this,
+                            EString( "OK Activating workaround for: " ) +
+                                     clientBugMessages[bug] );
 }
 
 
