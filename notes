@@ -20,6 +20,10 @@
   And the feature: automatic flag-based views. Almost everything is
   ready.
 
+  SORT(SUBJECT) is broken. The only way to fix it is to add a postgres
+  function to implement the moronic baseness algorithm in the RFC. I can't
+  write that sort of thing.
+
 
 SEARCH=ADDRESS
 

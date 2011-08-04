@@ -7,8 +7,8 @@
 #include "timer.h"
 #include "query.h"
 #include "scope.h"
-#include "estring.h"
 #include "buffer.h"
+#include "estring.h"
 #include "mailbox.h"
 #include "selector.h"
 #include "eventloop.h"
@@ -531,6 +531,17 @@ void IMAP::setUser( User * user, const EString & mechanism )
     setState( Authenticated );
     if ( Configuration::toggle( Configuration::AutoFlagViews ) )
         (void)new FlagViewsCreator( user );
+
+    bool possiblyOutlook = true;
+    List< Command >::Iterator i( d->commands );
+    while ( i && possiblyOutlook ) {
+        EString tag = i->tag();
+        ++i;
+        if ( tag.length() != 4 || tag.contains( '.' ) )
+            possiblyOutlook = false;
+    }
+    if ( possiblyOutlook )
+        setClientBug( Nat );
 }
 
 
@@ -551,9 +562,10 @@ void IMAP::reserve( Command * command )
 
 void IMAP::unblockCommands()
 {
-    while ( d->commands.firstElement() &&
-            d->commands.firstElement()->state() == Command::Retired )
-        d->commands.shift();
+    if ( d->state != NotAuthenticated )
+        while ( d->commands.firstElement() &&
+                d->commands.firstElement()->state() == Command::Retired )
+            d->commands.shift();
     if ( d->runningCommands )
         d->runCommandsAgain = true;
     else
@@ -833,11 +845,19 @@ bool IMAP::clientHasBug( ClientBug bug ) const
 }
 
 
+static const char * clientBugMessages[IMAP::NumClientBugs] = {
+   "Mishandling of unsolicited responses",
+   "NAT"
+};
+
 /*! Records that the client is presumed to suffer from \a bug. */
 
 void IMAP::setClientBug( ClientBug bug )
 {
     d->clientBugs[bug] = true;
+    (void)new ImapResponse( this,
+                            EString( "OK Activating workaround for: " ) +
+                                     clientBugMessages[bug] );
 }
 
 
