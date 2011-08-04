@@ -495,7 +495,7 @@ void ChangeUsername::execute()
 
         d->query =
             new Query( "select name from mailboxes where deleted='f' and "
-                       "name like '/users/'||$1||'/%'", this );
+                       "name ilike '/users/'||$1||'/%'", this );
         d->query->bind( 1, d->user->login() );
         d->t->enqueue( d->query );
 
