@@ -58,11 +58,10 @@ SmtpMailFrom::SmtpMailFrom( SMTP * s, SmtpParser * p )
     p->whitespace();
     if ( server()->dialect() == SMTP::Submit &&
          d->address->type() != Address::Normal &&
-         d->address->type() != Address::Bounce )
-        respond( 501,
-                 "Address must be <> or <localpart@domain>. "
-                 "Address specied was: " + d->address->toString(),
-                 "5.1.0" );
+         d->address->type() != Address::Bounce ) {
+        respond( 0, "Parse error. Using your primary address instead." );
+        d->address = server()->user()->address();
+    }
 
     EStringList paramsSeen;
     while ( p->ok() && !p->atEnd() ) {
