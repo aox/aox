@@ -328,8 +328,10 @@ void TlsThread::start()
                 tv.tv_usec = 50000; // 0.05s
             }
             else if ( any ) {
-                // if we think there's something to do, we wait for an hour.
-                tv.tv_sec = 3600;
+                // if we think there's something to do, we wait for a
+                // few seconds. not very long, just in case openssl is
+                // acting behind our back.
+                tv.tv_sec = 4;
                 tv.tv_usec = 0;
             }
             else {
