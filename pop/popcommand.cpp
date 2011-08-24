@@ -26,7 +26,7 @@ class PopCommandData
 public:
     PopCommandData()
         : pop( 0 ), args( 0 ), done( false ),
-          tlsServer( 0 ), m( 0 ), r( 0 ),
+          m( 0 ), r( 0 ),
           user( 0 ), mailbox( 0 ), permissions( 0 ),
           session( 0 ), sentFetch( false ), started( false ),
           message( 0 ), n( 0 ), findIds( 0 ), map( 0 )
@@ -38,7 +38,6 @@ public:
 
     bool done;
 
-    TlsServer * tlsServer;
     SaslMechanism * m;
     EString * r;
     User * user;
@@ -231,7 +230,7 @@ bool PopCommand::startTls()
 {
     log( "STLS Command" );
     d->pop->ok( "Done" );
-    d->pop->startTls( d->tlsServer );
+    d->pop->startTls();
 
     return true;
 }

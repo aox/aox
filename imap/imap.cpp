@@ -809,7 +809,7 @@ IMAPS::IMAPS( int s )
     : IMAP( s )
 {
     EString * tmp = writeBuffer()->removeLine();
-    startTls( 0 );
+    startTls();
     enqueue( *tmp + "\r\n" );
 }
 

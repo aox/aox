@@ -70,7 +70,6 @@ public:
 
 private:
     bool startedTls;
-    class TlsServer * tlsServer;
 };
 
 

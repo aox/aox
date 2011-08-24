@@ -597,9 +597,9 @@ void Connection::enqueue( const EString &s )
 */
 
 
-/*! Starts TLS negotiation using \a s on this connection. */
+/*! Starts TLS negotiation on this connection. */
 
-void Connection::startTls( TlsServer * s )
+void Connection::startTls()
 {
     if ( d->tls || !valid() )
         return;
@@ -641,9 +641,6 @@ void Connection::startTls( TlsServer * s )
     t->setClientFD( d->fd );
     t->setServerFD( sv[0] );
     d->fd = sv[1];
-
-    if ( s )
-        log( "Note: TlsServer was created and need not be", Log::Debug );
 
     d->tls = true;
 }

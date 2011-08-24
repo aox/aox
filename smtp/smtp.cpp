@@ -437,8 +437,7 @@ class SMTPSData
     : public Garbage
 {
 public:
-    SMTPSData() : tlsServer( 0 ), helper( 0 ) {}
-    TlsServer * tlsServer;
+    SMTPSData() : helper( 0 ) {}
     EString banner;
     class SmtpsHelper * helper;
 };
@@ -470,7 +469,7 @@ SMTPS::SMTPS( int s )
     EString * tmp = writeBuffer()->removeLine();
     if ( tmp )
         d->banner = *tmp;
-    startTls( 0 );
+    startTls();
     enqueue( d->banner + "\r\n" );
 }
 

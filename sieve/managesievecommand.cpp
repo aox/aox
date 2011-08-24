@@ -28,7 +28,7 @@ class ManageSieveCommandData
 public:
     ManageSieveCommandData()
         : sieve( 0 ), pos( 0 ), done( false ),
-          tlsServer( 0 ), m( 0 ),
+          m( 0 ),
           user( 0 ), t( 0 ), query( 0 ), step( 0 )
     {}
 
@@ -39,7 +39,6 @@ public:
 
     bool done;
 
-    TlsServer * tlsServer;
     SaslMechanism * m;
     User * user;
 
@@ -259,7 +258,7 @@ bool ManageSieveCommand::startTls()
             return true;
 
         d->sieve->enqueue( "OK\r\n" );
-        d->sieve->startTls( d->tlsServer );
+        d->sieve->startTls();
         d->sieve->capabilities();
         return true;
     }

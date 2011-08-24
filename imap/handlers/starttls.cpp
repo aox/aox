@@ -15,7 +15,6 @@
 /*! Constructs a regular StartTLS parser. */
 
 StartTLS::StartTLS()
-    : tlsServer( 0 )
 {
 }
 
@@ -57,5 +56,5 @@ void StartTLS::emitResponses()
     Command::emitResponses();
     if ( state() != Retired )
         return;
-    imap()->startTls( tlsServer );
+    imap()->startTls();
 }

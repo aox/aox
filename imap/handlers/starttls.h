@@ -16,9 +16,6 @@ public:
     void execute();
 
     void emitResponses();
-
-private:
-    class TlsServer * tlsServer;
 };
 
 

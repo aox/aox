@@ -543,6 +543,6 @@ POPS::POPS( int s )
     : POP( s )
 {
     EString * tmp = writeBuffer()->removeLine();
-    startTls( 0 );
+    startTls();
     enqueue( *tmp + "\r\n" );
 }

@@ -298,7 +298,7 @@ SmtpHelp::SmtpHelp( SMTP * s, SmtpParser * )
 /*! Starts TLS negotiation as server for \a s. */
 
 SmtpStarttls::SmtpStarttls( SMTP * s, SmtpParser * )
-    : SmtpCommand( s ), startedTls( false ), tlsServer( 0 )
+    : SmtpCommand( s ), startedTls( false )
 {
     Scope x( log() );
 }
@@ -318,7 +318,7 @@ void SmtpStarttls::execute()
     startedTls = true;
     log( "Negotiating TLS", Log::Debug );
     server()->enqueue( "220 2.0.0 Start negotiating TLS now.\r\n" );
-    server()->startTls( tlsServer );
+    server()->startTls();
     finish();
 }
 

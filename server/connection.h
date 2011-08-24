@@ -8,7 +8,6 @@
 
 class User;
 class Buffer;
-class TlsServer;
 
 
 class Connection
@@ -63,7 +62,7 @@ public:
     Type type() const;
     virtual EString description() const;
 
-    void startTls( TlsServer * );
+    void startTls();
     bool hasTls() const;
 
     virtual void close();
