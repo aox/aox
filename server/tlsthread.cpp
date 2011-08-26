@@ -14,7 +14,7 @@
 #include <openssl/err.h>
 
 
-static const int bs = 16384;
+static const int bs = 32768;
 
 
 class TlsThreadData
