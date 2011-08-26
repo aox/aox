@@ -341,13 +341,18 @@ void TlsThread::start()
             }
 
             int n = select( maxfd+1, &r, &w, 0, &tv );
-            if ( n < 0 )
+            if ( n < 0 && errno != EINTR )
                 finish = true;
 
-            crct = FD_ISSET( d->ctfd, &r );
-            cwct = FD_ISSET( d->ctfd, &w );
-            crenc = FD_ISSET( d->encfd, &r );
-            cwenc = FD_ISSET( d->encfd, &w );
+            if ( n >= 0 ) {
+                crct = FD_ISSET( d->ctfd, &r );
+                cwct = FD_ISSET( d->ctfd, &w );
+                crenc = FD_ISSET( d->encfd, &r );
+                cwenc = FD_ISSET( d->encfd, &w );
+            } else {
+                crct = cwct = crenc = cwenc = false;
+            }
+
         }
     }
 
