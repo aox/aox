@@ -562,9 +562,10 @@ void IMAP::reserve( Command * command )
 
 void IMAP::unblockCommands()
 {
-    while ( d->commands.firstElement() &&
-            d->commands.firstElement()->state() == Command::Retired )
-        d->commands.shift();
+    if ( d->state != NotAuthenticated )
+        while ( d->commands.firstElement() &&
+                d->commands.firstElement()->state() == Command::Retired )
+            d->commands.shift();
     if ( d->runningCommands )
         d->runCommandsAgain = true;
     else
