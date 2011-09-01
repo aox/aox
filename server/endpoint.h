@@ -16,7 +16,7 @@ public:
     Endpoint();
     Endpoint( const Endpoint & );
     Endpoint( const EString &, uint );
-    Endpoint( const struct sockaddr * );
+    Endpoint( const struct sockaddr *, uint );
     Endpoint( Configuration::Text, Configuration::Scalar );
 
     enum Protocol { Unix, IPv4, IPv6 };

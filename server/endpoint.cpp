@@ -103,7 +103,7 @@ Endpoint::Endpoint( const EString &address, uint port )
 
 /*! Constructs an Endpoint corresponding to the sockaddr \a sa. */
 
-Endpoint::Endpoint( const struct sockaddr *sa )
+Endpoint::Endpoint( const struct sockaddr *sa, uint len )
     : d( new EndpointData )
 {
     if ( !sa )
@@ -115,8 +115,12 @@ Endpoint::Endpoint( const struct sockaddr *sa )
             struct sockaddr_un *un = (struct sockaddr_un *)sa;
             d->valid = true;
             d->proto = Unix;
-            d->ua    = File::root().mid( 0, File::root().length()-1 ) +
-                       un->sun_path;
+            if ( len == sizeof(sa_family_t) ) {
+                d->ua = "(unnamed)";
+            } else {
+                d->ua = File::root().mid( 0, File::root().length()-1 ) +
+                    un->sun_path;
+            }
         }
         break;
 

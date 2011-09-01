@@ -487,7 +487,7 @@ Endpoint Connection::self() const
 
     if ( valid() && !d->self.valid() ) {
         if ( ::getsockname( d->fd, (sockaddr *)&sa, &n ) >= 0 )
-            d->self = Endpoint( (sockaddr *)&sa );
+            d->self = Endpoint( (sockaddr *)&sa, n );
     }
 
     return d->self;
@@ -505,7 +505,7 @@ Endpoint Connection::peer() const
 
     if ( valid() && !d->peer.valid() ) {
         if ( ::getpeername( d->fd, (sockaddr *)&sa, &n ) >= 0 )
-            d->peer = Endpoint( (sockaddr *)&sa );
+            d->peer = Endpoint( (sockaddr *)&sa, n );
     }
 
     return d->peer;
