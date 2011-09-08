@@ -642,7 +642,7 @@ void IMAP::runCommands()
         // we may be able to start new commands.
         i = d->commands.first();
         Command * first = i;
-        if ( first ) {
+        if ( first && first->state() != Command::Retired ) {
             Scope x( first->log() );
             ++i;
             if ( first->state() == Command::Unparsed )
