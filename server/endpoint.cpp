@@ -259,7 +259,7 @@ EString Endpoint::address() const
             i = 0;
             bool sep = false;
             while ( i < 8 ) {
-                if ( i == z ) {
+                if ( l > 0 && i == z ) {
                     result.append( "::" );
                     i += l;
                     sep = false;
