@@ -195,9 +195,11 @@ void CreateAlias::execute()
 
 static AoxFactory<DeleteAlias>
 f3( "delete", "alias", "Delete a delivery alias.",
-    "    Synopsis: aox delete alias <address>\n\n"
+    "    Synopsis: aox delete alias <address> (<address>\n\n"
     "    Deletes the alias that associated the specified address\n"
-    "    with a mailbox.\n" );
+    "    with a mailbox. If two addresses are specified, then the\n"
+    "    the alias is not deleted as a whole. Only the second address\n"
+    "    is removed from the alias.\n" );
 
 
 /*! \class DeleteAlias aliases.h
@@ -214,26 +216,31 @@ void DeleteAlias::execute()
 {
     if ( !q ) {
         parseOptions();
-        EString address = next();
+        Address * address = nextAsAddress();
+        Address * target = 0;
+        if ( !args()->isEmpty() )
+            target = nextAsAddress();
         end();
 
-        if ( address.isEmpty() )
-            error( "No address specified." );
-
-        AddressParser p( address );
-        p.assertSingleAddress();
-        if ( !p.error().isEmpty() )
-            error( "Invalid address: " + p.error() );
-
         database( true );
-        Address * a = p.addresses()->first();
-        q = new Query( "delete from aliases where address=any(select a.id "
-                       "from addresses a "
-                       "join aliases al on (a.id=al.address) "
-                       "where lower(a.localpart)=$1 and lower(a.domain)=$2)",
-                       this );
-        q->bind( 1, a->localpart().lower() );
-        q->bind( 2, a->domain().lower() );
+        EString rm = "delete from aliases where address=any(select a.id "
+                     "from addresses a "
+                     "join aliases al on (a.id=al.address) "
+                     "where lower(a.localpart)=$1 and lower(a.domain)=$2)";
+        EString tx = " and mailbox=any(select mb.id from mailboxes mb "
+                     "join aliases al on (mb.id=a.mailbox) "
+                     "join addresses a on (al.address=a.id) "
+                     "where lower(a.localpart)=$3 and lower(a.domain)=$4)";
+        if ( target )
+            q = new Query( rm + tx, this );
+        else
+            q = new Query( rm, this );
+        q->bind( 1, address->localpart().lower() );
+        q->bind( 2, address->domain().lower() );
+        if ( target ) {
+            q->bind( 3, target->localpart().lower() );
+            q->bind( 4, target->domain().lower() );
+        }
         q->execute();
     }
 
