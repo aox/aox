@@ -57,6 +57,16 @@ void * EStringData::operator new( size_t ownSize, uint extra )
     e.g. MIME, quoted() quotes it. upper() and lower() have a third
     sibling, headerCased(). simplified() and trimmed() remove white
     space in ways email often needs.
+
+    Several people have asked why we use this class instead of
+    std::string, and UString instead of std::basic_string<uint>. At
+    least one told us we were wrong and wheel reinvention and so on.
+
+    The reason is that working with email using EString is fairly
+    pleasant. Doing the same kind of work with std::string is a pain.
+
+    Both wheels are round. EString carries its load and moves it
+    smoothly along.
 */
 
 /*! Creates an empty EString */
