@@ -251,8 +251,11 @@ void WebPage::addClass( const EString & text, Class * c )
 
 void WebPage::output( const EString & s )
 {
-    if ( fd >= 0 && !s.isEmpty() )
-        ::write( fd, s.data(), s.length() );
+    if ( fd < 0 || s.isEmpty() )
+        return;
+    if ( ::write( fd, s.data(), s.length() ) < (int)s.length() )
+        return;
+    return;
 }
 
 

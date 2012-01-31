@@ -2214,8 +2214,9 @@ int psql( const EString &cmd )
     else {
         int status = 0;
         if ( pid > 0 ) {
-            (void)write( fd[1], cmd.cstr(), cmd.length() );
-            close( fd[1] );
+            int ignore = write( fd[1], cmd.cstr(), cmd.length() );
+            ignore = ignore;
+            (void)close( fd[1] );
             waitpid( pid, &status, 0 );
         }
         if ( pid < 0 || ( WIFEXITED( status ) &&
