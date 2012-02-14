@@ -233,6 +233,8 @@ void Function::setOverload()
 
 bool Function::hasArgument( const EString & s ) const
 {
+    if ( s.isEmpty() )
+        return false;
     int i = 0;
     while ( i >= 0 && i < (int)args.length() ) {
         i = args.find( s, i );
