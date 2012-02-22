@@ -183,7 +183,7 @@ void Undelete::execute()
         q = new Query( "delete from deleted_messages "
                        "where mailbox=$1 and uid=any($2)", 0 );
         q->bind( 1, d->m->id() );
-        q->bind( 5, s );
+        q->bind( 2, s );
         d->t->enqueue( q );
 
         q = new Query( "update mailboxes "
