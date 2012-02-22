@@ -13,7 +13,7 @@ class PatriciaTree
 {
 public:
     PatriciaTree(): root( 0 ) { }
-    virtual ~PatriciaTree() { clear(); }
+    virtual ~PatriciaTree() {}
 
     class Node
         : public Garbage
@@ -38,16 +38,6 @@ public:
 
         void * operator new( size_t ownSize, uint extra ) {
             return Allocator::alloc( ownSize + extra );
-        }
-
-        void clear() {
-            if ( zero )
-                zero->clear();
-            if ( one )
-                one->clear();
-            zero = 0;
-            one = 0;
-            parent = 0;
         }
 
     public: // really want private, but g++ 4.0.3 throws a fit
@@ -257,9 +247,6 @@ public:
     }
 
     void clear() {
-        if ( !root )
-            return;
-        root->clear();
         root = 0;
     }
 

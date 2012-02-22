@@ -528,6 +528,15 @@ static void checkMiscellaneous()
         }
     }
 
+    if ( !Configuration::toggle( Configuration::UseTls ) ) {
+	if ( Configuration::toggle( Configuration::UseImaps ) )
+            error( "use-imaps enabled, but use-tls disabled" );
+	if ( Configuration::toggle( Configuration::UsePops ) )
+            error( "use-pops enabled, but use-tls disabled" );
+	if ( Configuration::toggle( Configuration::UseSmtps ) )
+            error( "use-smtps enabled, but use-tls disabled" );
+    }
+
     EString sA( Configuration::text( Configuration::SmartHostAddress ) );
     uint sP( Configuration::scalar( Configuration::SmartHostPort ) );
 

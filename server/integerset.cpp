@@ -409,8 +409,9 @@ void IntegerSet::remove( const IntegerSet & other )
     while ( mine && hers ) {
         while ( mine && mine->start < hers->start )
             ++mine;
-        while ( hers && hers->start < mine->start )
-            ++hers;
+        if ( mine )
+            while ( hers && hers->start < mine->start )
+                ++hers;
         if ( mine && hers ) {
             uint i = 0;
             uint u = 0;
