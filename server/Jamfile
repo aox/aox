@@ -14,7 +14,7 @@ Build server :
     graph.cpp integerset.cpp egd.cpp ;
 
 # We must link with -lresolv on linux, but not on the BSDs.
-if $(OS) = "LINUX" {
+if $(OS) = "LINUX" || $(OS) = "DARWIN" {
     UseLibrary resolver.cpp : resolv ;
 }
 

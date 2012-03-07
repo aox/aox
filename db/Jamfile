@@ -57,6 +57,6 @@ Build database : database.cpp postgres.cpp pgmessage.cpp
     query.cpp transaction.cpp schema.cpp dbsignal.cpp granter.cpp
     schemachecker.cpp ;
 
-if $(OS) != "OPENBSD" {
+if $(OS) != "OPENBSD" && $(OS) != "DARWIN" {
     UseLibrary postgres.cpp : crypt ;
 }
