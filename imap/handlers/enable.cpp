@@ -14,7 +14,7 @@
 
 
 Enable::Enable()
-    : Command(), condstore( false ), annotate( false )
+    : Command(), condstore( false ), annotate( false ), utf8( false )
 {
 }
 
@@ -31,6 +31,9 @@ void Enable::parse()
         }
         else if ( capability == "ANNOTATE-EXPERIMENT-1" ) {
             annotate = true;
+        }
+        else if ( capability == "UTF8=ACCEPT" ) {
+            utf8 = true;
         }
         else {
             EString all = Capability::capabilities( imap(), true ).upper();
@@ -55,6 +58,10 @@ void Enable::execute()
     if ( annotate ) {
         imap()->setClientSupports( IMAP::Annotate );
         r.append( " ANNOTATE-EXPERIMENT-1" );
+    }
+    if ( annotate ) {
+        imap()->setClientSupports( IMAP::Unicode );
+        r.append( " UTF8=ACCEPT" );
     }
     respond( r );
     finish();
