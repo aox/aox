@@ -193,10 +193,18 @@ EString ImapParser::uquoted()
     step();
     char c = nextChar();
     while ( c != '"' && c > 0 && c != 10 && c != 13 ) {
-        // \ ?
-        step();
-        r.append( c );
-        c = nextChar();
+        if ( c == '\\' ) {
+            step();
+            c = nextChar();
+            if ( c == 0 || c >= 128 || c == 10 || c == 13 )
+                setError( "Quoted UTF8 string contained bad char: " +
+                          following() );
+        }
+        do {
+            step();
+            r.append( c );
+            c = nextChar();
+        } while ( c > 128 );
     }
 
     if ( c != '"' )
