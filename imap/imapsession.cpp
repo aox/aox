@@ -20,7 +20,7 @@ public:
     ImapSessionData(): i( 0 ), l( 0 ),
                        exists( 0 ), recent( 0 ),
                        uidnext( 0 ), nms( 0 ), cms( 0 ),
-                       emitting( false ),
+                       emitting( false ), unicode( false ),
                        existsResponse( 0 ), recentResponse( 0 ),
                        uidnextResponse( 0 ),
                        flagUpdate( 0 ), permaFlagUpdate( 0 ) {}
@@ -38,6 +38,7 @@ public:
     EStringList flags;
     List<int64> ignorable;
     bool emitting;
+    bool unicode;
 
     class ExistsResponse
         : public ImapResponse
@@ -173,15 +174,19 @@ public:
 
 /*! Creates a new ImapSession for the Mailbox \a m to be accessed
     using \a imap. If \a readOnly is true, the session is read-only.
+    If \a unicode is true, the session presents messages in EAI format, if
+    false, in classic MIME format.
 */
 
-ImapSession::ImapSession( IMAP * imap, Mailbox * m, bool readOnly )
+ImapSession::ImapSession( IMAP * imap, Mailbox * m, bool readOnly,
+                          bool unicode )
     : Session( m, imap, readOnly ),
       d( new ImapSessionData )
 {
     d->i = imap;
     Scope x( imap->log() );
     d->l = new Log;
+    d->unicode = unicode;
 }
 
 
@@ -423,4 +428,14 @@ void ImapSession::sendFlagUpdate( FlagCreator * c )
 {
     (void)new ImapSessionData::FlagUpdateResponse( this, d, false, c );
     (void)new ImapSessionData::FlagUpdateResponse( this, d, true, c );
+}
+
+
+/*! Returns true if the server should return messages in EAI form, and
+    false if it should use RFC2047 encoding etc.
+*/
+
+bool ImapSession::unicode() const
+{
+    return d->unicode;
 }
