@@ -1,26 +1,26 @@
 .\" Copyright 2009 The Archiveopteryx Developers <info@aox.org>
-.TH deliver 8 2011-02-10 aox.org "Archiveopteryx Documentation"
+.TH aoxdeliver 8 2011-02-10 aox.org "Archiveopteryx Documentation"
 .SH NAME
-deliver - deliver mail into Archiveopteryx.
+aoxdeliver - deliver mail into Archiveopteryx.
 .SH SYNOPSIS
-.B $BINDIR/deliver [-f sender] [-t mailbox] [-v] destination [filename]
+.B $BINDIR/aoxdeliver [-f sender] [-t mailbox] [-v] destination [filename]
 .SH DESCRIPTION
 .nh
 .PP
 The
-.B deliver
+.B aoxdeliver
 program injects a single mail message in RFC-822 format into
 Archiveopteryx.
-It connects to Archiveopteryx's backend ddatabase injects the message
+It connects to Archiveopteryx's backend database and injects the message
 into the correct mailbox.
 .PP
-.B deliver
+.B aoxdeliver
 is meant as a compatibility shim for use with e.g.
 .BR formail (1)
 and with MTAs that want to deliver to a program.
 Note that you will generally get better performance by using LMTP.
 .PP
-.B deliver
+.B aoxdeliver
 bypasses Sieve and always stores mail directly into the target mailbox.
 .SH OPTIONS
 .IP "-f sender"
@@ -32,7 +32,7 @@ Starting with version 2.01, the
 argument is ignored. It is still accepted to keep old scripts working.
 .IP "-t mailbox"
 directs
-.B deliver
+.B aoxdeliver
 to store the message into the named mailbox. The "p" right on the
 mailbox must be granted to "anyone". ("p" controls who is permitted to
 send mail to the mailbox, see RFC 4314 for more details.)
@@ -41,35 +41,35 @@ requests more verbosity during delivery. May be specified twice.
 .SH EXAMPLES
 To deliver an entire berkeley mbox into the inbox of user nirmala@example.com:
 .IP
-formail -s deliver nirmala@example.com < mbox
+formail -s aoxdeliver nirmala@example.com < mbox
 .PP
 To deliver each message in the MH folder +blah into the
 inbox of user raj@example.net:
 .IP
 folder +blah
 .br
-seq all | xargs -n1 deliver raj@example.net
+seq all | xargs -n1 aoxdeliver raj@example.net
 .PP
 To deliver each message in the MH folder +ramble into folder stumble
 of user raj@example.net:
 .IP
 folder +blah
 .br
-seq all | xargs -n1 deliver -t stumble raj@example.net
+seq all | xargs -n1 aoxdeliver -t stumble raj@example.net
 .PP
 If raj has not granted "anyone" the "p" right ("p"ost mail to
 mailbox), this example fails.
 .SH DIAGNOSTICS
 The normal exit status of
-.B deliver
+.B aoxdeliver
 is 0. In case of errors,
-.B deliver
+.B aoxdeliver
 returns an error code from sysexits.h, such as EX_TEMPFAIL, EX_NOUSER, etc.
 .SH BUGS
 Delivering multiple messages would also be good, for those big mailbox
 migrations. In that case,
 .B
-deliver
+aoxdeliver
 should report which messages could be delivered and which could not.
 .PP
 There is no command-line option to set the configuration file.
