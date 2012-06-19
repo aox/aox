@@ -733,10 +733,16 @@ void Server::maintainChildren()
             // did a server quit in less than five seconds?
             ::waitpid( -1, &status, 0 );
             if ( forked && time( 0 ) < now + 5 ) {
-                if ( failures > 5 )
+                if ( failures > 5 ) {
+		    log( "Quitting due to five failed children.",
+			 Log::Error );
                     exit( 0 ); // the children keep dying, best quit
-                else if ( failures )
+		}
+                else if ( failures ) {
+		    log( "Observed " + fn( failures ) + " failing children.",
+			 Log::Error );
                     ::sleep( 2 );
+		}
                 failures++;
             }
             else {
