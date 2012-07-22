@@ -492,7 +492,8 @@ void EventLoop::dispatch( Connection * c, bool r, bool w, uint now )
         };
         s.append( " while processing " + c->description() );
         d->log->log( s, Log::Error );
-        c->close();
+        if ( !c->hasProperty( Connection::Listens ) )
+            c->close();
     }
 
     if ( c->state() == Connection::Closing && !c->canWrite() )
