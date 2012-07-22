@@ -1144,10 +1144,25 @@ static void addAddress( UStringList * l, Address * a,
     if ( Configuration::toggle( Configuration::UseSubaddressing ) ) {
         Configuration::Text p = Configuration::AddressSeparator;
         EString sep( Configuration::text( p ) );
-        int n = localpart.find( sep );
-        if ( n > 0 ) {
-            user = localpart.mid( 0, n );
-            detail = localpart.mid( n+sep.length() );
+        if ( sep.isEmpty() ) {
+            int plus = localpart.find( '+' );
+            int minus = localpart.find( '-' );
+            int n = -1;
+            if ( plus > 0 )
+                n = plus;
+            if ( minus > 0 && ( minus < n || n < 0 ) )
+                n = minus;
+            if ( n > 0 ) {
+                user = localpart.mid( 0, n );
+                detail = localpart.mid( n+1 );
+            }
+        }
+        else {
+            int n = localpart.find( sep );
+            if ( n > 0 ) {
+                user = localpart.mid( 0, n );
+                detail = localpart.mid( n+sep.length() );
+            }
         }
     }
     else {
