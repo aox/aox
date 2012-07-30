@@ -708,16 +708,15 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
     }
     else if ( c->identifier() == "fileinto" ) {
         SieveAction * a = new SieveAction( SieveAction::FileInto );
-        UStringList * flags = c->arguments()->takeTaggedStringList( ":flags" );
+        UStringList * f = c->arguments()->takeTaggedStringList( ":flags" );
         UString arg = c->arguments()->takeString( 1 );
         UString n = arg;
         if ( !arg.startsWith( "/" ) )
             n = prefix + arg;
         a->setMailbox( Mailbox::find( n ) );
-        if ( flags && d->currentRecipient )
-            d->currentRecipient->flags = *flags;
-        if ( d->currentRecipient )
-            a->setFlags( d->currentRecipient->flags );
+        if ( f )
+            flags = *f;
+        a->setFlags( flags );
         if ( !a->mailbox() ||
              ( user && user->id() != a->mailbox()->owner() ) ) {
             if ( !a->mailbox() )
@@ -785,11 +784,11 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             AddressParser ap( al->takeTaggedString( ":from" ).utf8() );
             from = ap.addresses()->first();
         }
-        if ( !from && d->currentRecipient ) {
-            from = d->currentRecipient->address;
+        if ( !from ) {
+            from = address;
         }
-        if ( from && d->currentRecipient->user ) {
-            Address * a = d->currentRecipient->user->address();
+        if ( from && user ) {
+            Address * a = user->address();
             if ( a->localpart().lower() == from->localpart().lower() &&
                  a->domain().lower() == from->domain().lower() )
                 from = a;
@@ -807,11 +806,8 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                 ++i;
             }
         }
-        if ( d->currentRecipient )
-            addresses.append( d->currentRecipient->address );
-        if ( from &&
-             ( !d->currentRecipient ||
-               from != d->currentRecipient->address ) )
+        addresses.append( address );
+        if ( from && from != address )
             addresses.append( from );
 
         // :mime
@@ -1029,11 +1025,11 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             a = UStringList::split( ' ', a->first()->simplified() );
         }
         if ( c->identifier() == "setflag" ) {
-            d->currentRecipient->flags = *a;
+            flags = *a;
         }
         else if ( c->identifier() == "removeflag" ) {
             uint n = a->count();
-            a->append( d->currentRecipient->flags );
+            a->append( flags );
             a->removeDuplicates( false );
             // now skip the ones we want to remove...
             UStringList::Iterator i( *a );
@@ -1042,26 +1038,26 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                 n--;
             }
             // clear the current list
-            d->currentRecipient->flags.clear();
+            flags.clear();
             // and the rest is plain addflag. what a hack.
             while ( i ) {
-                d->currentRecipient->flags.append( *i );
+                flags.append( *i );
                 ++i;
             }
         }
         else { // addflag
-            d->currentRecipient->flags.append( *a );
+            flags.append( *a );
         }
     }
     else if ( c->identifier() == "notify" ) {
         SieveNotifyMethod * m
             = new SieveNotifyMethod( c->arguments()->takeString( 1 ),
                                      0, c );
-        m->setOwner( d->currentRecipient->address );
+        m->setOwner( address );
         if ( c->arguments()->findTag( ":from" ) )
             m->setFrom( c->arguments()->takeTaggedString( ":from" ), c );
         else
-            m->setFrom( d->currentRecipient->address );
+            m->setFrom( address );
 
         // we disregard :importance entirely. $#@$ featuritis.
 
@@ -1106,8 +1102,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             if ( h->addresses( HeaderField::To ) &&
                  h->addresses( HeaderField::To )->count() == 1 ) {
                 Address * to = h->addresses( HeaderField::To )->first();
-                if ( to->lpdomain().lower() !=
-                     d->currentRecipient->address->lpdomain().lower() ) {
+                if ( to->lpdomain().lower() != address->lpdomain().lower() ) {
                     b.append( "To: " );
                     b.append( to->lpdomain().cstr() );
                     b.append( "\r\n" );
