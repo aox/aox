@@ -5,7 +5,7 @@
 #include "estring.h"
 #include "buffer.h"
 
-// memmove, memset
+// memmove, memset, memcpy
 #include <string.h>
 
 
@@ -150,8 +150,7 @@ EString MD5::hash()
     swapBytes( in, 14 );
 
     /* Append length in bits and transform. */
-    ((uint32 *)in)[14] = bits[0];
-    ((uint32 *)in)[15] = bits[1];
+    memcpy( in + 14 * sizeof( uint32 ), bits, sizeof( bits ) );
     transform();
     swapBytes( (char *)buf, 4 );
 

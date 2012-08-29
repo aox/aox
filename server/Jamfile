@@ -26,7 +26,7 @@ Build mailbox :
 Build user : user.cpp ;
 
 Build server : tlsthread.cpp ;
-UseLibrary tlsthread.cpp : ssl ;
+UseLibrary tlsthread.cpp : ssl crypto ;
 # UseLibrary tlsthread.cpp : pthread ;
 C++FLAGS += -pthread ;
 LINKFLAGS += -pthread -lcrypto ;
