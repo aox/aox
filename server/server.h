@@ -28,10 +28,8 @@ public:
         LogSetup,
         Loop,
         Report,
-        Fork,
         PidFile,
         LogStartup,
-        Secure,
         Finish // MUST BE LAST
     };
 
@@ -42,6 +40,9 @@ public:
     static bool useCache();
 
     static void killChildren();
+
+    void secure();
+    void addChild( class Connection * );
 
 private:
     static class ServerData * d;
@@ -54,7 +55,6 @@ private:
     void fork();
     void pidFile();
     void logStartup();
-    void secure();
     void maintainChildren();
 };
 

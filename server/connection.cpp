@@ -197,6 +197,8 @@ bool Connection::hasProperty( Property p ) const
     case RecorderServer:
     case GraphDumper:
     case EGDServer:
+    case Beeper:
+    case ChildWatcher:
         if ( p == Internal )
             return true;
         break;
@@ -364,6 +366,12 @@ EString Connection::description() const
         break;
     case ManageSieveServer:
         r = "ManageSieve server";
+        break;
+    case Beeper:
+        r = "Beeper (internal liveness helper)";
+        break;
+    case ChildWatcher:
+        r = "Internal liveness detector";
         break;
     }
     Endpoint her = peer();
