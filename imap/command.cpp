@@ -971,6 +971,15 @@ UString Command::listMailbox()
     if ( !d->args->ok() )
         error( Bad, d->args->error() );
 
+    if ( imap->clientSupports( IMAP::Unicode ) ) {
+        Utf8Codec c;
+        UString u( m.toUnicode( r ) );
+        if ( !c.wellformed() )
+            error( Bad,
+                   "List-mailbox misparsed as UTF-8: " + c.error() );
+        return u;
+    }
+
     MUtf7Codec m;
     UString u( m.toUnicode( r ) );
     if ( !m.wellformed() ) {

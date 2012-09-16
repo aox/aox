@@ -336,7 +336,7 @@ EString ImapParser::listMailbox()
     if ( c == '"' || c == '{' )
         return string();
 
-    while ( c > ' ' && c < 127 &&
+    while ( c > ' ' &&
             c != '(' && c != ')' && c != '{' &&
             c != '"' && c != '\\' )
     {
