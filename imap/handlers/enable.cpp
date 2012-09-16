@@ -59,7 +59,7 @@ void Enable::execute()
         imap()->setClientSupports( IMAP::Annotate );
         r.append( " ANNOTATE-EXPERIMENT-1" );
     }
-    if ( annotate ) {
+    if ( utf8 ) {
         imap()->setClientSupports( IMAP::Unicode );
         r.append( " UTF8=ACCEPT" );
     }
