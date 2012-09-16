@@ -21,7 +21,6 @@ public:
     void nil();
     EString atom();
     EString listChars();
-    EString uquoted();
     EString quoted();
     EString literal();
     EString string();

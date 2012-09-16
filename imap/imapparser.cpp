@@ -173,52 +173,6 @@ void ImapParser::nil()
 }
 
 
-/*! Parses and returns and RFC 5738 uquoted-string at the cursor, and
-    advances the cursor past the ending '"' character.
-
-    Records an error if the string seen is not UTF-8.
-
-    Should this convert to UString and back, perhaps? Not sure.
-*/
-
-EString ImapParser::uquoted()
-{
-    EString r;
-
-    if ( !present( "u\"" ) ) {
-        setError( "Expected quoted UTF8 string, but saw: " + following() );
-        return r;
-    }
-
-    step();
-    char c = nextChar();
-    while ( c != '"' && c > 0 && c != 10 && c != 13 ) {
-        if ( c == '\\' ) {
-            step();
-            c = nextChar();
-            if ( c == 0 || c >= 128 || c == 10 || c == 13 )
-                setError( "Quoted UTF8 string contained bad char: " +
-                          following() );
-        }
-        do {
-            step();
-            r.append( c );
-            c = nextChar();
-        } while ( c > 128 );
-    }
-
-    if ( c != '"' )
-        setError( "Quoted UTF8 string incorrectly terminated: " + following() );
-    else
-        step();
-
-    Utf8Codec utf8;
-    UString u( utf8.toUnicode( r ) );
-
-    return utf8.fromUnicode( u );
-}
-
-
 /*! Parses and returns an IMAP quoted-string at the cursor, and advances
     the cursor past the ending '"' character. It is an error if a valid
     quoted-string does not occur at the cursor.
@@ -236,11 +190,11 @@ EString ImapParser::quoted()
 
     step();
     c = nextChar();
-    while ( c != '"' && c < 128 && c > 0 && c != 10 && c != 13 ) {
+    while ( c != '"' && c > 0 && c != 10 && c != 13 ) {
         if ( c == '\\' ) {
             step();
             c = nextChar();
-            if ( c == 0 || c >= 128 || c == 10 || c == 13 )
+            if ( c == 0 || c == 10 || c == 13 )
                 setError( "Quoted string contained bad char: " +
                           following() );
         }
@@ -254,7 +208,10 @@ EString ImapParser::quoted()
     else
         step();
 
-    return r;
+    Utf8Codec utf8;
+    UString u( utf8.toUnicode( r ) );
+
+    return utf8.fromUnicode( u );
 }
 
 
@@ -314,8 +271,6 @@ EString ImapParser::string()
         return quoted();
     else if ( c == '{' || c == '~' )
         return literal();
-    else if ( c == '*' )
-        return uquoted();
 
     setError( "Expected string, but saw: " + following() );
     return "";
