@@ -41,8 +41,8 @@ public:
 
     static void killChildren();
 
-    void secure();
-    void addChild( class Connection * );
+    static void secure();
+    static void addChild( class Connection * );
 
 private:
     static class ServerData * d;

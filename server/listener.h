@@ -8,6 +8,7 @@
 #include "eventloop.h"
 #include "resolver.h"
 #include "estring.h"
+#include "server.h"
 #include "log.h"
 
 
