@@ -3,9 +3,9 @@ SubInclude TOP server ;
 SubInclude TOP message ;
 SubInclude TOP db ;
 
-Build deliver : deliver.cpp ;
+Build aoxdeliver : aoxdeliver.cpp ;
 
-Program deliver :
-    deliver database message server mailbox core encodings user
+Program aoxdeliver :
+    aoxdeliver database message server mailbox core encodings user
     extractors abnf ;
 
