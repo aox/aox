@@ -22,7 +22,7 @@ class SelectData
 public:
     SelectData()
         : readOnly( false ), annotate( false ), condstore( false ),
-          needFirstUnseen( false ),
+          needFirstUnseen( false ), unicode( false ),
           firstUnseen( 0 ), allFlags( 0 ),
           mailbox( 0 ), session( 0 ), permissions( 0 ),
           cacheFirstUnseen( 0 ), sessionPreloader( 0 )
@@ -32,6 +32,7 @@ public:
     bool annotate;
     bool condstore;
     bool needFirstUnseen;
+    bool unicode;
     Query * firstUnseen;
     Query * allFlags;
     Mailbox * mailbox;
@@ -127,6 +128,8 @@ void Select::parse()
                 d->annotate = true;
             else if ( param == "condstore" )
                 d->condstore = true;
+            else if ( param == "utf8" )
+                d->unicode = true;
             else
                 error( Bad, "Unknown select-param: " + param );
             more = present( " " );
@@ -221,7 +224,8 @@ void Select::execute()
 
 
     if ( !d->session ) {
-        d->session = new ImapSession( imap(), d->mailbox, d->readOnly );
+        d->session = new ImapSession( imap(), d->mailbox,
+                                      d->readOnly, d->unicode );
         d->session->setPermissions( d->permissions );
         imap()->beginSession( d->session );
     }
