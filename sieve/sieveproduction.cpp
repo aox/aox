@@ -1276,7 +1276,7 @@ void SieveCommand::parse( const EString & previous )
         }
     }
     else if ( i == "setflag" ||
-              i == "addflags" ||
+              i == "addflag" ||
               i == "removeflag" ) {
         arguments()->numberRemainingArguments();
         (void)arguments()->takeStringList( 1 );
@@ -1296,9 +1296,9 @@ void SieveCommand::parse( const EString & previous )
             arguments()->tagError( ":importance",
                                    "Importance must be 1, 2 or 3" );
 
-        UStringList * options;
+        //UStringList * options;
         if ( arguments()->findTag( ":options" ) )
-            options = arguments()->takeTaggedStringList( ":options" );
+            (void)arguments()->takeTaggedStringList( ":options" );
 
         UString message;
         if ( arguments()->findTag( ":message" ) )

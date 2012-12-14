@@ -69,12 +69,12 @@ is the number of days a message can be undeleted after being deleted,
 by default.
 .IP server-processes
 is the number of processes started to serve IMAP/POP clients. This is
-.I 1
-by default. 1 is suitable for a small server.
+.I 2
+by default.
 .IP
 The
 .I server-processes
-setting should be about as large as the number of CPUs available,
+setting should be about as large as the number of CPU cores available,
 perhaps a little larger. We advise asking info@aox.org in unusual
 cases.
 .SS "Database Access"

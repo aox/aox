@@ -155,7 +155,7 @@ static struct {
     { "lmtp-port", Configuration::LmtpPort, 2026 },
     { "smtp-submit-port", Configuration::SmtpSubmitPort, 587 },
     { "smtps-port", Configuration::SmtpsPort, 465 },
-    { "server-processes", Configuration::ServerProcesses, 1 },
+    { "server-processes", Configuration::ServerProcesses, 2 },
     { "db-max-handles", Configuration::DbMaxHandles, 4 },
     { "db-handle-interval", Configuration::DbHandleInterval, 120 },
     { "db-handle-timeout", Configuration::DbHandleTimeout, 10 },

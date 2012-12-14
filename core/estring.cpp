@@ -1492,6 +1492,8 @@ bool EString::needsQP() const
     while ( i < length() ) {
         if ( c == 0 && maybeBoundary( *this, i ) )
             return true;
+        if ( c == 0 && d->str[i] == 'F' && d->str[i+1] == 'r' )
+            return true;
         if ( d->str[i] == 10 )
              c = 0;
         else if ( c > 78 )

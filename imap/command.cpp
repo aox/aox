@@ -1056,7 +1056,6 @@ void Command::shrink( IntegerSet * set )
     if ( !s || !set || set->isEmpty() )
         return;
 
-    IntegerSet r = *set;
     set->remove( s->expunged() );
     *set = set->intersection( s->messages() );
 }

@@ -18,6 +18,7 @@ public:
 private:
     bool condstore;
     bool annotate;
+    bool utf8;
 };
 
 

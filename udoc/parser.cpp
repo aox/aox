@@ -134,6 +134,8 @@ EString Parser::identifier()
 uint Parser::simpleIdentifier( uint j )
 {
     uint k = whitespace( j );
+    if ( t.mid( k, 8 ) == "operator" )
+        return operatorHack( k );
     if ( ( t[k] >= 'A' && t[k] <= 'z' ) ||
          ( t[k] >= 'a' && t[k] <= 'z' ) ) {
         j = k + 1;

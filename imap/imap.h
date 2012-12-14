@@ -27,7 +27,8 @@ public:
     State state() const;
     void setState( State );
 
-    enum ClientCapability { Condstore, Annotate, NumClientCapabilities };
+    enum ClientCapability { Condstore, Annotate, Unicode,
+                            NumClientCapabilities };
     bool clientSupports( ClientCapability ) const;
     void setClientSupports( ClientCapability );
 
