@@ -1108,7 +1108,7 @@ static void selfSignCertificate()
 
 
 
-    int r = system( "openssl req -config /tmp/aox-ossl.conf -x509 -days 1764 -newkey rsa: -nodes -keyout /tmp/aox-ossl.pem -out /tmp/aox-ossl.pem" );
+    int r = system( "openssl req -config /tmp/aox-ossl.conf -x509 -days 1764 -newkey rsa -nodes -keyout /tmp/aox-ossl.pem -out /tmp/aox-ossl.pem" );
     if ( r == -1 )
         error( "Needed to execute openssl req, but failed" );
 
