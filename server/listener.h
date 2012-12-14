@@ -47,10 +47,8 @@ public:
             return;
 
         int s = accept();
-        if ( s >= 0 ) {
-            Connection * c = new T(s);
-            c->setState( Connected );
-        }
+        if ( s >= 0 )
+            Server::addChild( new T( s ) );
     }
 
     static void create( const EString &svc, bool use,

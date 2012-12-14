@@ -33,7 +33,9 @@ public:
         Listener,
         Pipe,
         ManageSieveServer,
-        LdapRelay
+        LdapRelay,
+        ChildWatcher,
+        Beeper
     };
     Connection();
     Connection( int, Type );
