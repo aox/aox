@@ -186,11 +186,17 @@ void Server::setup( Stage s )
             case Report:
                 // This just gives us a good place to stop in main.
                 break;
+            case Fork:
+                fork();
+                break;
             case PidFile:
                 pidFile();
                 break;
             case LogStartup:
                 logStartup();
+                break;
+            case Secure:
+                secure();
                 break;
             case Finish:
                 maintainChildren();
@@ -318,7 +324,7 @@ static void shutdownLoop( int )
     if ( used > limit )
         used = limit;
     uint shorter = trunc( 10797.0 * used / limit );
-
+    
     EventLoop::global()->stop( 10800 - shorter );
     (void)alarm( 10800 - shorter );
 }
@@ -391,6 +397,8 @@ void Server::loop()
 
     If -f is specified, the parent exits in this function and does not
     return from this function.
+
+    As many processes as specified by server-processes return.
 */
 
 void Server::fork()
@@ -436,7 +444,8 @@ void Server::logStartup()
 {
     log( "Starting server " + d->name +
          " (host " + Configuration::hostname() + ")" +
-         " (pid " + fn( getpid() ) + ") " );
+         " (pid " + fn( getpid() ) + ") " +
+         EString( d->secured ? "securely" : "insecurely" ) );
 }
 
 
@@ -676,34 +685,80 @@ void Server::maintainChildren()
 {
     d->mainProcess = true;
     d->children = new List<pid_t>;
+    uint children = 1;
+    if ( d->name == "archiveopteryx" )
+        children = Configuration::scalar( Configuration::ServerProcesses );
+    uint i = 0;
+    while ( i < children ) {
+        d->children->append( new pid_t( 0 ) );
+        i++;
+    }
+    uint failures = 0;
+    while ( d->mainProcess ) {
+        List<pid_t>::Iterator c( d->children );
+        while ( c ) {
+            if ( *c ) {
+                int r = ::kill( *c, 0 );
+                if ( r < 0 && errno == ESRCH )
+                    *c = 0;
+            }
+            ++c;
+        }
+        c = d->children->first();
+        uint i = 0;
+        bool forked = false;
+        while ( c && d->mainProcess ) {
+            if ( !*c ) {
+                *c = ::fork();
+                if ( *c < 0 ) {
+                    log( "Unable to fork server; pressing on. Error code " +
+                         fn( errno ), Log::Error );
+                    *c = 0;
+                }
+                else if ( *c > 0 ) {
+                    // the parent, all is well
+                    forked = true;
+                }
+                else {
+                    // a child. fork() must return.
+                    d->mainProcess = false;
+                }
+            }
+            ++i;
+            ++c;
+        }
+        if ( d->mainProcess ) {
+            int status = 0;
+            time_t now = time( 0 );
+            // did a server quit in less than five seconds?
+            ::waitpid( -1, &status, 0 );
+            if ( forked && time( 0 ) < now + 5 ) {
+                if ( failures > 5 ) {
+		    log( "Quitting due to five failed children.",
+			 Log::Error );
+                    exit( 0 ); // the children keep dying, best quit
+		}
+                else if ( failures ) {
+		    log( "Observed " + fn( failures ) + " failing children.",
+			 Log::Error );
+                    ::sleep( 2 );
+		}
+                failures++;
+            }
+            else {
+                failures = 0;
+            }
+        }
+    }
+
+    // only a child gets this far
+    d->children = 0;
+    EventLoop::global()->closeAllExceptListeners();
     log( "Process " + fn( getpid() ) + " started" );
-}
-
-
-/*! Adds a child process to take care of \a fd.
-
-    Makes a new child and records it where Server can kill it if
-    necessary.
-
-    This function returns (differently) both in the parent and the
-    child.
-*/
-
-void Server::addChild( Connection * c )
-{
-    pid_t p = ::fork();
-    if ( p < 0 ) {
-        log( "Unable to fork to handle new connection", Log::Error );
-        ::close( c->fd() );
-    } else if ( p > 0 ) {
-        d->children->append( new pid_t( p ) );
-        // we close c somewhat brutally, to make sure there's no
-        // protocol-specific closedown etiquette in the parent. the
-        // object will take care of itself.
-        ::close( c->fd() );
-    } else {
-        EventLoop::global()->closeListeners();
-        c->setState( Connection::Connected );
-        Server::secure();
+    if ( Configuration::toggle( Configuration::UseStatistics ) ) {
+        uint port = Configuration::scalar( Configuration::StatisticsPort );
+        log( "Using port " + fn( port + i - 1 ) +
+             " for statistics queries" );
+        Configuration::add( "statistics-port = " + fn( port + i - 1 ) );
     }
 }
