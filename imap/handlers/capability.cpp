@@ -106,7 +106,8 @@ EString Capability::capabilities( IMAP * i, bool all )
         //c.append( "NOTIFY" );
     }
     if ( all || login ) {
-        c.append( "QUOTA" );
+        if ( Configuration::toggle( Configuration::UseImapQuota ) )
+            c.append( "QUOTA" );
         c.append( "RIGHTS=ekntx" );
     }
     if ( all || !login )
