@@ -556,17 +556,17 @@ void EventLoop::closeAllExcept( Connection * c1, Connection * c2 )
 }
 
 
-/*! Closes all Listeners. When we fork, this allows us to keep the
-    connections on one side of the fence.
+/*! Closes all Connection except Listeners. When we fork, this allows
+    us to keep the connections on one side of the fence.
 */
 
-void EventLoop::closeListeners()
+void EventLoop::closeAllExceptListeners()
 {
     List< Connection >::Iterator it( d->connections );
     while ( it ) {
         Connection * c = it;
         ++it;
-        if ( c->type() == Connection::Listener )
+        if ( c->type() != Connection::Listener )
             c->close();
     }
 }
@@ -693,8 +693,6 @@ void EventLoop::setConnectionCounts()
         case Connection::RecorderClient:
         case Connection::RecorderServer:
         case Connection::Pipe:
-        case Connection::ChildWatcher:
-        case Connection::Beeper:
             internal++;
             break;
         case Connection::DatabaseClient:

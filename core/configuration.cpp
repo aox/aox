@@ -155,7 +155,7 @@ static struct {
     { "lmtp-port", Configuration::LmtpPort, 2026 },
     { "smtp-submit-port", Configuration::SmtpSubmitPort, 587 },
     { "smtps-port", Configuration::SmtpsPort, 465 },
-    { "server-processes", Configuration::ServerProcesses, 1 },
+    { "server-processes", Configuration::ServerProcesses, 2 },
     { "db-max-handles", Configuration::DbMaxHandles, 4 },
     { "db-handle-interval", Configuration::DbHandleInterval, 120 },
     { "db-handle-timeout", Configuration::DbHandleTimeout, 10 },
@@ -243,7 +243,8 @@ static struct {
     { "use-statistics", Configuration::UseStatistics, false },
     { "soft-bounce", Configuration::SoftBounce, true },
     { "check-sender-addresses", Configuration::CheckSenderAddresses, false },
-    { "auto-flag-views", Configuration::AutoFlagViews, false }
+    { "auto-flag-views", Configuration::AutoFlagViews, false },
+    { "use-imap-quota", Configuration::UseImapQuota, true }
 };
 
 

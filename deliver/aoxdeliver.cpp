@@ -29,7 +29,7 @@
 static void quit( uint s, const EString & m )
 {
     if ( !m.isEmpty() )
-        fprintf( stderr, "deliver: %s\n", m.cstr() );
+        fprintf( stderr, "aoxdeliver: %s\n", m.cstr() );
     exit( s );
 }
 
@@ -200,7 +200,7 @@ int main( int argc, char *argv[] )
 
     if ( error || recipient.isEmpty() ) {
         fprintf( stderr,
-                 "Syntax: deliver [-v] [-f sender] recipient [filename]\n" );
+                 "Syntax: aoxdeliver [-v] [-f sender] recipient [filename]\n" );
         exit( -1 );
     }
 
@@ -238,7 +238,7 @@ int main( int argc, char *argv[] )
     Log * l = new Log;
     Allocator::addEternal( l, "delivery log" );
     global.setLog( l );
-    Allocator::addEternal( new StderrLogger( "deliver", verbose ),
+    Allocator::addEternal( new StderrLogger( "aoxdeliver", verbose ),
                            "log object" );
 
     Configuration::report();
@@ -250,7 +250,7 @@ int main( int argc, char *argv[] )
 
     if ( verbose )
         fprintf( stderr,
-                 "deliver: Stored in %s as UID %d\n",
+                 "aoxdeliver: Stored in %s as UID %d\n",
                  d->mb->name().utf8().cstr(),
                  d->m->uid( d->mb ) );
     return 0;

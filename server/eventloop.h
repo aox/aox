@@ -21,7 +21,7 @@ public:
     virtual void addConnection( Connection * );
     virtual void removeConnection( Connection * );
     void closeAllExcept( Connection *, Connection * );
-    void closeListeners();
+    void closeAllExceptListeners();
     void flushAll();
 
     void dispatch( Connection *, bool, bool, uint );

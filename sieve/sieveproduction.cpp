@@ -1276,7 +1276,7 @@ void SieveCommand::parse( const EString & previous )
         }
     }
     else if ( i == "setflag" ||
-              i == "addflags" ||
+              i == "addflag" ||
               i == "removeflag" ) {
         arguments()->numberRemainingArguments();
         (void)arguments()->takeStringList( 1 );

@@ -1014,7 +1014,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         }
     }
     else if ( c->identifier() == "setflag" ||
-              c->identifier() == "addflags" ||
+              c->identifier() == "addflag" ||
               c->identifier() == "removeflag" ) {
         UStringList * a = c->arguments()->takeStringList( 1 );
         if ( a && a->count() == 1 && a->first()->contains( ' ' ) ) {

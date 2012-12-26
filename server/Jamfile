@@ -11,7 +11,7 @@ ObjectDefines server.cpp : USECACHE=$(USECACHE) ;
 Build server :
     connection.cpp endpoint.cpp event.cpp logclient.cpp
     eventloop.cpp server.cpp timer.cpp resolver.cpp
-    graph.cpp integerset.cpp egd.cpp beeper.cpp childwatcher.cpp ;
+    graph.cpp integerset.cpp egd.cpp ;
 
 # We must link with -lresolv on linux, but not on the BSDs.
 if $(OS) = "LINUX" || $(OS) = "DARWIN" {
