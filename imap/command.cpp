@@ -1238,7 +1238,7 @@ UString Command::mailboxName()
         if ( !c.wellformed() ) {
             error( Bad,
                    "List-mailbox misparsed as UTF-8: " + c.error() );
-            return Ustring();
+            return UString();
         }
     }
     else {
