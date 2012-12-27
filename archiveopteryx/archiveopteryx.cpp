@@ -70,11 +70,36 @@ public:
 };
 
 
+class ArchiveopteryxEventLoop
+    : public EventLoop
+{
+public:
+    ArchiveopteryxEventLoop() {}
+    ~ArchiveopteryxEventLoop();
+    
+    void freeMemory();
+};
+
+
+ArchiveopteryxEventLoop::~ArchiveopteryxEventLoop()
+{
+}
+
+
+void ArchiveopteryxEventLoop::freeMemory()
+{
+    EventLoop::freeMemory();
+    log( "arnt was here" );
+}
+
+
+
 int main( int argc, char *argv[] )
 {
     Scope global;
 
     Server s( "archiveopteryx", argc, argv );
+    EventLoop::setup( new ArchiveopteryxEventLoop );
     s.setup( Server::Report );
 
     bool security( Configuration::toggle( Configuration::Security ) );

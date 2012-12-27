@@ -925,3 +925,17 @@ Allocator * Allocator::owner( const void * p )
 {
     return AllocatorMapTable::find( p );
 }
+
+
+/*! Returns an heuristic approximation of admin happiness with regard
+    to Allocator.
+
+    Admin happiness is presumed to be low if aox is using lots of
+    memory, particularly if it's claiming OS memory and not doing
+    anything with it.
+*/
+
+double Allocator::adminHappiness()
+{
+    return 0.42; // not yet implemented
+}

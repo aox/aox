@@ -355,7 +355,7 @@ void EventLoop::start()
                 }
             }
             if ( ::freeMemorySoon ) {
-                Allocator::free();
+                freeMemory();
                 gc = time( 0 );
                 ::freeMemorySoon = false;
             }
@@ -386,6 +386,16 @@ void EventLoop::start()
     }
 
     log( "Event loop stopped", Log::Debug );
+}
+
+
+/*! Calls Allocator::free() and does any necessary pre- and
+    postprocessing.
+*/
+
+void EventLoop::freeMemory()
+{
+    Allocator::free();
 }
 
 

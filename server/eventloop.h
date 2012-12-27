@@ -48,6 +48,8 @@ public:
     void setMemoryUsage( uint );
     uint memoryUsage() const;
 
+    virtual void freeMemory();
+
 private:
     class LoopData *d;
 };
