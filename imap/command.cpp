@@ -971,9 +971,9 @@ UString Command::listMailbox()
     if ( !d->args->ok() )
         error( Bad, d->args->error() );
 
-    if ( imap->clientSupports( IMAP::Unicode ) ) {
+    if ( imap()->clientSupports( IMAP::Unicode ) ) {
         Utf8Codec c;
-        UString u( m.toUnicode( r ) );
+        UString u( c.toUnicode( r ) );
         if ( !c.wellformed() )
             error( Bad,
                    "List-mailbox misparsed as UTF-8: " + c.error() );
@@ -1231,17 +1231,28 @@ UString Command::mailboxName()
         return u->inbox()->name();
     }
 
-    MUtf7Codec m;
-    UString un( m.toUnicode( n ) );
-    UString r;
-    if ( !m.wellformed() ) {
-        AsciiCodec a;
-        un = a.toUnicode( n );
-        if ( !a.valid() ) {
+    UString un;
+    if ( imap()->clientSupports( IMAP::Unicode ) ) {
+        Utf8Codec c;
+        un = c.toUnicode( n );
+        if ( !c.wellformed() ) {
             error( Bad,
-                   "Mailbox name misparsed both as ASCII and mUTF-7: " +
-                   m.error() + " (mUTF7) + " + a.error() + " (ASCII)" );
-            return r;
+                   "List-mailbox misparsed as UTF-8: " + c.error() );
+            return Ustring();
+        }
+    }
+    else {
+        MUtf7Codec m;
+        un = m.toUnicode( n );
+        if ( !m.wellformed() ) {
+            AsciiCodec a;
+            un = a.toUnicode( n );
+            if ( !a.valid() ) {
+                error( Bad,
+                       "Mailbox name misparsed both as ASCII and mUTF-7: " +
+                       m.error() + " (mUTF7) + " + a.error() + " (ASCII)" );
+                return UString();
+            }
         }
     }
     if ( un.startsWith( "/" ) ) {
@@ -1252,19 +1263,19 @@ UString Command::mailboxName()
     }
     else if ( !u ) {
         error( Bad, "Relative mailbox name is invalid before login" );
-        return r;
+        return un;
     }
     else {
         d->usesRelativeMailbox = true;
-        r.append( u->home()->name() );
-        r.append( "/" );
+        un.append( u->home()->name() );
+        un.append( "/" );
     }
-    r.append( un );
-    if ( !Mailbox::validName( r ) ) {
+    un.append( un );
+    if ( !Mailbox::validName( un ) ) {
         error( Bad, "Syntax error in mailbox name: " + n );
-        return r;
+        return UString();
     }
-    return r;
+    return un;
 }
 
 
