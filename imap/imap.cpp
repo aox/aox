@@ -344,7 +344,20 @@ void IMAP::addCommand()
     }
 
     if ( EventLoop::global()->inShutdown() && name != "logout" ) {
-        enqueue( tag + " NO server shutdown\r\n" );
+        uint n = 0;
+        List< Command >::Iterator i( d->commands );
+        while ( i ) {
+            if ( i->state() == Command::Executing )
+                n++;
+            ++i;
+        }
+
+        if ( !n ) {
+            enqueue( "* BYE Server or process shutdown\r\n" ); 
+            Connection::setState( Closing );
+        }
+
+        enqueue( tag + " NO May not be started during server shutdown\r\n" );
         return;
     }
 
