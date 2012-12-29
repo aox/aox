@@ -43,7 +43,7 @@ public:
 
     static uint sizeOf( void * );
 
-    static double adminHappiness();
+    static bool adminLikelyHappy();
 
 private:
     typedef unsigned long int ulong;

@@ -930,12 +930,13 @@ Allocator * Allocator::owner( const void * p )
 /*! Returns an heuristic approximation of admin happiness with regard
     to Allocator.
 
-    Admin happiness is presumed to be low if aox is using lots of
-    memory, particularly if it's claiming OS memory and not doing
-    anything with it.
+    Admin unhappiness is presumed if aox is using lots of memory,
+    particularly if it's claiming OS memory and not doing anything
+    with it. The OS should deal with that, but this function is named
+    for a FAQ, not for a technical property of current-day OSes.
 */
 
-double Allocator::adminHappiness()
+bool Allocator::adminLikelyHappy()
 {
-    return 0.42; // not yet implemented
+    return true; // not yet implemented
 }

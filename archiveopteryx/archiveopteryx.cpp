@@ -76,7 +76,7 @@ class ArchiveopteryxEventLoop
 public:
     ArchiveopteryxEventLoop() {}
     ~ArchiveopteryxEventLoop();
-    
+
     void freeMemory();
 };
 
@@ -89,7 +89,15 @@ ArchiveopteryxEventLoop::~ArchiveopteryxEventLoop()
 void ArchiveopteryxEventLoop::freeMemory()
 {
     EventLoop::freeMemory();
-    log( "arnt was here" );
+    if ( Allocator::adminLikelyHappy() )
+        return;
+    // unhappy admin. make the parent replace this process with another.
+    if ( ::fork() > 0 )
+        ::exit( 0 );
+    // the process watcher will notice that the parent fork exited,
+    // and start a replacement. in the child, we shut down fairly
+    // quickly.
+    stop( 20 );
 }
 
 
