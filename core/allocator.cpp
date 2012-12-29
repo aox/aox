@@ -25,7 +25,9 @@
 #include <errno.h>
 
 
-static uint BlockShift = 17;
+// the heuristics in adminLikelyHappy() will probably need changing
+// if BlockShift changes
+static uint BlockShift = 17; 
 static uint BlockSize = 1 << BlockShift;
 
 
@@ -938,5 +940,33 @@ Allocator * Allocator::owner( const void * p )
 
 bool Allocator::adminLikelyHappy()
 {
-    return true; // not yet implemented
+    // first part: count the number of blocks in use and see how
+    // effective we are at using the memory.
+    int blocks = 0;
+    int sizes = 0;
+    int i = 0;
+    while ( i < 32 ) {
+        Allocator * a = allocators[i];
+        if ( a )
+            sizes++;
+        while ( a ) {
+            blocks++;
+            a = a->next;
+        }
+        ++i;
+    }
+
+    // the second part: are we using >= 16MB more than we're using? or
+    // >= 5x what we're using?
+    uint fromOS = BlockSize * blocks;
+
+    uint unusedMegabytes = (fromOS - ::total + 1024575) / 1024576;
+    if ( unusedMegabytes > 16 )
+        return false;
+
+    if ( fromOS &&
+         (uint)(100.0 * ::total / fromOS) < 20 )
+        return false;
+
+    return true;
 }

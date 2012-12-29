@@ -27,6 +27,8 @@
 #include <unistd.h>
 #include <stdlib.h> // exit()
 
+#include <time.h> // time()
+
 
 /*! \nodoc */
 
@@ -74,10 +76,14 @@ class ArchiveopteryxEventLoop
     : public EventLoop
 {
 public:
-    ArchiveopteryxEventLoop() {}
+    ArchiveopteryxEventLoop()
+        : fine( true ), unhappinessStarted( 0 ) {}
     ~ArchiveopteryxEventLoop();
 
     void freeMemory();
+
+    bool fine;
+    time_t unhappinessStarted;
 };
 
 
@@ -89,15 +95,26 @@ ArchiveopteryxEventLoop::~ArchiveopteryxEventLoop()
 void ArchiveopteryxEventLoop::freeMemory()
 {
     EventLoop::freeMemory();
-    if ( Allocator::adminLikelyHappy() )
+    if ( Allocator::adminLikelyHappy() ) {
+        fine = true;
         return;
-    // unhappy admin. make the parent replace this process with another.
+    }
+    if ( fine ) {
+        unhappinessStarted = ::time( 0 );
+        fine = false;
+    }
+
+    // how long have we been in a faq-inducing state?
+    if ( time( 0 ) < unhappinessStarted + 60 )
+        return;
+
+    // oh no. make the parent replace this process with another.
     if ( ::fork() > 0 )
         ::exit( 0 );
     // the process watcher will notice that the parent fork exited,
     // and start a replacement. in the child, we shut down fairly
     // quickly.
-    stop( 20 );
+    stop( 60 );
 }
 
 
