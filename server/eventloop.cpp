@@ -335,7 +335,7 @@ void EventLoop::start()
 
                     // if we're below the limit, we don't modify the
                     // limit. if we're above, but below 2x, we halve
-                    // the limit (right-shift by one bit). if we're at
+                    // the period (right-shift by one bit). if we're at
                     // 2-3x, we right-shift by two. if we're at 3-4x,
                     // we right-shift by three, etc.
 
