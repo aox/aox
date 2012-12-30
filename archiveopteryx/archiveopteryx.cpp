@@ -95,7 +95,8 @@ ArchiveopteryxEventLoop::~ArchiveopteryxEventLoop()
 void ArchiveopteryxEventLoop::freeMemory()
 {
     EventLoop::freeMemory();
-    if ( Allocator::adminLikelyHappy() ) {
+    uint fromOS = Allocator::allocatedFromOS();
+    if ( fromOS < memoryUsage() ) {
         fine = true;
         return;
     }

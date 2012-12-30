@@ -929,44 +929,22 @@ Allocator * Allocator::owner( const void * p )
 }
 
 
-/*! Returns an heuristic approximation of admin happiness with regard
-    to Allocator.
-
-    Admin unhappiness is presumed if aox is using lots of memory,
-    particularly if it's claiming OS memory and not doing anything
-    with it. The OS should deal with that, but this function is named
-    for a FAQ, not for a technical property of current-day OSes.
+/*! Returns the number of bytes Allocator has allocated from the
+    operating system (and not returned).
 */
 
-bool Allocator::adminLikelyHappy()
+uint Allocator::allocatedFromOS()
 {
-    // first part: count the number of blocks in use and see how
-    // effective we are at using the memory.
-    int blocks = 0;
-    int sizes = 0;
+    int r = 0;
     int i = 0;
     while ( i < 32 ) {
         Allocator * a = allocators[i];
-        if ( a )
-            sizes++;
         while ( a ) {
-            blocks++;
+            r += BlockSize;
             a = a->next;
         }
         ++i;
     }
 
-    // the second part: are we using >= 16MB more than we're using? or
-    // >= 5x what we're using?
-    uint fromOS = BlockSize * blocks;
-
-    uint unusedMegabytes = (fromOS - ::total + 1024575) / 1024576;
-    if ( unusedMegabytes > 16 )
-        return false;
-
-    if ( fromOS &&
-         (uint)(100.0 * ::total / fromOS) < 20 )
-        return false;
-
-    return true;
+    return r;
 }
