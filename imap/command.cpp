@@ -1267,10 +1267,11 @@ UString Command::mailboxName()
     }
     else {
         d->usesRelativeMailbox = true;
-        un.append( u->home()->name() );
-        un.append( "/" );
+        UString abs = u->home()->name();
+        abs.append( "/" );
+        abs.append( un );
+        un = abs;
     }
-    un.append( un );
     if ( !Mailbox::validName( un ) ) {
         error( Bad, "Syntax error in mailbox name: " + n );
         return UString();
