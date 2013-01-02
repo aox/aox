@@ -727,7 +727,7 @@ void Server::maintainChildren()
             ++i;
             ++c;
         }
-        if ( d->mainProcess ) {
+        while ( d->mainProcess ) {
             int status = 0;
             time_t now = time( 0 );
             // did a server quit in less than five seconds?
