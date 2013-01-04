@@ -198,8 +198,11 @@ void Server::setup( Stage s )
             case Secure:
                 secure();
                 break;
-            case Finish:
+            case MaintainChildren:
                 maintainChildren();
+                break;
+            case Finish:
+                // nothing more here
                 break;
             }
             d->stage = (Stage)(d->stage + 1);

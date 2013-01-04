@@ -32,6 +32,7 @@ public:
         PidFile,
         LogStartup,
         Secure,
+        MaintainChildren,
         Finish // MUST BE LAST
     };
 
