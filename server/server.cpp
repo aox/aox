@@ -709,7 +709,6 @@ void Server::maintainChildren()
         }
         c = d->children->first();
         uint i = 0;
-        bool forked = false;
         while ( c && d->mainProcess ) {
             if ( !*c ) {
                 *c = ::fork();
@@ -720,7 +719,6 @@ void Server::maintainChildren()
                 }
                 else if ( *c > 0 ) {
                     // the parent, all is well
-                    forked = true;
                 }
                 else {
                     // a child. fork() must return.
@@ -733,23 +731,35 @@ void Server::maintainChildren()
         while ( d->mainProcess ) {
             int status = 0;
             time_t now = time( 0 );
-            // did a server quit in less than five seconds?
-            ::waitpid( -1, &status, 0 );
-            if ( forked && time( 0 ) < now + 5 ) {
-                if ( failures > 5 ) {
-		    log( "Quitting due to five failed children.",
-			 Log::Error );
-                    exit( 0 ); // the children keep dying, best quit
-		}
-                else if ( failures ) {
-		    log( "Observed " + fn( failures ) + " failing children.",
-			 Log::Error );
-                    ::sleep( 2 );
-		}
-                failures++;
-            }
-            else {
+            pid_t child = ::waitpid( -1, &status, 0 );
+            List<pid_t>::Iterator c( d->children );
+            while ( c && *c != child )
+                ++c;
+            if ( child == (pid_t)-1 && errno == ECHILD )
+                exit( 0 );
+            if ( c )
+                d->children->remove( c );
+            else
+                child = 0;
+            if ( !child || time( 0 ) >= now + 5 ) {
+                // not a failure, or the first in a long while
                 failures = 0;
+            }
+            else if ( failures > 5 ) {
+                log( "Quitting due to five failed children.",
+		     Log::Error );
+                exit( 0 ); // the children keep dying, best quit
+	    }
+            else if ( failures ) {
+		log( "Observed " + fn( failures ) + " failing children.",
+		      Log::Error );
+                log( "Child " + fn( child ) + " exited " +
+                     fn( status & 255 ), Log::Error );
+                failures++;
+	    }
+	    else {
+                ::sleep( 1 );
+                failures++;
             }
         }
     }
@@ -765,3 +775,4 @@ void Server::maintainChildren()
         Configuration::add( "statistics-port = " + fn( port + i - 1 ) );
     }
 }
+
