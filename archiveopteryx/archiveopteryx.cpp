@@ -285,9 +285,9 @@ int main( int argc, char *argv[] )
     EventLoop::global()->setMemoryUsage(
         1024 * 1024 * Configuration::scalar( Configuration::MemoryLimit ) );
 
-    Database::setup();
-
     s.setup( Server::Finish );
+
+    Database::setup();
 
     StartupWatcher * w = new StartupWatcher;
 
