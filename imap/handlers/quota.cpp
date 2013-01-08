@@ -32,13 +32,12 @@ void GetQuota::parse()
 void GetQuota::execute()
 {
     if ( !q ) {
-        q = new Query( "select count(*) as c, "
+        q = new Query( "select count(rfc822size) as c, "
                        "coalesce(sum(rfc822size::bigint),0)::bigint/1024 as s "
-                       "from "
-                       "(select rfc822size from messages m"
+                       "from messages m"
                        " join mailbox_messages mm on (m.id=mm.message)"
                        " join mailboxes mb on (mm.mailbox=mb.id)"
-                       " where mb.owner=$1 group by m.id) hellothere", this );
+                       " where mb.owner=$1", this );
         q->bind( 1, imap()->user()->id() );
         q->execute();
     }
