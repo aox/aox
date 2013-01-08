@@ -698,6 +698,7 @@ void Server::maintainChildren()
     }
     uint failures = 0;
     while ( d->mainProcess ) {
+        // check that all children exist
         List<pid_t>::Iterator c( d->children );
         while ( c ) {
             if ( *c ) {
@@ -707,8 +708,8 @@ void Server::maintainChildren()
             }
             ++c;
         }
+        // add new children in each empty slot
         c = d->children->first();
-        uint i = 0;
         while ( c && d->mainProcess ) {
             if ( !*c ) {
                 *c = ::fork();
@@ -725,23 +726,19 @@ void Server::maintainChildren()
                     d->mainProcess = false;
                 }
             }
-            ++i;
             ++c;
         }
-        while ( d->mainProcess ) {
+        // wait() on the children, and look for rapid death syndrome
+        if ( d->mainProcess ) {
             int status = 0;
             time_t now = time( 0 );
-            pid_t child = ::waitpid( -1, &status, 0 );
-            List<pid_t>::Iterator c( d->children );
-            while ( c && *c != child )
-                ++c;
-            if ( child == (pid_t)-1 && errno == ECHILD )
+            (void)::waitpid( -1, &status, 0 );
+            if ( child == (pid_t)-1 && errno == ECHILD ) {
+                log( "Qutting due to unexpected lack of child processes.",
+		     Log::Error );
                 exit( 0 );
-            if ( c )
-                d->children->remove( c );
-            else
-                child = 0;
-            if ( !child || time( 0 ) >= now + 5 ) {
+            }
+            if ( time( 0 ) >= now + 5 ) {
                 // not a failure, or the first in a long while
                 failures = 0;
             }
@@ -753,8 +750,6 @@ void Server::maintainChildren()
             else if ( failures ) {
 		log( "Observed " + fn( failures ) + " failing children.",
 		      Log::Error );
-                log( "Child " + fn( child ) + " exited " +
-                     fn( status & 255 ), Log::Error );
                 failures++;
 	    }
 	    else {
