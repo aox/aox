@@ -732,7 +732,7 @@ void Server::maintainChildren()
         if ( d->mainProcess ) {
             int status = 0;
             time_t now = time( 0 );
-            (void)::waitpid( -1, &status, 0 );
+            pid_t child = ::waitpid( -1, &status, 0 );
             if ( child == (pid_t)-1 && errno == ECHILD ) {
                 log( "Qutting due to unexpected lack of child processes.",
 		     Log::Error );
