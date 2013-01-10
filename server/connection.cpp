@@ -625,6 +625,7 @@ void Connection::startTls()
         close();
         ::close( sv[0] );
         ::close( sv[1] );
+        EventLoop::shutdown();
         return;
     }
     Allocator::addEternal( t, "another TLS thread" );
