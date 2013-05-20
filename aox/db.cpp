@@ -657,10 +657,6 @@ void CheckDatabase::execute()
     expectEmpty( "select message from h "
                  "group by message, part, position "
                  "having count(*) > 1" );
-    // if there's a gap in the position series...
-    expectEmpty( "select message from h "
-                 "group by message, part "
-                 "having max(position)>count(*)" );
 
     t->commit();
     finish();
