@@ -327,7 +327,7 @@ static void shutdownLoop( int )
     if ( used > limit )
         used = limit;
     uint shorter = trunc( 10797.0 * used / limit );
-    
+
     EventLoop::global()->stop( 10800 - shorter );
     (void)alarm( 10800 - shorter );
 }
@@ -352,7 +352,6 @@ static void dumpCoreAndGoOn( int )
 void Server::killChildren()
 {
     List<pid_t>::Iterator child( d->children );
-    d->children = 0;
     while ( child ) {
         if ( *child )
             ::kill( *child, SIGTERM );
@@ -735,7 +734,7 @@ void Server::maintainChildren()
             pid_t child = ::waitpid( -1, &status, 0 );
             if ( child == (pid_t)-1 && errno == ECHILD ) {
                 log( "Qutting due to unexpected lack of child processes.",
-		     Log::Error );
+                     Log::Error );
                 exit( 0 );
             }
             if ( time( 0 ) >= now + 5 ) {
@@ -744,15 +743,15 @@ void Server::maintainChildren()
             }
             else if ( failures > 5 ) {
                 log( "Quitting due to five failed children.",
-		     Log::Error );
+                     Log::Error );
                 exit( 0 ); // the children keep dying, best quit
-	    }
+            }
             else if ( failures ) {
-		log( "Observed " + fn( failures ) + " failing children.",
-		      Log::Error );
+                log( "Observed " + fn( failures ) + " failing children.",
+                      Log::Error );
                 failures++;
-	    }
-	    else {
+            }
+            else {
                 ::sleep( 1 );
                 failures++;
             }
