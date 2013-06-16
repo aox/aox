@@ -581,16 +581,12 @@ EString Search::date()
 
 UString Search::ustring( Command::QuoteMode stringType )
 {
-    if ( !d->codec )
+    if ( d->codec )
+        ;
+    else if ( imap()->clientSupports( IMAP::Unicode ) )
+        d->codec = new Utf8Codec;
+    else if ( !d->codec )
         d->codec = new AsciiCodec;
-
-#ifdef BADIDEA
-    if ( imap->clientSupports( IMAP::Unicode ) &&
-         d->codec &&
-         d->codec->name() != "UTF-8" &&
-         nextChar() == '*' )
-        error( Bad, "Either UTF-8 or " + d->codec->name() + ", but not both" );
-#endif
 
     EString raw;
     switch( stringType )
