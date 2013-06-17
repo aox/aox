@@ -60,7 +60,7 @@ SmtpHelo::SmtpHelo( SMTP * s, SmtpParser * p, Type t )
         respond( 0, "PIPELINING" );
         respond( 0, "8BITMIME" );
         respond( 0, "CHUNKING" );
-        if ( ::unicodeSupported )
+        if ( t == Lhlo || ::unicodeSupported )
             respond( 0, "SMTPUTF8" );
         if ( !s->hasTls() && Configuration::toggle( Configuration::UseTls ) )
             respond( 0, "STARTTLS" );

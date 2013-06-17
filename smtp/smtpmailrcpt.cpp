@@ -99,6 +99,9 @@ void SmtpMailFrom::addParam( const EString & name, const EString & value )
     else if ( name == "envid" ) {
         // XXX do what?
     }
+    else if ( name == "smtputf8" ) {
+        // Nothing needed except to avoid "unknown parameter" errors
+    }
     else if ( name == "x-oryx-id" &&
               !Configuration::toggle( Configuration::Security ) ) {
         if ( value.boring() && !value.isEmpty() )
