@@ -13,6 +13,8 @@ public:
     enum Type{ Helo, Ehlo, Lhlo };
 
     SmtpHelo( SMTP *, SmtpParser *, Type );
+
+    static void setUnicodeSupported( bool );
 };
 
 

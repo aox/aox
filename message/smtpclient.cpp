@@ -10,6 +10,7 @@
 #include "configuration.h"
 #include "recipient.h"
 #include "eventloop.h"
+#include "smtphelo.h"
 #include "address.h"
 #include "message.h"
 // time
@@ -25,6 +26,7 @@ public:
           owner( 0 ), log( 0 ), sentMail( false ),
           wbt( 0 ), wbs( 0 ),
           enhancedstatuscodes( false ),
+          unicode( false ),
           size( false )
     {}
 
@@ -47,6 +49,7 @@ public:
     uint wbt, wbs;
 
     bool enhancedstatuscodes;
+    bool unicode;
     bool size;
     Timer * closeTimer;
     class TimerCloser
@@ -198,6 +201,7 @@ void SmtpClient::parse()
                     d->state = SmtpClientData::Banner;
                 if ( d->state == SmtpClientData::Hello )
                     recordExtension( *s );
+                SmtpHelo::setUnicodeSupported( d->unicode );
                 if ( d->rcptTo )
                     d->accepted.append( d->rcptTo );
                 sendCommand();
@@ -624,6 +628,9 @@ void SmtpClient::recordExtension( const EString & line )
 
     if ( w == "enhancedstatuscodes" ) {
         d->enhancedstatuscodes = true;
+    }
+    else if ( w == "smtputf8" ) {
+        d->unicode = true;
     }
     else if ( w == "size" ) {
         d->size = true;

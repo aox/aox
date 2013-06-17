@@ -6,6 +6,7 @@ SubInclude TOP core ;
 SubInclude TOP encodings ;
 SubInclude TOP db ;
 SubInclude TOP abnf ;
+SubInclude TOP smtp ;
 SubInclude TOP server ;
 SubInclude TOP extractors ;
 

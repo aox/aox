@@ -10,6 +10,8 @@
 
 #include <time.h> // time()
 
+static bool unicodeSupported = false;
+
 
 /*! \class SmtpHelo smtphelo.h
 
@@ -58,10 +60,26 @@ SmtpHelo::SmtpHelo( SMTP * s, SmtpParser * p, Type t )
         respond( 0, "PIPELINING" );
         respond( 0, "8BITMIME" );
         respond( 0, "CHUNKING" );
+        if ( ::unicodeSupported )
+            respond( 0, "SMTPUTF8" );
         if ( !s->hasTls() && Configuration::toggle( Configuration::UseTls ) )
             respond( 0, "STARTTLS" );
         respond( 0, "SIZE" );
         respond( 0, "DSN" );
     }
     finish();
+}
+
+
+/*! Records that SmtpHelo can advertise SMTPUTF8 if \a supported is
+    true, and that it cannot if \a supported is false.
+
+    This is called by the the SMTP client which connects to our
+    upstream SMTP server, so Archiveopteryx advertises the ability to
+    send internationalized mail only if the upstream server does so.
+*/
+
+void SmtpHelo::setUnicodeSupported( bool supported )
+{
+    ::unicodeSupported = supported;
 }
