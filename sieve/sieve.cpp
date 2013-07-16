@@ -248,7 +248,7 @@ void Sieve::execute()
                            "where expires_at > current_timestamp "
                            "and (";
                 bool first = true;
-                bool n = 1;
+                int n = 1;
                 List<SieveAction>::Iterator i( d->vacations );
                 while ( i ) {
                     if ( !first )
