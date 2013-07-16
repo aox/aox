@@ -127,7 +127,6 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "UNSELECT" );
         c.append( "URLAUTH" );
         c.append( "WITHIN" );
-        c.append( "XAOL-MOVE" );
     }
 
     return c.join( " " );
