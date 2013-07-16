@@ -28,7 +28,7 @@ actions DomainList
         tr '[A-Z]' '[a-z]' | \
         awk '/. ns / {print "{ " length($1) ", \"" $1 "\" },\n" }' | \
         sort -u | \
-        sort -nr -k2 > $(<)
+        sort -nrs -k2 > $(<)
 }
 
 # to regenerate root.zone:
