@@ -590,6 +590,9 @@ f6( "check", "database", "Check database contents.",
     "    Performs a number of sanity checks on the database contents.\n"
     "    If the database has been damaged (e.g. during backup/restore),\n"
     "    then one of these checks will probably report a problem.\n\n"
+    "    Note that this command can report problems even when nothing is\n"
+    "    really wrong. If check database is silent, you can be confident\n"
+    "    that there are no hidden problems.\n\n"
     "    This command is very slow.\n" );
 
 
@@ -657,10 +660,6 @@ void CheckDatabase::execute()
     expectEmpty( "select message from h "
                  "group by message, part, position "
                  "having count(*) > 1" );
-    // if there's a gap in the position series...
-    expectEmpty( "select message from h "
-                 "group by message, part "
-                 "having max(position)>count(*)" );
 
     t->commit();
     finish();
