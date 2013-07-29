@@ -69,6 +69,9 @@ public:
     bool contains( const char ) const;
     bool contains( const char * ) const;
 
+    UString section( const char *, uint ) const;
+    UString section( const UString &, uint ) const;
+
     UString mid( uint, uint = UINT_MAX ) const;
     uint number( bool *, uint = 10 ) const;
     UString simplified() const;

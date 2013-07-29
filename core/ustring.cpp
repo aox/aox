@@ -730,3 +730,47 @@ bool UString::isLetter( uint c )
         return false;
     return unidata[c].isAlpha;
 }
+
+
+/*! Returns section \a n of this string, where a section is defined as
+    a run of sequences separated by \a s. If \a s is the empty string
+    or \a n is 0, section() returns this entire string. If this string
+    contains fewer instances of \a s than \a n (ie. section \a n is
+    after the end of the string), section() returns an empty string.
+*/
+
+UString UString::section( const char * s, uint n ) const
+{
+    if ( !s || !*s || n == 0 )
+        return *this;
+
+    UString tmp;
+    tmp.append( s );
+    return section( tmp, n );
+}
+
+
+/*! Returns section \a n of this string, where a section is defined as
+    a run of sequences separated by \a s. If \a s is the empty string
+    or \a n is 0, section() returns this entire string. If this string
+    contains fewer instances of \a s than \a n (ie. section \a n is
+    after the end of the string), section returns an empty string.
+*/
+
+UString UString::section( const UString & s, uint n ) const
+{
+    if ( s.isEmpty() || n == 0 )
+        return *this;
+
+    int b = 0;
+    while ( n && b <= (int)length() ) {
+        int e = find( s, b );
+        if ( e < 0 )
+            e = length();
+        if ( n == 1 )
+            return mid( b, e - b );
+        n--;
+        b = e + s.length();
+    }
+    return UString();
+}
