@@ -162,8 +162,8 @@ void CreateAlias::execute()
                               "limit 1",
                               this );
             d->q->bind( 1, d->address->id() );
-            d->q->bind( 2, d->destination->localpart().lower() );
-            d->q->bind( 3, d->destination->domain().lower() );
+            d->q->bind( 2, d->destination->localpart() );
+            d->q->bind( 3, d->destination->domain() );
         }
         else {
             d->q = new Query( "insert into aliases (address, mailbox) "
@@ -235,11 +235,11 @@ void DeleteAlias::execute()
             q = new Query( rm + tx, this );
         else
             q = new Query( rm, this );
-        q->bind( 1, address->localpart().lower() );
-        q->bind( 2, address->domain().lower() );
+        q->bind( 1, address->localpart() );
+        q->bind( 2, address->domain() );
         if ( target ) {
-            q->bind( 3, target->localpart().lower() );
-            q->bind( 4, target->domain().lower() );
+            q->bind( 3, target->localpart() );
+            q->bind( 4, target->domain() );
         }
         q->execute();
     }

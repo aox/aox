@@ -7,6 +7,7 @@
 #include "date.h"
 #include "html.h"
 #include "user.h"
+#include "codec.h"
 #include "query.h"
 #include "scope.h"
 #include "address.h"
@@ -105,13 +106,13 @@ SieveData::Recipient * SieveData::recipient( Address * a )
 {
     List<SieveData::Recipient>::Iterator it( recipients );
     bool same = false;
-    EString dom = a->domain().lower();
-    EString lp = a->localpart().lower();
+    UString dom = a->domain().titlecased();
+    UString lp = a->localpart().titlecased();
     while ( it && !same ) {
-        if ( it->address->domain().lower() == dom ) {
+        if ( it->address->domain().titlecased() == dom ) {
             if ( it->mailbox ) {
                 // local addresses are case-insensitive
-                if ( it->address->localpart().lower() == lp )
+                if ( it->address->localpart().titlecased() == lp )
                     same = true;
             }
             else {
@@ -263,7 +264,7 @@ void Sieve::execute()
                     s.append( " and lower(domain)=$" );
                     s.appendNumber( n+2 );
                     Address * f = i->senderAddress();
-                    d->autoresponses->bind( n+1, f->localpart().lower() );
+                    d->autoresponses->bind( n+1, f->localpart() );
                     d->autoresponses->bind( n+2, f->domain() );
                     s.append( ") and sent_to in "
                               "(select id from addresses "
@@ -272,8 +273,8 @@ void Sieve::execute()
                     s.append( " and lower(domain)=$" );
                     s.appendNumber( n+4 );
                     Address * r = i->recipientAddress();
-                    d->autoresponses->bind( n+3, r->localpart().lower() );
-                    d->autoresponses->bind( n+4, r->domain().lower() );
+                    d->autoresponses->bind( n+3, r->localpart() );
+                    d->autoresponses->bind( n+4, r->domain() );
                     s.append( "))" );
                     ++i;
                     n += 5;
@@ -490,7 +491,7 @@ void Sieve::addRecipient( Address * address, EventHandler * user )
                        "left join namespaces n on (u.parentspace=n.id) "
                        "where m.deleted='f' and "
                        "lower(a.localpart)=$1 and lower(a.domain)=$2", this );
-    EString localpart( address->localpart() );
+    UString localpart( address->localpart() );
     if ( Configuration::toggle( Configuration::UseSubaddressing ) ) {
         EString sep( Configuration::text( Configuration::AddressSeparator ) );
         if ( sep.isEmpty() ) {
@@ -505,13 +506,14 @@ void Sieve::addRecipient( Address * address, EventHandler * user )
                 localpart = localpart.mid( 0, n );
         }
         else {
-            int n = localpart.find( sep );
+            AsciiCodec ac;
+            int n = localpart.find( ac.toUnicode( sep ) );
             if ( n > 0 )
                 localpart = localpart.mid( 0, n );
         }
     }
-    r->sq->bind( 1, localpart.lower() );
-    r->sq->bind( 2, address->domain().lower() );
+    r->sq->bind( 1, localpart );
+    r->sq->bind( 2, address->domain() );
     r->sq->execute();
 }
 
@@ -789,8 +791,8 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         }
         if ( from && user ) {
             Address * a = user->address();
-            if ( a->localpart().lower() == from->localpart().lower() &&
-                 a->domain().lower() == from->domain().lower() )
+            if ( a->localpart().titlecased()==from->localpart().titlecased() &&
+                 a->domain().titlecased() == from->domain().titlecased() )
                 from = a;
         }
 
@@ -821,7 +823,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             wantToReply = false;
 
         // look for suspect senders
-        EString slp = d->sender->localpart().lower();
+        EString slp = d->sender->localpart().utf8().lower();
         if ( d->sender->type() != Address::Normal )
             wantToReply = false;
         else if ( slp.startsWith( "owner-" ) )
@@ -860,12 +862,12 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             l.append( d->message->header()->addresses( HeaderField::Cc ) );
             List<Address>::Iterator i( l );
             while ( i && !wantToReply ) {
-                EString lp = i->localpart().lower();
-                EString dom = i->domain().lower();
+                UString lp = i->localpart().titlecased();
+                UString dom = i->domain().titlecased();
                 List<Address>::Iterator me( addresses );
                 while ( me && !wantToReply ) {
-                    if ( lp == me->localpart().lower() &&
-                         dom == me->domain().lower() )
+                    if ( lp == me->localpart().titlecased() &&
+                         dom == me->domain().titlecased() )
                         wantToReply = true;
                     ++me;
                 }
@@ -881,7 +883,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                 ( d->message->header()->addresses( HeaderField::From ) );
             while ( i && to == d->sender ) {
                 if ( i->localpart() == to->localpart() &&
-                     i->domain().lower() == to->domain().lower() &&
+                     i->domain().titlecased() == to->domain().titlecased() &&
                      !i->name().isEmpty() )
                     to = i;
                 ++i;
@@ -1130,14 +1132,15 @@ static void addAddress( UStringList * l, Address * a,
                         SieveTest::AddressPart p )
 {
     UString * s = new UString;
-    Utf8Codec c;
 
-    EString user;
-    EString detail;
-    EString localpart( a->localpart() );
+    UString user;
+    UString detail;
+    UString localpart( a->localpart() );
 
     if ( Configuration::toggle( Configuration::UseSubaddressing ) ) {
-        EString sep( Configuration::text( Configuration::AddressSeparator ) );
+        AsciiCodec c;
+        UString sep( c.toUnicode( Configuration::text(
+                                      Configuration::AddressSeparator ) ) );
         if ( sep.isEmpty() ) {
             int plus = localpart.find( '+' );
             int minus = localpart.find( '-' );
@@ -1164,20 +1167,20 @@ static void addAddress( UStringList * l, Address * a,
     }
 
     if ( p == SieveTest::User ) {
-        s->append( c.toUnicode( user ) );
+        s->append( user );
     }
     else if ( p == SieveTest::Detail ) {
         // XXX: foo@ and foo+@ are supposed to be treated differently
         // here, but we pretend they're the same.
-        s->append( c.toUnicode( detail ) );
+        s->append( detail );
     }
     else {
         if ( p != SieveTest::Domain )
-            s->append( c.toUnicode( localpart ) );
+            s->append( localpart );
         if ( p == SieveTest::All || p == SieveTest::NoAddressPart )
             s->append( "@" );
         if ( p != SieveTest::Localpart )
-            s->append( c.toUnicode( a->domain() ) );
+            s->append( a->domain() );
     }
 
     l->append( s );

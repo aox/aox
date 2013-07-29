@@ -304,8 +304,8 @@ void User::refresh( EventHandler * user )
     }
     else if ( d->address ) {
         d->q = new Query( *psa, this );
-        d->q->bind( 1, d->address->localpart().lower() );
-        d->q->bind( 2, d->address->domain().lower() );
+        d->q->bind( 1, d->address->localpart().utf8().lower() );
+        d->q->bind( 2, d->address->domain().utf8().lower() );
     }
     if ( d->q ) {
         d->q->execute();

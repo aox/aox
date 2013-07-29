@@ -13,6 +13,7 @@
 #include "smtphelo.h"
 #include "address.h"
 #include "message.h"
+#include "ustring.h"
 // time
 #include <time.h>
 
@@ -275,6 +276,8 @@ void SmtpClient::sendCommand()
         if ( d->dsn->sender()->type() == Address::Normal )
             send.append( d->dsn->sender()->lpdomain() );
         send.append( ">" );
+        if ( d->dsn->message()->needsUnicode() )
+            send.append( " smtputf8" );
         if ( d->size ) {
             if ( d->dotted.isEmpty() )
                 d->dotted = dotted( d->dsn->message()->rfc822() );
@@ -319,8 +322,8 @@ void SmtpClient::sendCommand()
             while ( i ) {
                 if ( i->action() == Recipient::Unknown ) {
                     i->setAction( Recipient::Relayed, "" );
-                    log( "Sent to " + i->finalRecipient()->localpart() +
-                         "@" + i->finalRecipient()->domain() );
+                    log( "Sent to " + i->finalRecipient()->localpart().utf8() +
+                         "@" + i->finalRecipient()->domain().utf8() );
                 }
                 ++i;
             }

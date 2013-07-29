@@ -339,3 +339,24 @@ void Multipart::simplifyMimeStructure()
             me->removeField( HeaderField::MimeVersion );
     }
 }
+
+
+/*! Returns true if any part of this Multipart needs Unicode
+    capability to be porperly transmitted, and false if MIME-enhanced
+    ASCII will do.
+*/
+
+bool Multipart::needsUnicode() const
+{
+    if ( h->needsUnicode() )
+        return true;
+
+    List<Bodypart>::Iterator it( children() );
+    while ( it ) {
+        if ( it->needsUnicode() )
+            return true;
+        ++it;
+    }
+
+    return false;
+}

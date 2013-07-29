@@ -390,3 +390,20 @@ void AddressField::outlawBounce()
         ++it;
     }
 }
+
+
+/*! Returns true if any of the addresses in this field need unicode to
+    be transmitted, and false if none of them do (or if the list is
+    empty).
+*/
+
+bool AddressField::needsUnicode() const
+{
+    List< Address >::Iterator it( a );
+    while ( it && valid() ) {
+        if ( it->needsUnicode() )
+            return true;
+        ++it;
+    }
+    return false;
+}

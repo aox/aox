@@ -541,10 +541,11 @@ static bool sameAddresses( AddressField *a, AddressField *b )
 
     List<Address>::Iterator it( m );
     while ( it ) {
-        EString lp = it->localpart();
-        EString dom = it->domain().lower();
+        UString lp = it->localpart();
+        UString dom = it->domain().titlecased();
         List<Address>::Iterator i( l );
-        while ( i && !( i->localpart() == lp && i->domain().lower() == dom ) )
+        while ( i && !( i->localpart() == lp &&
+                        i->domain().titlecased() == dom ) )
             ++i;
         if ( !i )
             return false;
@@ -555,7 +556,7 @@ static bool sameAddresses( AddressField *a, AddressField *b )
 
 
 /*! Removes any redundant header fields from this header, and
-  simplifies the value of some.
+    simplifies the value of some.
 
     For example, if 'sender' or 'reply-to' points to the same address
     as 'from', that field can be removed, and if 'from' contains the
@@ -1439,8 +1440,8 @@ void Header::repair( Multipart * p, const EString & body )
         AddressField * sender = addressField( HeaderField::Sender );
         List<Address>::Iterator i( sender->addresses() );
         Address * last = sender->addresses()->last();
-        EString domain = i->domain().lower();
-        while ( i && i->domain().lower() == domain )
+        UString domain = i->domain().titlecased();
+        while ( i && i->domain().titlecased() == domain )
             ++i;
         if ( i == last ) {
             sender->addresses()->clear();
@@ -1517,7 +1518,7 @@ void Header::repair( Multipart * p, const EString & body )
                     UString name = ac.toUnicode( reportingMta );
                     name.append( " postmaster" );
                     postmaster = new Address( name, "postmaster",
-                                              address->domain().lower() );
+                                              address->domain().utf8().lower() );
                     AddressField * from = addressField( HeaderField::From );
                     if ( from ) {
                         from->setError( "" );
@@ -1555,7 +1556,7 @@ void Header::repair( Multipart * p, const EString & body )
                 EString me = Configuration::hostname().lower();
                 EString victim;
                 if ( msgid )
-                    victim = msgid->domain().lower();
+                    victim = msgid->domain().utf8().lower();
                 uint tld = victim.length();
                 if ( victim[tld-3] == '.' )
                     tld -= 3; // .de
@@ -1795,7 +1796,7 @@ static int msgidness( const Address * a )
 {
     if ( !a )
         return 0;
-    EString lp = a->localpart();
+    UString lp = a->localpart();
     uint score = lp.length();
     if ( score < 10 )
         return 0;
@@ -1934,9 +1935,13 @@ void Header::fix8BitFields( class Codec * c )
                     ++i;
                 }
                 if ( best ) {
-                    AsciiCodec a;
-                    f->setValue( a.toUnicode( "<" + best->localpart() +
-                                              "@" + best->domain() + ">" ) );
+                    UString u;
+                    u.append( "<" );
+                    u.append( best->localpart() );
+                    u.append( "@" );
+                    u.append( best->domain() );
+                    u.append( ">" );
+                    f->setValue( u );
                 }
                 else {
                     d->fields.remove( f );
@@ -1964,4 +1969,23 @@ void Header::setDefaultType( DefaultType t )
 Header::DefaultType Header::defaultType() const
 {
     return d->defaultType;
+}
+
+
+/*! Returns true if transmitting this header requires unicode
+    capability, and false if transmitting ASCII suffices.
+
+    MIME permits this to return false for most headers, but
+    internationalized addresses need unicode.
+*/
+
+bool Header::needsUnicode() const
+{
+    List<HeaderField>::Iterator i( d->fields );
+    while ( i ) {
+        if ( i->needsUnicode() )
+            return true;
+        ++i;
+    }
+    return false;
 }

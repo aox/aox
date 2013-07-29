@@ -42,7 +42,8 @@
     RFC 5256: SORT,
     RFC 5257: ANNOTATE-EXPERIMENT-1,
     RFC 5258: LISTEXT,
-    RFC 5465: NOTIFY.
+    RFC 5465: NOTIFY,
+    RFC 6855: UTF=ACCEPT.
 */
 
 void Capability::execute()
@@ -126,6 +127,7 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "UIDPLUS" );
         c.append( "UNSELECT" );
         c.append( "URLAUTH" );
+        c.append( "UTF8=ACCEPT" );
         c.append( "WITHIN" );
     }
 

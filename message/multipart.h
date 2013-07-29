@@ -34,6 +34,7 @@ public:
     void appendTextPart( EString &, const Bodypart *, ContentType * ) const;
 
     virtual void simplifyMimeStructure();
+    bool needsUnicode() const;
 
 private:
     Header * h;

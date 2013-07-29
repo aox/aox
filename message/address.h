@@ -17,6 +17,7 @@ public:
     Address();
     Address( const char *, const EString &, const EString & );
     Address( const UString &, const EString &, const EString & );
+    Address( const UString &, const UString &, const UString & );
     Address( const EString &, const EString &, const EString & );
     Address( const Address & );
 
@@ -30,11 +31,11 @@ public:
 
     EString name() const;
     UString uname() const;
-    EString localpart() const;
-    EString domain() const;
+    UString localpart() const;
+    UString domain() const;
 
     EString lpdomain() const;
-    EString toString() const;
+    EString toString( bool = false ) const;
 
     bool valid() const { return type() != Invalid; }
 
@@ -47,10 +48,12 @@ public:
     void setError( const EString & );
     EString error() const;
 
+    bool needsUnicode() const;
+
 private:
     class AddressData * d;
 
-    void init( const UString &, const EString &, const EString & );
+    void init( const UString &, const UString &, const UString & );
 };
 
 

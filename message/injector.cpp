@@ -1840,7 +1840,7 @@ void Injector::insertDeliveries()
         EStringList domains;
         while ( it ) {
             Address * a = d->addresses.find( AddressCreator::key( it ) );
-            domains.append( a->domain().lower() );
+            domains.append( a->domain().utf8().lower() );
             Query * q =
                 new Query(
                     "insert into delivery_recipients (delivery,recipient) "

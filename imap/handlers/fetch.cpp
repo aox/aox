@@ -1135,7 +1135,7 @@ EString Fetch::internalDate( Message * m )
 }
 
 
-static EString hf( Header * f, HeaderField::Type t )
+static EString hf( Header * f, HeaderField::Type t, bool unicodable )
 {
     List<Address> * a = f->addresses( t );
     if ( !a || a->isEmpty() )
@@ -1160,14 +1160,20 @@ static EString hf( Header * f, HeaderField::Type t )
                 eu = HeaderField::encodePhrase( u );
             r.append( Command::imapQuoted( eu, Command::NString ) );
             r.append( " NIL " );
-            r.append( Command::imapQuoted( it->localpart(),
-                                           Command::NString ) );
-            r.append( " " );
-            if ( it->domain().isEmpty() )
-                r.append( "\" \"" ); // RFC 3501, page 77 near bottom
-            else
-                r.append( Command::imapQuoted( it->domain(),
+            if ( unicodable ||
+                 ( it->localpart().isAscii() && it->domain().isAscii() ) ) {
+                r.append( Command::imapQuoted( it->localpart().utf8(),
                                                Command::NString ) );
+                r.append( " " );
+                if ( it->domain().isEmpty() )
+                    r.append( "\" \"" ); // RFC 3501, page 77 near bottom
+                else
+                    r.append( Command::imapQuoted( it->domain().utf8(),
+                                                   Command::NString ) );
+            }
+            else {
+                r.append( "noreply unicode-needed.invalid" );
+            }
         }
         r.append( ")" );
         ++it;
@@ -1199,12 +1205,13 @@ EString Fetch::envelope( Message * m )
     r.append( " " );
 
     r.append( imapQuoted( h->subject(), NString ) + " " );
-    r.append( hf( h, HeaderField::From ) );
-    r.append( hf( h, HeaderField::Sender ) );
-    r.append( hf( h, HeaderField::ReplyTo ) );
-    r.append( hf( h, HeaderField::To ) );
-    r.append( hf( h, HeaderField::Cc ) );
-    r.append( hf( h, HeaderField::Bcc ) );
+    bool unicode = imap()->clientSupports( IMAP::Unicode );
+    r.append( hf( h, HeaderField::From, unicode ) );
+    r.append( hf( h, HeaderField::Sender, unicode ) );
+    r.append( hf( h, HeaderField::ReplyTo, unicode ) );
+    r.append( hf( h, HeaderField::To, unicode ) );
+    r.append( hf( h, HeaderField::Cc, unicode ) );
+    r.append( hf( h, HeaderField::Bcc, unicode ) );
     r.append( imapQuoted( h->inReplyTo(), NString ) + " " );
     r.append( imapQuoted( h->messageId(), NString ) );
 

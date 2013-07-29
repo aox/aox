@@ -20,8 +20,8 @@ public:
 
     uint id;
     UString name;
-    EString localpart;
-    EString domain;
+    UString localpart;
+    UString domain;
     Address::Type type;
     EString error;
 };
@@ -95,7 +95,8 @@ Address::Address()
 Address::Address( const UString &n, const EString &l, const EString &o )
     : d( 0 )
 {
-    init( n, l, o );
+    AsciiCodec a;
+    init( n, a.toUnicode( l ), a.toUnicode( o ) );
 }
 
 
@@ -110,7 +111,19 @@ Address::Address( const EString &n, const EString &l, const EString &o )
     UString un( a.toUnicode( n ) );
     if ( !a.valid() )
         un.truncate();
-    init( un, l, o );
+    init( un, a.toUnicode( l ), a.toUnicode( o ) );
+}
+
+
+/*! Constructs an address whose display-name is \a n, whose localpart
+ *  is \a l and whose domain is \a o.
+
+*/
+
+Address::Address( const UString & n, const UString & l, const UString & o )
+    : d( 0 )
+{
+    init( n, l, o );
 }
 
 
@@ -125,7 +138,8 @@ Address::Address( const char * n, const EString & l, const EString & o )
     u.append( n );
     if ( !u.isAscii() )
         u.truncate();
-    init( u, l, o );
+    AsciiCodec a;
+    init( u, a.toUnicode( l ), a.toUnicode( o ) );
 }
 
 
@@ -135,7 +149,7 @@ class AddressCache
 public:
     AddressCache(): Cache( 8 ) {}
     void clear() { step1.clear(); }
-    Dict< Dict< UDict<AddressData> > > step1;
+    UDict< UDict< UDict<AddressData> > > step1;
 };
 
 static AddressCache * cache = 0;
@@ -148,15 +162,15 @@ static AddressCache * cache = 0;
     address.
 */
 
-void Address::init( const UString &n, const EString &l, const EString &o )
+void Address::init( const UString &n, const UString &l, const UString &o )
 {
     if ( !::cache )
         ::cache = new AddressCache;
 
-    EString dl( o.lower() );
-    Dict< UDict<AddressData> > * step2 = ::cache->step1.find( dl );
+    UString dl( o.titlecased() );
+    UDict< UDict<AddressData> > * step2 = ::cache->step1.find( dl );
     if ( !step2 ) {
-        step2 = new Dict< UDict<AddressData> >;
+        step2 = new UDict< UDict<AddressData> >;
         ::cache->step1.insert( dl, step2 );
     }
     UDict<AddressData> * step3 = step2->find( l );
@@ -286,7 +300,7 @@ UString Address::uname() const
     memberless group, localpart() returns an empty string.
 */
 
-EString Address::localpart() const
+UString Address::localpart() const
 {
     return d->localpart;
 }
@@ -296,7 +310,7 @@ EString Address::localpart() const
     group, domain() returns an empty string.
 */
 
-EString Address::domain() const
+UString Address::domain() const
 {
     return d->domain;
 }
@@ -312,13 +326,13 @@ EString Address::lpdomain() const
     if ( type() == Normal ||
          type() == Local ) {
         if ( localpartIsSensible() )
-            r = d->localpart;
+            r = d->localpart.utf8();
         else
-            r = d->localpart.quoted();
+            r = d->localpart.utf8().quoted();
     }
     if ( type() == Normal ) {
         r.append( "@" );
-        r.append( d->domain );
+        r.append( d->domain.utf8() );
     }
     if ( r.isEmpty() )
         r = toString();
@@ -326,10 +340,13 @@ EString Address::lpdomain() const
 }
 
 
-/*! Returns an RFC 2822 representation of this address.
+/*! Returns an RFC 2822 representation of this address. If \a
+    avoidUtf8 is present and true (the default is false), toString()
+    returns an address which avoids UTF-8 at all costs, even if that
+    loses information.
 */
 
-EString Address::toString() const
+EString Address::toString( bool avoidUtf8 ) const
 {
     EString r;
     switch( type() ) {
@@ -343,31 +360,37 @@ EString Address::toString() const
         r = name() + ":;";
         break;
     case Local:
-        if ( localpartIsSensible() )
-            r = d->localpart;
+        if ( avoidUtf8 && !d->localpart.isAscii() )
+            r = "this-address@needs-unicode.invalid";
+        else if ( localpartIsSensible() )
+            r = d->localpart.utf8();
         else
-            r = d->localpart.quoted();
+            r = d->localpart.utf8().quoted();
         break;
     case Normal:
-        if ( d->name.isEmpty() ) {
-            if ( localpartIsSensible() )
-                r.append( d->localpart );
-            else
-                r.append( d->localpart.quoted() );
-            r.append( "@" );
-            r.append( d->domain );
+        if ( avoidUtf8 && ( !d->localpart.isAscii() ||
+                            !d->domain.isAscii() ) ) {
+            r = "this-address@needs-unicode.invalid";
         }
         else {
-            r.append( name() );
-            r.append( " <" );
+            EString postfix;
+            if ( !d->name.isEmpty() ) {
+                if ( avoidUtf8 )
+                    r.append( name() );
+                else
+                    r.append( uname().utf8() );
+                r.append( " <" );
+                postfix = ">";
+            }
             if ( localpartIsSensible() )
-                r.append( d->localpart );
+                r.append( d->localpart.utf8() );
             else
-                r.append( d->localpart.quoted() );
+                r.append( d->localpart.utf8().quoted() );
             r.append( "@" );
-            r.append( d->domain );
-            r.append( ">" );
+            r.append( d->domain.utf8() );
+            r.append( postfix );
         }
+        break;
     }
     return r;
 }
@@ -1586,9 +1609,9 @@ static EString key( Address * a )
 
     t.append( a->uname().utf8() );
     t.append( " " );
-    t.append( a->localpart() );
+    t.append( a->localpart().utf8() );
     t.append( "@" );
-    t.append( a->domain().lower() );
+    t.append( a->domain().utf8().lower() );
 
     return t;
 }
@@ -1612,9 +1635,9 @@ void Address::uniquify( List<Address> * l )
             unique.insert( k, a );
             if ( !a->uname().isEmpty() ) {
                 k = " ";
-                k.append( a->localpart() );
+                k.append( a->localpart().utf8() );
                 k.append( "@" );
-                k.append( a->domain().lower() );
+                k.append( a->domain().titlecased().utf8() );
                 unique.insert( k, a );
             }
         }
@@ -1722,4 +1745,17 @@ void Address::setError( const EString & message )
 EString Address::error() const
 {
     return d->error;
+}
+
+
+/*! Returns true if this message needs unicode address support, and
+    false if it can be transmitted over plain old SMTP.
+
+    Note that the display-name can require unicode even if the address
+    does not.
+*/
+
+bool Address::needsUnicode() const
+{
+    return false;
 }

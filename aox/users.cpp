@@ -139,16 +139,17 @@ void CreateUser::execute()
 
         Address * a = p.addresses()->first();
         if ( Configuration::toggle( Configuration::UseSubaddressing ) ) {
+            EString lp = a->localpart().utf8();
             if ( Configuration::present( Configuration::AddressSeparator ) ) {
                 Configuration::Text t = Configuration::AddressSeparator;
-                if ( a->localpart().contains( Configuration::text( t ) ) ) {
+                if ( lp.contains(Configuration::text( t ) ) ) {
                     error( "Localpart cannot contain subaddress separator" );
                 }
             }
-            else if ( a->localpart().contains( "-" ) ) {
+            else if ( lp.contains( "-" ) ) {
                 error( "Localpart cannot contain subaddress separator '-'" );
             }
-            else if ( a->localpart().contains( "+" ) ) {
+            else if ( lp.contains( "+" ) ) {
                 error( "Localpart cannot contain subaddress separator '+'" );
             }
         }

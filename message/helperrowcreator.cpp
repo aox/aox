@@ -516,8 +516,8 @@ Query * AddressCreator::makeSelect()
     while ( i && n < 128 ) {
         if ( !i->id() ) {
             EString name( p.fromUnicode( i->uname() ) );
-            EString lp( i->localpart() );
-            EString dom( i->domain().lower() );
+            EString lp( i->localpart().utf8() );
+            EString dom( i->domain().utf8().lower() );
 
             uint bn = param( &binds, name, n, q );
             uint bl = param( &binds, lp, n, q );
@@ -594,9 +594,9 @@ Query * AddressCreator::makeCopy()
 EString AddressCreator::key( Address * a )
 {
     EString r;
-    r.append( a->domain().lower() );
+    r.append( a->domain().utf8().lower() );
     r.append( '\0' );
-    r.append( a->localpart() );
+    r.append( a->localpart().utf8() );
     r.append( '\0' );
     r.append( a->uname().utf8() );
     return r;

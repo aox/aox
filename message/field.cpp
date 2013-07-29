@@ -829,3 +829,15 @@ void HeaderField::setUnparsedValue( const EString & s )
 {
     d->unparsed = s;
 }
+
+
+/*! Returns true if this header field requires unicode ability to be
+    properly transmitted, and false if not.
+
+    The default implementation returns false.
+*/
+
+bool HeaderField::needsUnicode() const
+{
+    return false;
+}

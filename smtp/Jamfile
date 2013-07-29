@@ -1,11 +1,13 @@
 SubDir TOP smtp ;
+
+HDRS += [ FDirName $(TOP) smtp ] ;
+
 SubInclude TOP abnf ;
 SubInclude TOP sasl ;
+SubInclude TOP imap ;
 SubInclude TOP sieve ;
 SubInclude TOP server ;
 SubInclude TOP message ;
-
-HDRS += [ FDirName $(TOP) smtp ] ;
 
 Build smtp : smtp.cpp
     smtpparser.cpp

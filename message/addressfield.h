@@ -23,6 +23,8 @@ public:
     List<Address> *addresses() const;
     void setAddresses( List<Address>* );
 
+    bool needsUnicode() const;
+
 protected:
     void parseAddressList( const EString & );
     void parseMailboxList( const EString & );

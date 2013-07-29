@@ -78,6 +78,8 @@ public:
     static EString encodeText( const UString & );
     static EString encodePhrase( const UString & );
 
+    virtual bool needsUnicode() const;
+
 private:
     static HeaderField *fieldNamed( const EString & );
     class HeaderFieldData *d;

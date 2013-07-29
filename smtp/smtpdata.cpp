@@ -17,6 +17,7 @@
 #include "graph.h"
 #include "scope.h"
 #include "sieve.h"
+#include "codec.h"
 #include "file.h"
 #include "list.h"
 #include "date.h"
@@ -321,26 +322,27 @@ bool SmtpData::addressPermitted( Address * a ) const
     if ( a->type() !=  Address::Normal )
         return false;
 
-    EString ad = a->domain().lower();
-    EString al = a->localpart().lower();
+    UString ad = a->domain().titlecased();
+    UString al = a->localpart().titlecased();
     if ( sub ) {
         EString sep( Configuration::text( Configuration::AddressSeparator ) );
         if ( sep.isEmpty() ) {
-            EString al1 = al.section( "+", 1 );
-            EString al2 = al.section( "-", 1 );
+            UString al1 = al.section( "+", 1 );
+            UString al2 = al.section( "-", 1 );
             if ( al1.length() < al2.length() && !al1.isEmpty() )
                 al = al1;
             else if ( !al2.isEmpty() )
                 al = al2;
         }
         else {
-            al = al.section( sep, 1 );
+            AsciiCodec ac;
+            al = al.section( ac.toUnicode( sep ), 1 );
         }
     }
     List<Address>::Iterator p( server()->permittedAddresses() );
     while ( p &&
-            ( al != p->localpart().lower() ||
-              ad != p->domain().lower() ) )
+            ( al != p->localpart().titlecased() ||
+              ad != p->domain().titlecased() ) )
         ++p;
     if ( !p )
         return false;
@@ -450,7 +452,8 @@ Injectee * SmtpData::message( const EString & body )
     }
     else if ( recipients == 1 ) {
         Address * a = server()->rcptTo()->firstElement()->address();
-        received.append( " for " + a->localpart() + "@" + a->domain() );
+        received.append( " for " + a->localpart().utf8() +
+                         "@" + a->domain().utf8() );
     }
     else if ( recipients > 1 ) {
         received.append( " (" + fn( recipients ) + " recipients)" );
@@ -480,7 +483,7 @@ Injectee * SmtpData::message( const EString & body )
             Header * h = m->header();
             AddressField * old = h->addressField( HeaderField::From );
             Address * f = server()->sieve()->sender();
-            Address * a = new Address( from->first()->name(),
+            Address * a = new Address( from->first()->uname(),
                                        f->localpart(),
                                        f->domain() );
             HeaderField * hf = HeaderField::create( "From", a->toString() );

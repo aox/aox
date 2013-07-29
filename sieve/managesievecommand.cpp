@@ -989,9 +989,9 @@ bool ManageSieveCommand::explain()
             break;
         case SieveAction::Redirect:
             r.append( "redirect " );
-            r.append( sa->recipientAddress()->localpart() );
+            r.append( sa->recipientAddress()->localpart().utf8() );
             r.append( "@" );
-            r.append( sa->recipientAddress()->domain() );
+            r.append( sa->recipientAddress()->domain().utf8() );
             break;
         case SieveAction::MailtoNotification:
             r.append( "mailto notification to " );

@@ -50,6 +50,8 @@ public:
     EString contentDescription() const;
     EString contentLocation() const;
 
+    bool needsUnicode() const;
+
     void simplify();
     void repair();
     void repair( class Multipart *, const EString & );
