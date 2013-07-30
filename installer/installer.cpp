@@ -941,8 +941,8 @@ void checkVersion()
     uint version = 10000 * v.section( ".", 1 ).number( &ok ) +
                    100 * v.section( ".", 2 ).number( &ok ) +
                    v.section( ".", 3 ).number( &ok );
-    if ( !ok || version < 80100 ) {
-        d->error( "Archiveopteryx requires PostgreSQL 8.1.0 or higher "
+    if ( !ok || version < 90100 ) {
+        d->error( "Archiveopteryx requires PostgreSQL 9.1.0 or higher "
                   "(found only " + v + ")." );
         return;
     }
