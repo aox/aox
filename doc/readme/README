@@ -13,7 +13,7 @@ Requirements
 You need g++ (and associated packages) to build this software.
 
 You need to have PostgreSQL installed to use Archiveopteryx. We
-recommend the latest 8.x version (but anything newer than 8.1.0
+recommend the latest 9.x version (but anything newer than 9.1
 should work; see http://archiveopteryx.org/postgresql/).
 
 

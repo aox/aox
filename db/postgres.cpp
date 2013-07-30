@@ -683,8 +683,8 @@ void Postgres::unknown( char type )
                 serverVersion = 10000 * v.section( ".", 1 ).number( &ok ) +
                                 100 * v.section( ".", 2 ).number( &ok ) +
                                 v.section( ".", 3 ).number( &ok );
-                if ( !ok || version() < 80100 )
-                    e = "Archiveopteryx requires PostgreSQL 8.1 or higher: ";
+                if ( !ok || version() < 90100 )
+                    e = "Archiveopteryx requires PostgreSQL 9.1 or higher: ";
             }
             else if ( n == "session_authorization" ) {
                 // we could test that v is d->user, but I don't think
