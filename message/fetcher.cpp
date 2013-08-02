@@ -299,8 +299,6 @@ void Fetcher::start()
         d->batchSize = d->batchSize * 2 / 3;
     if ( d->addresses )
         d->batchSize = d->batchSize * 3 / 4;
-    if ( Postgres::version() < 80200 && d->batchSize > 50 && d->otherheader )
-        d->batchSize = 50;
 
     d->state = Fetching;
     prepareBatch();
@@ -426,14 +424,6 @@ void Fetcher::prepareBatch()
             batchSizeLimit = 32; // just sanity, shouldn't actually hit
         if ( d->batchSize > batchSizeLimit )
             d->batchSize = batchSizeLimit;
-
-        // finally, if pg is old enough to misplan =any(...) and the
-        // often-misplanned query would be run, then we keep the batch
-        // size properly down
-        if ( Postgres::version() < 80200 &&
-             d->batchSize > 50 &&
-             d->otherheader )
-            d->batchSize = 50;
 
         if ( prevBatchSize != d->batchSize )
             log( "Batch time was " + fn ( now - d->lastBatchStarted ) +
