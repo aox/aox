@@ -19,15 +19,15 @@ insert into mailstore (revision) values (95);
 
 -- One entry for each unique address we've encountered.
 
+create extension citext;
 create table addresses (
     -- Grant: select, insert
     id          serial primary key,
     name        text,
-    localpart   text,
-    domain      text
+    localpart   citext,
+    domain      citext
 );
-create unique index addresses_nld_key on addresses(name,localpart,lower(domain));
-create index ald on addresses(lower(localpart), lower(domain));
+create unique index addresses_ldn_key on addresses(localpart,domain,name);
 
 
 -- One entry per "other users" namespace. Personal namespaces are

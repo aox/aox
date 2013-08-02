@@ -619,6 +619,8 @@ bool Schema::singleStep()
         c = stepTo94(); break;
     case 94:
         c = stepTo95(); break;
+    case 95:
+        c = stepTo96(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -4365,5 +4367,64 @@ bool Schema::stepTo95()
     d->t->enqueue( "drop table thread_members" );
     d->t->enqueue( "drop table threads" );
 
+    return true;
+}
+
+/*! Convert addresses to use CITEXT, a case-insensitive-for-comparisons
+    text type that's provided as an extension. */
+
+bool Schema::stepTo96()
+{
+    describeStep("Convert addresses to use CITEXT");
+    d->t->enqueue( "create extension citext" );
+    d->t->enqueue( "drop index addresses_nld_key" );
+    d->t->enqueue( "drop index ald" );
+    d->t->enqueue( "alter table addresses alter localpart type citext" );
+    d->t->enqueue( "alter table addresses alter domain type citext" );
+
+    // We have to handle the case where addresses that were previously
+    // different are no longer so under citext: foo@example.com and
+    // FOO@example.com.
+    //
+    // We build a (dup_id, ref_id) map for all non-preferred duplicates,
+    // where preference is given to the "most lowercase" version, as it
+    // were. Then we use it to update each of the tables that refer to
+    // addresses to refer to the preferred version. Then we delete the
+    // duplicates and re-create the constraint.
+
+    d->t->enqueue( "create temporary table numbers on commit drop as "
+                   "select id, ref_id from ("
+                   " select id, first_value(id) over w as ref_id,"
+                   " row_number() over w as rnum"
+                   " from addresses window w as ("
+                   "  partition by name,localpart,domain"
+                   "  order by name,localpart::text,domain)"
+                   ") s where rnum > 1" );
+
+    d->t->enqueue( "update aliases a "
+                   "set address=ref_id from numbers n "
+                   "where a.address=n.id" );
+    d->t->enqueue( "update address_fields af "
+                   "set address=ref_id from numbers n "
+                   "where af.address=n.id" );
+    d->t->enqueue( "update deliveries d "
+                   "set sender=ref_id from numbers n "
+                   "where d.sender=n.id" );
+    d->t->enqueue( "update delivery_recipients dr "
+                   "set recipient=ref_id from numbers n "
+                   "where dr.recipient=n.id" );
+    d->t->enqueue( "update autoresponses ar "
+                   "set sent_from=ref_id from numbers n "
+                   "where ar.sent_from=n.id" );
+    d->t->enqueue( "update autoresponses ar "
+                   "set sent_to=ref_id from numbers n "
+                   "where ar.sent_to=n.id" );
+
+    d->t->enqueue( "delete from addresses where id in (select id from numbers)" );
+
+    // With citext columns, we can enforce uniqueness
+    // and speed up l@d lookups using the same index.
+    d->t->enqueue( "create unique index addresses_ldn_key "
+                   "on addresses (localpart, domain, name)" );
     return true;
 }
