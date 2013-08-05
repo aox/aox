@@ -127,3 +127,14 @@ begin
     );
     return 0;
 end;$$ language 'plpgsql';
+
+create or replace function downgrade_to_95()
+returns int as $$
+begin
+    drop index addresses_ldn_key;
+    alter table addresses alter localpart type text;
+    alter table addresses alter domain type text;
+    create unique index addresses_nld_key on addresses(name,localpart,lower(domain));
+    create index ald on addresses(lower(localpart), lower(domain));
+    return 0;
+end;$$ language 'plpgsql';
