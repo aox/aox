@@ -980,15 +980,6 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             reply->parse( reptext );
         }
 
-        if ( wantToReply && handle.isEmpty() ) {
-            handle = subject;
-            handle.append( "easter eggs are forever" );
-            handle.append( reason );
-            MD5 md5;
-            AsciiCodec ac;
-            handle = ac.toUnicode( md5.hash( handle.utf8() ).e64() );
-        }
-
         if ( wantToReply ) {
             HeaderField * mid
                 = d->message->header()->field( HeaderField::MessageId );
