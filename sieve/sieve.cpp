@@ -832,10 +832,12 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             wantToReply = false;
         else if ( slp.contains( "-bounce" ) )
             wantToReply = false;
+        else if ( slp.contains( "no-reply" ) || slp.contains( "noreply" ) )
+            wantToReply = false;
         else if ( slp == "subs-reminder" ||
                   slp == "root" || slp == "ftp" ||
                   slp == "www" || slp == "www-data" ||
-                  slp == "postmaster" )
+                  slp == "postmaster" || slp == "mailer-daemon" )
             wantToReply = false;
 
         // look for header fields we don't like
