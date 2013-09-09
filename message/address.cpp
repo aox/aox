@@ -1624,9 +1624,9 @@ static EString key( Address * a )
 
     t.append( a->uname().utf8() );
     t.append( " " );
-    t.append( a->localpart().utf8() );
+    t.append( a->localpart().titlecased().utf8() );
     t.append( "@" );
-    t.append( a->domain().utf8().lower() );
+    t.append( a->domain().titlecased().utf8() );
 
     return t;
 }
@@ -1650,7 +1650,7 @@ void Address::uniquify( List<Address> * l )
             unique.insert( k, a );
             if ( !a->uname().isEmpty() ) {
                 k = " ";
-                k.append( a->localpart().utf8() );
+                k.append( a->localpart().titlecased().utf8() );
                 k.append( "@" );
                 k.append( a->domain().titlecased().utf8() );
                 unique.insert( k, a );
