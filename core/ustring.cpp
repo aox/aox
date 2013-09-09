@@ -266,9 +266,9 @@ void UString::truncate( uint l )
 }
 
 
-/*! Returns true if this string contains only printable tab, cr, lf
-    and ASCII characters, and false if it contains one or more other
-    characters.
+/*! Returns true if this string contains only tab, cr, lf and
+    printable ASCII characters, and false if it contains one or more
+    other characters.
 */
 
 bool UString::isAscii() const
