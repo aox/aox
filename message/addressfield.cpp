@@ -400,7 +400,7 @@ void AddressField::outlawBounce()
 bool AddressField::needsUnicode() const
 {
     List< Address >::Iterator it( a );
-    while ( it && valid() ) {
+    while ( it ) {
         if ( it->needsUnicode() )
             return true;
         ++it;
