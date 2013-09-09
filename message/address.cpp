@@ -340,6 +340,19 @@ EString Address::lpdomain() const
 }
 
 
+static bool plainish( const UString & s ) {
+    uint i = 0;
+    while ( i < s.length() &&
+            ( ( s[i] >= 'a' && s[i] <= 'z' ) ||
+              ( s[i] >= 'A' && s[i] <= 'Z' ) ||
+              ( s[i] >= '0' && s[i] <= '9' ) ||
+              s[i] >= 256 ||
+              s[i] == ' ' ) )
+        ++i;
+    return i >= s.length();
+}
+
+
 /*! Returns an RFC 2822 representation of this address. If \a
     avoidUtf8 is present and true (the default is false), toString()
     returns an address which avoids UTF-8 at all costs, even if that
@@ -377,8 +390,10 @@ EString Address::toString( bool avoidUtf8 ) const
             if ( !d->name.isEmpty() ) {
                 if ( avoidUtf8 )
                     r.append( name() );
-                else
+                else if ( plainish( uname() ) )
                     r.append( uname().utf8() );
+                else
+                    r.append( name() );
                 r.append( " <" );
                 postfix = ">";
             }
@@ -1757,5 +1772,7 @@ EString Address::error() const
 
 bool Address::needsUnicode() const
 {
-    return false;
+    if ( d->localpart.isAscii() && d->domain.isAscii() )
+        return false;
+    return true;
 }
