@@ -27,7 +27,7 @@
 
 // the heuristics in adminLikelyHappy() will probably need changing
 // if BlockShift changes
-static uint BlockShift = 17; 
+static uint BlockShift = 19;
 static uint BlockSize = 1 << BlockShift;
 
 
@@ -180,7 +180,7 @@ void * Allocator::alloc( uint s, uint n )
         fprintf( stderr, "%s", "" );
     }
     Allocator * a = Allocator::allocator( s );
-    while ( a->base == a->capacity && a->next )
+    while ( a->taken == a->capacity && a->next )
         a = a->next;
     void * p = a->allocate( s, n );
     if ( ( ( ::total + ::allocated + s ) & 0xfff00000 ) >
