@@ -530,6 +530,9 @@ Injectee * SmtpData::message( const EString & body )
                 h->add( sender);
             }
         }
+        // Clean up terrible mime structure if this comes from Kaitan
+        // mail or a few other agents.
+        m->simplifyMimeStructure();
     }
     d->message = m;
     return m;

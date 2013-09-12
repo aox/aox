@@ -297,3 +297,45 @@ bool Multipart::isBodypart() const
 {
     return false;
 }
+
+
+/*! Simplifies unnecessarily complex MIME structure, corrects mime
+    types, etc. This is only called when a message is submitted; RFC
+    6409 more or less suggests that we might want do it.
+
+    Doing this when we receive other people's mail or are copying old
+    mail into the archive would be impermissible.
+*/
+
+void Multipart::simplifyMimeStructure()
+{
+    // If we're looking at a multipart with just a single part, change
+    // the mime type to avoid the middle multipart. This affects
+    // Kaiten Mail.
+    if ( header()->contentType() &&
+         header()->contentType()->type() == "multipart" &&
+         parts->count() == 1 &&
+         ( !parts->firstElement()->header()->contentType() ||
+           parts->firstElement()->header()->contentType()->type() != "multipart" ) ) {
+        Header * me = header();
+        Header * sub = parts->firstElement()->header();
+
+        me->removeField( HeaderField::ContentType );
+        ContentType * ct = sub->contentType();
+        if ( ct )
+            me->add( ct );
+
+        me->removeField( HeaderField::ContentTransferEncoding );
+        ContentTransferEncoding * cte = sub->contentTransferEncoding();
+        if ( cte )
+            me->add( cte );
+
+        me->removeField( HeaderField::ContentDisposition );
+        ContentDisposition * cd = sub->contentDisposition();
+        if ( cd )
+            me->add( cd );
+
+        if ( !ct && !cte && !cd )
+            me->removeField( HeaderField::MimeVersion );
+    }
+}

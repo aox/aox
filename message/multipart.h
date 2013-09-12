@@ -33,6 +33,8 @@ public:
     void appendAnyPart( EString &, const Bodypart *, ContentType * ) const;
     void appendTextPart( EString &, const Bodypart *, ContentType * ) const;
 
+    virtual void simplifyMimeStructure();
+
 private:
     Header * h;
     Multipart * p;
