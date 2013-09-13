@@ -21,7 +21,7 @@ Enable::Enable()
 
 void Enable::parse()
 {
-    if ( !nextChar() == ' ' )
+    if ( nextChar() != ' ' )
         error( Bad, "No capabilities enabled" );
     while ( ok() && nextChar() == ' ' ) {
         space();
