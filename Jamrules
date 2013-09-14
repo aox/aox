@@ -26,6 +26,13 @@ if $(ICC) {
     BUILD = build/icc ;
     LINKFLAGS += -lcxa -lunwind ;
 }
+else if $(CLANG) {
+    C++ = clang ;
+    LINK = clang ;
+    C++FLAGS += -Wno-invalid-source-encoding -Wno-string-plus-int ;
+    BUILD = build/clang ;
+    LINKFLAGS += -lstdc++ ;
+}
 else {
     C++ = g++ ;
     C++FLAGS += -W -Wall ;
