@@ -47,7 +47,7 @@ public:
     uint numEncodedLines() const;
     void setNumEncodedLines( uint );
 
-    EString asText() const;
+    EString asText( bool ) const;
 
     EString error() const;
 

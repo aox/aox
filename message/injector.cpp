@@ -881,7 +881,8 @@ void Injector::addMoreReferences()
     while ( !queue.isEmpty() ) {
         Message * parent = queue.shift();
         EString msgid = parent->header()->messageId();
-        EString r = parent->header()->field(HeaderField::References)->rfc822();
+        EString r = parent->header()->
+                    field( HeaderField::References )->rfc822( false );
         r.append( " " );
         r.append( msgid );
         r = r.simplified().wrapped( 60, "", " ", false );
@@ -1030,7 +1031,7 @@ void Injector::convertThreadIndex()
                     = m->header()->field( HeaderField::InReplyTo );
                 EString irt;
                 if ( irtf )
-                    irt = irtf->rfc822();
+                    irt = irtf->rfc822( false );
                 int lt = irt.find( '<' );
                 int gt = irt.find( '>', lt );
                 if ( lt >= 0 && gt > lt ) {
@@ -1374,7 +1375,7 @@ void Injector::selectMessageIds()
         m->setDatabaseId( r->getInt( "id" ) );
         copy->bind( 1, m->databaseId() );
         if ( !m->hasTrivia() ) {
-            m->setRfc822Size( m->rfc822().length() );
+            m->setRfc822Size( m->rfc822( false ).length() );
             m->setTriviaFetched( true );
         }
         copy->bind( 2, m->rfc822Size() );
@@ -1993,7 +1994,7 @@ uint Injector::internalDate( Message * m ) const
     List< HeaderField >::Iterator it( m->header()->fields() );
     while ( it && !id.valid() ) {
         if ( it->type() == HeaderField::Received ) {
-            EString v = it->rfc822();
+            EString v = it->rfc822( false );
             int i = 0;
             while ( v.find( ';', i+1 ) > 0 )
                 i = v.find( ';', i+1 );
@@ -2253,7 +2254,7 @@ static void addField( EString & wrapper,
     if ( hf && hf->valid() ) {
         wrapper.append( field );
         wrapper.append( ": " );
-        wrapper.append( hf->rfc822() );
+        wrapper.append( hf->rfc822( false ) );
         wrapper.append( "\r\n" );
     }
     else if ( !dflt.isEmpty() ) {
@@ -2293,7 +2294,7 @@ Injectee * Injectee::wrapUnparsableMessage( const EString & message,
     while ( n < subject.length() && subject[n] < 127 && subject[n] >= 32 )
         n++;
     if ( hf && hf->valid() && n >= subject.length() )
-        subject = "Unparsable message: " + hf->rfc822();
+        subject = "Unparsable message: " + hf->rfc822( false );
     else
         subject = defaultSubject;
     if ( !subject.isEmpty() )

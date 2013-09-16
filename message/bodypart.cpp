@@ -277,7 +277,7 @@ uint Bodypart::numEncodedLines() const
     the text according to the ContentType.
 */
 
-EString Bodypart::asText() const
+EString Bodypart::asText( bool avoidUtf8 ) const
 {
     EString r;
     Codec *c = 0;
@@ -289,7 +289,7 @@ EString Bodypart::asText() const
         c = new AsciiCodec;
 
     if ( !children()->isEmpty() )
-        appendMultipart( r );
+        appendMultipart( r, avoidUtf8 );
     else if ( !header()->contentType() ||
               header()->contentType()->type() == "text" )
         r = c->fromUnicode( text() );
@@ -780,7 +780,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             ++it;
         }
         bp->setMessage( m );
-        body = m->rfc822();
+        body = m->rfc822( false );
     }
 
     bp->d->numBytes = body.length();

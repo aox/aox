@@ -12,7 +12,7 @@ class ImapUrlFetcher
     : public EventHandler
 {
 public:
-    ImapUrlFetcher( List<ImapUrl> *, EventHandler * );
+    ImapUrlFetcher( List<ImapUrl> *, EventHandler *, bool );
 
     void execute();
     bool done() const;

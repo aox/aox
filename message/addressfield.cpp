@@ -157,10 +157,11 @@ void AddressField::parse( const EString &s )
 
 
 /*! Generates the RFC 822 representation of the field, based on the
-    addresses().
+    addresses(). If \a avoidUTf8 is true, rfc822() will be lossy
+    rather than include any UTF-8.
 */
 
-EString AddressField::rfc822() const
+EString AddressField::rfc822( bool avoidUTf8 ) const
 {
     EString s;
     s.reserve( 30 * addresses()->count() );
@@ -181,7 +182,7 @@ EString AddressField::rfc822() const
               ( t == HeaderField::References && !it ) )
     {
         if ( it ) {
-            s = "<" + it->toString() + ">";
+            s = "<" + it->toString( false ) + ">";
         }
         else {
             s = name() + ": ";
@@ -210,7 +211,7 @@ EString AddressField::rfc822() const
         }
 
         while ( it ) {
-            EString a = it->toString();
+            EString a = it->toString( avoidUTf8 );
             ++it;
 
             if ( t == HeaderField::References )
@@ -244,7 +245,7 @@ UString AddressField::value() const
         return HeaderField::value();
     // and for message-id, content-id and references:
     AsciiCodec a;
-    return a.toUnicode( rfc822().simplified() );
+    return a.toUnicode( rfc822( true ).simplified() );
 }
 
 
@@ -272,7 +273,7 @@ void AddressField::parseMailboxList( const EString &s )
     List< Address >::Iterator it( a );
     while ( it && valid() ) {
         if ( it->type() == Address::EmptyGroup )
-            setError( "Invalid mailbox: " + it->toString().quoted() );
+            setError( "Invalid mailbox: " + it->toString( false ).quoted() );
         ++it;
     }
 }

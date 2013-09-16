@@ -194,7 +194,7 @@ Injectee * DSN::result() const
     // set up the original message, either full or header-only
     if ( fullReport() ) {
         original->header()->add( "Content-Type", "text/rfc822-headers" );
-        original->setData( message()->header()->asText() );
+        original->setData( message()->header()->asText( false ) );
 
         // this is what we _should_ do, except that we don't. the body
         // of the message is lost, probably because original-> has a
@@ -209,7 +209,7 @@ Injectee * DSN::result() const
     else {
         // nasty mime name there
         original->header()->add( "Content-Type", "text/rfc822-headers" );
-        original->setData( message()->header()->asText() );
+        original->setData( message()->header()->asText( false ) );
     }
 
     // the from field has to contain... what? let's try this for now.
@@ -226,9 +226,9 @@ Injectee * DSN::result() const
         now->setCurrentTime();
         h->add( "Date", now->rfc822() );
     }
-    h->add( "From", from->toString() );
+    h->add( "From", from->toString( false ) );
     if ( sender() )
-        h->add( "To", sender()->toString() );
+        h->add( "To", sender()->toString( false ) );
     if ( allOk() )
         h->add( "Subject", "Message delivered" );
     else if ( allFailed() )
@@ -237,7 +237,7 @@ Injectee * DSN::result() const
         h->add( "Subject", "Message delivery reports" );
     h->add( "Mime-Version", "1.0" );
     h->add( "Content-Type", "multipart/report; boundary=" +
-            Message::acceptableBoundary( message()->rfc822() ) );
+            Message::acceptableBoundary( message()->rfc822( false ) ) );
 
     // set up the plaintext and DSN parts
     // what charset should we use for plainText?

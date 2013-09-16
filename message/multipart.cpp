@@ -87,7 +87,7 @@ List< Bodypart > * Multipart::children() const
 /*! Appends the text of this multipart MIME entity to the string \a r.
 */
 
-void Multipart::appendMultipart( EString &r ) const
+void Multipart::appendMultipart( EString &r, bool avoidUtf8 ) const
 {
     ContentType * ct = header()->contentType();
     EString delim = ct->parameter( "boundary" );
@@ -99,9 +99,9 @@ void Multipart::appendMultipart( EString &r ) const
         Bodypart * bp = it;
         ++it;
 
-        r.append( bp->header()->asText() );
+        r.append( bp->header()->asText( avoidUtf8 ) );
         r.append( crlf );
-        appendAnyPart( r, bp, ct );
+        appendAnyPart( r, bp, ct, avoidUtf8 );
 
         r.append( crlf );
         r.append( "--" );
@@ -119,7 +119,7 @@ void Multipart::appendMultipart( EString &r ) const
 */
 
 void Multipart::appendAnyPart( EString &r, const Bodypart * bp,
-                               ContentType * ct ) const
+                               ContentType * ct, bool avoidUtf8 ) const
 {
     ContentType * childct = bp->header()->contentType();
     EString::Encoding e = EString::Binary;
@@ -135,13 +135,13 @@ void Multipart::appendAnyPart( EString &r, const Bodypart * bp,
         if ( childct && childct->subtype() != "rfc822" )
             appendTextPart( r, bp, childct );
         else
-            r.append( bp->message()->rfc822() );
+            r.append( bp->message()->rfc822( avoidUtf8 ) );
     }
     else if ( !childct || childct->type().lower() == "text" ) {
         appendTextPart( r, bp, childct );
     }
     else if ( childct->type() == "multipart" ) {
-        bp->appendMultipart( r );
+        bp->appendMultipart( r, avoidUtf8 );
     }
     else {
         r.append( bp->data().encoded( e, 72 ) );
@@ -263,7 +263,7 @@ static void headerSummary( Header * h, int n )
 
     HeaderField * cd = h->field( HeaderField::ContentDescription );
     if ( cd )
-        l.append( cd->rfc822() );
+        l.append( cd->rfc822( false ) );
 
     if ( !l.isEmpty() ) {
         spaces( n );

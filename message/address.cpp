@@ -244,7 +244,7 @@ void Address::setId( uint id )
     domain() are both empty.
 */
 
-EString Address::name() const
+EString Address::name( bool avoidUtf8 ) const
 {
     bool atom = true;
     bool ascii = true;
@@ -280,7 +280,7 @@ EString Address::name() const
     if ( atom || i == 0 )
         return d->name.ascii();
 
-    if ( ascii )
+    if ( ascii || !avoidUtf8 )
         return d->name.ascii().quoted( '"', '\\' );
 
     return HeaderField::encodePhrase( d->name );
@@ -335,21 +335,8 @@ EString Address::lpdomain() const
         r.append( d->domain.utf8() );
     }
     if ( r.isEmpty() )
-        r = toString();
+        r = toString( false );
     return r;
-}
-
-
-static bool plainish( const UString & s ) {
-    uint i = 0;
-    while ( i < s.length() &&
-            ( ( s[i] >= 'a' && s[i] <= 'z' ) ||
-              ( s[i] >= 'A' && s[i] <= 'Z' ) ||
-              ( s[i] >= '0' && s[i] <= '9' ) ||
-              s[i] >= 256 ||
-              s[i] == ' ' ) )
-        ++i;
-    return i >= s.length();
 }
 
 
@@ -370,10 +357,10 @@ EString Address::toString( bool avoidUtf8 ) const
         r = "<>";
         break;
     case EmptyGroup:
-        r = name() + ":;";
+        r = name(true) + ":;";
         break;
     case Local:
-        if ( avoidUtf8 && !d->localpart.isAscii() )
+        if ( avoidUtf8 && needsUnicode() )
             r = "this-address@needs-unicode.invalid";
         else if ( localpartIsSensible() )
             r = d->localpart.utf8();
@@ -381,19 +368,13 @@ EString Address::toString( bool avoidUtf8 ) const
             r = d->localpart.utf8().quoted();
         break;
     case Normal:
-        if ( avoidUtf8 && ( !d->localpart.isAscii() ||
-                            !d->domain.isAscii() ) ) {
+        if ( avoidUtf8 && needsUnicode() ) {
             r = "this-address@needs-unicode.invalid";
         }
         else {
             EString postfix;
             if ( !d->name.isEmpty() ) {
-                if ( avoidUtf8 )
-                    r.append( name() );
-                else if ( plainish( uname() ) )
-                    r.append( uname().utf8() );
-                else
-                    r.append( name() );
+                r.append( name( avoidUtf8 ) );
                 r.append( " <" );
                 postfix = ">";
             }
@@ -733,7 +714,7 @@ void AddressParser::assertSingleAddress()
         else {
             i->setError( "Expected normal email address "
                          "(whatever@example.com), got " +
-                         i->toString() );
+                         i->toString( false ) );
         }
         ++i;
     }

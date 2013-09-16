@@ -57,7 +57,7 @@ public:
     void repair( class Multipart *, const EString & );
     void fix8BitFields( class Codec * );
 
-    EString asText() const;
+    EString asText( bool ) const;
 
     enum DefaultType { TextPlain, MessageRfc822 };
     void setDefaultType( DefaultType );
@@ -67,7 +67,7 @@ private:
     class HeaderData * d;
 
     void verify() const;
-    void appendField( EString &, HeaderField * ) const;
+    void appendField( EString &, HeaderField *, bool avoidUtf8 ) const;
 };
 
 

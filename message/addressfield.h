@@ -17,7 +17,7 @@ public:
 
     void parse( const EString & );
 
-    EString rfc822() const;
+    EString rfc822( bool avoidUtf8 ) const;
     UString value() const;
 
     List<Address> *addresses() const;

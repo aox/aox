@@ -937,7 +937,8 @@ bool ManageSieveCommand::explain()
             else {
                 ::x->message = new Injectee;
                 ::x->message->parse( value );
-                ::x->message->setRfc822Size( ::x->message->rfc822().length() );
+                ::x->message->setRfc822Size(
+                    ::x->message->rfc822( false ).length() );
                 if ( !::x->message->error().isEmpty() )
                     no( "Message parsing: " + ::x->message->error() );
             }

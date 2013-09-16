@@ -56,7 +56,7 @@ class IufData
 public:
     IufData()
         : state( 0 ), done( false ), urls( 0 ), owner( 0 ),
-          checker( 0 ), fetchers( 0 ), findIds( 0 )
+          checker( 0 ), fetchers( 0 ), findIds( 0 ), unicodable( false )
     {}
 
     int state;
@@ -68,6 +68,7 @@ public:
     PermissionsChecker * checker;
     List<Fetcher> * fetchers;
     Query * findIds;
+    bool unicodable;
 };
 
 
@@ -98,11 +99,13 @@ public:
     completion. The URL objects in \a l are assumed to be valid.
 */
 
-ImapUrlFetcher::ImapUrlFetcher( List<ImapUrl> * l, EventHandler * ev )
+ImapUrlFetcher::ImapUrlFetcher( List<ImapUrl> * l, EventHandler * ev,
+                                bool unicodable )
     : d( new IufData )
 {
     d->owner = ev;
     d->urls = new List<UrlLink>;
+    d->unicodable = unicodable;
     List<ImapUrl>::Iterator it( l );
     while ( it ) {
         d->urls->append( new UrlLink( it ) );
@@ -430,10 +433,13 @@ void ImapUrlFetcher::execute()
             }
             else if ( it->section ) {
                 it->url->setText( Fetch::sectionData( it->section,
-                                                      it->message ) );
+                                                      it->message,
+                                                      d->unicodable ) );
             }
             else {
-                it->url->setText( it->message->rfc822() );
+                // this is highly dubious: we always return unicode
+                // email addresses and such when fetched this way.
+                it->url->setText( it->message->rfc822( !d->unicodable ) );
             }
 
             ++it;

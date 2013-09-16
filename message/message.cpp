@@ -271,9 +271,12 @@ EString Message::error() const
 /*! Returns the message formatted in RFC 822 (actually 2822) format.
     The return value is a canonical expression of the message, not
     whatever was parsed.
+
+    If \a avoidUtf8 is true, this function loses information rather
+    than including UTF-8 in the result.
 */
 
-EString Message::rfc822() const
+EString Message::rfc822( bool avoidUtf8 ) const
 {
     EString r;
     if ( d->rfc822Size )
@@ -281,9 +284,9 @@ EString Message::rfc822() const
     else
         r.reserve( 50000 );
 
-    r.append( header()->asText() );
+    r.append( header()->asText( avoidUtf8 ) );
     r.append( crlf );
-    r.append( body() );
+    r.append( body( avoidUtf8 ) );
 
     return r;
 }
@@ -291,20 +294,20 @@ EString Message::rfc822() const
 
 /*! Returns the text representation of the body of this message. */
 
-EString Message::body() const
+EString Message::body( bool avoidUtf8 ) const
 {
     EString r;
 
     ContentType *ct = header()->contentType();
     if ( ct && ct->type() == "multipart" ) {
-        appendMultipart( r );
+        appendMultipart( r, avoidUtf8 );
     }
     else {
         // XXX: Is this the right place to restore this linkage?
         Bodypart * firstChild = children()->first();
         if ( firstChild ) {
             firstChild->setHeader( header() );
-            appendAnyPart( r, firstChild, ct );
+            appendAnyPart( r, firstChild, ct, avoidUtf8 );
         }
     }
 
@@ -866,7 +869,7 @@ void Message::addMessageId()
         return;
 
     MD5 x;
-    x.add( rfc822() );
+    x.add( rfc822( false ) );
     header()->add( "Message-Id",
                    "<" + x.hash().e64().mid( 0, 21 ) + ".md5@" +
                    Configuration::hostname() + ">" );

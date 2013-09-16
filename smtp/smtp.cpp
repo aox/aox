@@ -387,7 +387,7 @@ void SMTP::setInputState( InputState s )
 
 void SMTP::addRecipient( SmtpRcptTo * r )
 {
-    log( "Recipient: " + r->address()->toString() );
+    log( "Recipient: " + r->address()->lpdomain() );
     d->recipients->append( r );
 }
 

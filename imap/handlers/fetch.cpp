@@ -866,15 +866,17 @@ void Fetch::sendFetchQueries()
 /*! This function returns the text of that portion of the Message \a m
     that is described by the Section \a s. It is publicly available so
     that Append may use it for CATENATE.
+
+    If \a unicodable is true, the result may contain unquoted unicode.
 */
 
-EString Fetch::sectionData( Section * s, Message * m )
+EString Fetch::sectionData( Section * s, Message * m, bool unicodable )
 {
     EString item, data;
 
     if ( s->id == "rfc822" ) {
         item = s->id.upper();
-        data = m->rfc822();
+        data = m->rfc822( !unicodable );
     }
 
     else if ( s->id == "mime" ||
@@ -914,7 +916,7 @@ EString Fetch::sectionData( Section * s, Message * m )
                 EString n = it->name().headerCased();
                 data.append( n );
                 data.append( ": " );
-                data.append( it->rfc822() );
+                data.append( it->rfc822( !unicodable ) );
                 data.append( "\r\n" );
             }
             ++it;
@@ -934,19 +936,19 @@ EString Fetch::sectionData( Section * s, Message * m )
 
     else if ( s->id == "rfc822.text" ) {
         item = s->id.upper();
-        data = m->body();
+        data = m->body( !unicodable );
     }
 
     else if ( s->id == "text" ) {
         if ( s->part.isEmpty() ) {
             item = "TEXT";
-            data = m->body();
+            data = m->body( !unicodable );
         }
         else {
             item = s->part + ".TEXT";
             Bodypart *bp = m->bodypart( s->part, false );
             if ( bp && bp->message() )
-                data = bp->message()->body();
+                data = bp->message()->body( !unicodable );
         }
         item = "BODY[" + item + "]";
     }
@@ -960,7 +962,7 @@ EString Fetch::sectionData( Section * s, Message * m )
         }
         else {
             item = "BODY[]";
-            data = m->rfc822();
+            data = m->rfc822( !unicodable );
         }
     }
 
@@ -977,7 +979,7 @@ EString Fetch::sectionData( Section * s, Message * m )
         }
         else if ( bp->message() ) {
             // message/rfc822 part
-            data = bp->message()->rfc822();
+            data = bp->message()->rfc822( !unicodable );
         }
         else if ( bp->children()->isEmpty() ) {
             // leaf part
@@ -1010,7 +1012,7 @@ EString Fetch::sectionData( Section * s, Message * m )
         else {
             // nonleaf part. probably wrong - this might use the wrong
             // content-transfer-encoding.
-            data = bp->asText();
+            data = bp->asText( !unicodable );
         }
 
         if ( s->binary )
@@ -1036,12 +1038,13 @@ EString Fetch::sectionData( Section * s, Message * m )
 
 /* This function returns the response data for an element in
    d->sections, to be included in the FETCH response by
-   fetchResponses() below.
+   fetchResponses() below. If \a unicode is false, the result will be
+   downgraded rather than contain unicode.
 */
 
-static EString sectionResponse( Section * s, Message * m )
+static EString sectionResponse( Section * s, Message * m, bool unicode )
 {
-    EString data( Fetch::sectionData( s, m ) );
+    EString data( Fetch::sectionData( s, m, unicode ) );
     if ( !s->item.startsWith( "BINARY.SIZE" ) )
         data = Command::imapQuoted( data, Command::NString );
     EString r;
@@ -1086,8 +1089,9 @@ EString Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
     }
 
     List< Section >::Iterator it( d->sections );
+    bool unicode = imap()->clientSupports( IMAP::Unicode );
     while ( it ) {
-        l.append( sectionResponse( it, m ) );
+        l.append( sectionResponse( it, m, unicode ) );
         ++it;
     }
 
@@ -1148,7 +1152,8 @@ static EString hf( Header * f, HeaderField::Type t, bool unicodable )
         r.append( "(" );
         if ( it->type() == Address::EmptyGroup ) {
             r.append( "NIL NIL " );
-            r.append( Command::imapQuoted( it->name(), Command::NString ) );
+            r.append( Command::imapQuoted( it->name( !unicodable ),
+                                           Command::NString ) );
             r.append( " NIL)(NIL NIL NIL NIL" );
         } else if ( it->type() == Address::Local ||
                     it->type() == Address::Normal ) {
@@ -1406,7 +1411,7 @@ EString Fetch::singlePartStructure( Multipart * mp, bool extended )
         EString md5;
         HeaderField *f = mp->header()->field( HeaderField::ContentMd5 );
         if ( f )
-            md5 = f->rfc822();
+            md5 = f->rfc822( false );
 
         l.append( imapQuoted( md5, NString ) );
         l.append( dispositionEString( mp->header()->contentDisposition() ) );

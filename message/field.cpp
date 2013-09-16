@@ -261,17 +261,28 @@ void HeaderField::setName( const EString &n )
 /*! Returns the RFC 2822 representation of this header field, with its
     contents properly folded and, if necessary, RFC 2047 encoded. This
     is a string we can hand out to clients.
+
+    If \a avoidUtf8 is true, rfc822() avoids UTF-8 in the result, even
+    at the cost of losing information.
 */
 
-EString HeaderField::rfc822() const
+EString HeaderField::rfc822( bool avoidUtf8 ) const
 {
     if ( d->type == Subject ||
          d->type == Comments ||
-         d->type == ContentDescription )
-        return wrap( encodeText( d->value ) );
+         d->type == ContentDescription ) {
+        if ( avoidUtf8 )
+            return wrap( encodeText( d->value ) );
+        else
+            return wrap( d->value.utf8() );
+    }
 
-    if ( d->type == Other )
-        return encodeText( d->value );
+    if ( d->type == Other ) {
+        if ( avoidUtf8 )
+            return encodeText( d->value );
+        else
+            return d->value.utf8();
+    }
 
     // We assume that, for most fields, we can use the database
     // representation in an RFC 822 message.

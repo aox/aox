@@ -26,8 +26,8 @@ public:
     EString error() const;
     void recomputeError();
 
-    EString rfc822() const;
-    EString body() const;
+    EString rfc822( bool ) const;
+    EString body( bool ) const;
 
     void setWrapped( bool ) const;
     bool isWrapped() const;

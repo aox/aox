@@ -299,7 +299,7 @@ void Sieve::execute()
                     ++i;
                 if ( i ) {
                     log( "Suppressing vacation response to " +
-                         i->recipientAddress()->toString() );
+                         i->recipientAddress()->toString( false ) );
                     d->vacations->take( i );
                 }
             }
@@ -579,7 +579,7 @@ void Sieve::evaluate()
         }
         if ( i->pending.isEmpty() && !i->done ) {
             i->done = true;
-            log( "Evaluated Sieve script for " + i->address->toString() );
+            log( "Evaluated Sieve script for " + i->address->toString(false) );
             List<SieveAction>::Iterator a( i->actions );
             while ( a ) {
                 EString r;
@@ -593,20 +593,20 @@ void Sieve::evaluate()
                     break;
                 case SieveAction::Redirect:
                     r = "redirect, to ";
-                    r.append( a->recipientAddress()->toString() );
+                    r.append( a->recipientAddress()->toString( false ) );
                     break;
                 case SieveAction::Discard:
                     r = "discard";
                     break;
                 case SieveAction::Vacation:
                     r = "vacation, from ";
-                    r.append( a->senderAddress()->toString() );
+                    r.append( a->senderAddress()->toString( false ) );
                     r.append( ", to " );
-                    r.append( a->recipientAddress()->toString() );
+                    r.append( a->recipientAddress()->toString( false ) );
                     break;
                 case SieveAction::MailtoNotification:
                     r = "notification, to ";
-                    r.append( a->recipientAddress()->toString() );
+                    r.append( a->recipientAddress()->toString( false ) );
                     break;
                 case SieveAction::Error:
                     r = "error";
@@ -886,7 +886,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             while ( i && to == d->sender ) {
                 if ( i->localpart() == to->localpart() &&
                      i->domain().titlecased() == to->domain().titlecased() &&
-                     !i->name().isEmpty() )
+                     !i->uname().isEmpty() )
                     to = i;
                 ++i;
             }
@@ -901,10 +901,10 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
 
         EString reptext;
         reptext.append( "From: " );
-        reptext.append( from->toString() );
+        reptext.append( from->toString( false ) );
         reptext.append( "\r\n"
                         "To: " );
-        reptext.append( to->toString() );
+        reptext.append( to->toString( false ) );
         reptext.append( "\r\n"
                         "Subject: " );
         if ( subject.isEmpty() ) {
@@ -933,7 +933,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         replyDate.setCurrentTime();
         if ( d->message->header()->field( HeaderField::Received ) ) {
             EString v = d->message->header()->
-                       field( HeaderField::Received )->rfc822();
+                       field( HeaderField::Received )->rfc822( false );
             int i = 0;
             while ( v.find( ';', i+1 ) > 0 )
                 i = v.find( ';', i+1 );
@@ -984,15 +984,15 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             HeaderField * mid
                 = d->message->header()->field( HeaderField::MessageId );
             if ( mid ) {
-                reply->header()->add( "In-Reply-To", mid->rfc822() );
+                reply->header()->add( "In-Reply-To", mid->rfc822( false ) );
                 HeaderField * ref
                     = d->message->header()->field( HeaderField::References );
                 if ( ref )
                     reply->header()->add( "References",
-                                          ref->rfc822() + " " +
-                                          mid->rfc822() );
+                                          ref->rfc822( false ) + " " +
+                                          mid->rfc822( false ) );
                 else
-                    reply->header()->add( "References", mid->rfc822() );
+                    reply->header()->add( "References", mid->rfc822( false ) );
             }
             else {
                 // some senders don't add message-id, so we have to
@@ -1284,7 +1284,7 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
             while ( hf && hf->name() != hk->ascii() )
                 ++hf;
             if ( hf )
-                dt.setRfc822( hf->rfc822() );
+                dt.setRfc822( hf->rfc822( false ) );
         }
         else {
             dt.setCurrentTime();
@@ -1390,7 +1390,7 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
             return Undecidable;
         uint s = d->message->rfc822Size();
         if ( !s )
-            s = d->message->rfc822().length();
+            s = d->message->rfc822( false ).length();
         if ( t->sizeOverLimit() ) {
             if ( s > t->sizeLimit() )
                 return True;
@@ -1411,7 +1411,7 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
         else if ( t->bodyMatchType() == SieveTest::Rfc822 ) {
             haystack = new UStringList;
             AsciiCodec a;
-            haystack->append( a.toUnicode( d->message->body() ) );
+            haystack->append( a.toUnicode( d->message->body( false ) ) );
         }
         else {
             haystack = new UStringList;
@@ -1475,8 +1475,9 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
                         // draft says to search prologue+epilogue
                         haystack->append( new UString );
                     else if ( ct == "message/rfc822" )
-                        haystack->append(a.toUnicode(i->message()
-                                                     ->header()->asText()));
+                        haystack->append(
+                            a.toUnicode(i->message()
+                                        ->header()->asText( false )));
                     else if ( ct.startsWith( "text/" ) )
                         haystack->append( i->text() );
                     else

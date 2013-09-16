@@ -271,7 +271,7 @@ void SmtpData::execute()
             Sieve * s = server()->sieve();
             List<SmtpRcptTo>::Iterator i( server()->rcptTo() );
             while ( i ) {
-                EString prefix = i->address()->toString();
+                EString prefix = i->address()->toString( false );
                 if ( s->rejected( i->address() ) )
                     respond( 551, prefix + ": Rejected", "5.7.1" );
                 else if ( s->error( i->address() ).isEmpty() )
@@ -466,7 +466,7 @@ Injectee * SmtpData::message( const EString & body )
     EString rp;
     if ( server()->sieve()->sender() )
         rp = "Return-Path: " +
-             server()->sieve()->sender()->toString() +
+             server()->sieve()->sender()->toString( false ) +
              "\r\n";
 
     d->body = rp + received + body;
@@ -486,7 +486,7 @@ Injectee * SmtpData::message( const EString & body )
             Address * a = new Address( from->first()->uname(),
                                        f->localpart(),
                                        f->domain() );
-            HeaderField * hf = HeaderField::create( "From", a->toString() );
+            HeaderField * hf = HeaderField::create( "From", a->toString(false));
             hf->setPosition( old->position() );
             h->removeField( HeaderField::From );
             h->add( hf );
@@ -663,7 +663,7 @@ SmtpBurl::SmtpBurl( SMTP * s, SmtpParser * p )
 
     List<ImapUrl> * l = new List<ImapUrl>;
     l->append( d->url );
-    d->fetcher = new ImapUrlFetcher( l, this );
+    d->fetcher = new ImapUrlFetcher( l, this, true );
     d->fetcher->execute();
 }
 
@@ -714,13 +714,13 @@ void SmtpData::makeCopy( bool soft ) const
     }
 
     f.write( "From: " );
-    f.write( server()->sieve()->sender()->toString() );
+    f.write( server()->sieve()->sender()->toString( false ) );
     f.write( "\n" );
 
     List<SmtpRcptTo>::Iterator it( server()->rcptTo() );
     while ( it ) {
         f.write( "To: " );
-        f.write( it->address()->toString() );
+        f.write( it->address()->toString( false ) );
         f.write( "\n" );
         ++it;
     }

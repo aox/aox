@@ -28,7 +28,7 @@ public:
 
     void parseAttribute( bool );
     static Section * parseSection( ImapParser *, bool = false );
-    static EString sectionData( Section *, Message * );
+    static EString sectionData( Section *, Message *, bool );
     EString flagList( uint );
     EString annotation( class User *, uint,
                        const EStringList &, const EStringList & );

@@ -661,7 +661,7 @@ bool PopCommand::retr( bool lines )
     d->pop->ok( "Done" );
 
     Buffer * b = new Buffer;
-    b->append( d->message->rfc822() );
+    b->append( d->message->rfc822( true ) ); // XXX always downgrades
 
     int ln = d->n;
     bool header = true;

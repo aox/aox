@@ -211,7 +211,8 @@ void SmtpClient::parse()
                 if ( d->state == SmtpClientData::Data ) {
                     log( "Sending body.", Log::Debug );
                     if ( d->dotted.isEmpty() )
-                        d->dotted = dotted( d->dsn->message()->rfc822() );
+                        d->dotted =
+                            dotted( d->dsn->message()->rfc822( false ) );
                     enqueue( d->dotted );
                     d->dotted.truncate();
                     d->wbs = writeBuffer()->size();
@@ -280,7 +281,7 @@ void SmtpClient::sendCommand()
             send.append( " smtputf8" );
         if ( d->size ) {
             if ( d->dotted.isEmpty() )
-                d->dotted = dotted( d->dsn->message()->rfc822() );
+                d->dotted = dotted( d->dsn->message()->rfc822( false ) );
             send.append( " size=" );
             send.append( fn( d->dotted.length() ) );
         }
@@ -576,7 +577,7 @@ void SmtpClient::send( DSN * dsn, EventHandler * user )
         s.append( dsn->envelopeId() );
     }
     s.append( ", from " );
-    s.append( dsn->sender()->toString() );
+    s.append( dsn->sender()->toString( false ) );
     log( s, Log::Significant );
 
     d->dsn = dsn;

@@ -29,13 +29,13 @@ public:
     uint id() const;
     void setId( uint );
 
-    EString name() const;
+    EString name( bool ) const;
     UString uname() const;
     UString localpart() const;
     UString domain() const;
 
     EString lpdomain() const;
-    EString toString( bool = false ) const;
+    EString toString( bool ) const;
 
     bool valid() const { return type() != Invalid; }
 

@@ -558,7 +558,7 @@ void AddressCreator::processSelect( Query * q )
         if ( our )
             our->setId( r->getInt( "id" ) );
         else
-            log( "Unexpected result from db: " + c->toString() );
+            log( "Unexpected result from db: " + c->toString( false ) );
     }
 }
 

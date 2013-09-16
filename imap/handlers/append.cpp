@@ -367,7 +367,7 @@ void Append::process( class Appendage * h )
             ++it;
         }
 
-        h->urlFetcher = new ImapUrlFetcher( urls, this );
+        h->urlFetcher = new ImapUrlFetcher( urls, this, true );
         h->urlFetcher->execute();
     }
 

@@ -189,7 +189,7 @@ void SmtpMailFrom::execute()
 
     if ( server()->sieve()->sender() ) {
         respond( 500, "Sender address already specified: " +
-                 server()->sieve()->sender()->toString(), "5.5.1" );
+                 server()->sieve()->sender()->toString( false ), "5.5.1" );
         finish();
         return;
     }
@@ -204,17 +204,17 @@ void SmtpMailFrom::execute()
             copy = d->address;
         if ( copy ) {
             server()->sieve()->addSubmission( copy );
-            respond( 0, "Will send a copy to " + copy->toString() );
+            respond( 0, "Will send a copy to " + copy->lpdomain() );
         }
     }
 
-    log( "Sender: " + d->address->toString() );
+    log( "Sender: " + d->address->lpdomain() );
     server()->sieve()->setSender( d->address );
     if ( d->address->type() == Address::Bounce )
         respond( 250, "Accepted message from mailer-daemon",
                  "2.1.0" );
     else
-        respond( 250, "Accepted message from " + d->address->toString(),
+        respond( 250, "Accepted message from " + d->address->lpdomain(),
                  "2.1.0" );
     finish();
 }
@@ -288,24 +288,24 @@ void SmtpRcptTo::execute()
     if ( server()->sieve()->local( d->address ) ) {
         server()->sieve()->evaluate();
         if ( !server()->sieve()->rejected( d->address ) )
-            respond( 250, "Will send to " + d->address->toString().lower(),
+            respond( 250, "Will send to " + d->address->lpdomain().lower(),
                      "2.1.5" );
         else if ( Configuration::toggle( Configuration::SoftBounce ) )
-            respond( 450, d->address->toString().lower() + " rejects mail",
+            respond( 450, d->address->lpdomain().lower() + " rejects mail",
                      "4.7.1" );
         else
-            respond( 550, d->address->toString().lower() + " rejects mail",
+            respond( 550, d->address->lpdomain().lower() + " rejects mail",
                      "5.7.1" );
     }
     else {
         if ( server()->user() )
             respond( 250, "Submission accepted for " +
-                     d->address->toString(), "2.1.5" );
+                     d->address->lpdomain(), "2.1.5" );
         else if ( Configuration::toggle( Configuration::SoftBounce ) )
-            respond( 450, d->address->toString() +
+            respond( 450, d->address->lpdomain() +
                      " is not a legal destination address", "4.1.1" );
         else
-            respond( 550, d->address->toString() +
+            respond( 550, d->address->lpdomain() +
                      " is not a legal destination address", "5.1.1" );
     }
     if ( ok() )
@@ -356,8 +356,8 @@ void SmtpRcptTo::addParam( const EString & name, const EString & value )
             if ( !p.error().isEmpty() ) {
                 // sender did indeed not constrain himself
             }
-            else if ( d->address->toString() ==
-                      p.addresses()->first()->toString() ) {
+            else if ( d->address->lpdomain() ==
+                      p.addresses()->first()->lpdomain() ) {
                 // ORCPT not necessary at all
             }
             else {

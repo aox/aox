@@ -52,7 +52,7 @@ public:
     EString name() const;
     void setName( const EString & );
 
-    virtual EString rfc822() const;
+    virtual EString rfc822( bool ) const;
 
     virtual UString value() const;
     void setValue( const UString & );

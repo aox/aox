@@ -88,7 +88,8 @@ void UrlFetch::execute()
             ++it;
         }
 
-        d->urlFetcher = new ImapUrlFetcher( d->urls, this );
+        bool unicodable = imap()->clientSupports( IMAP::Unicode );
+        d->urlFetcher = new ImapUrlFetcher( d->urls, this, unicodable );
         d->urlFetcher->execute();
     }
 

@@ -249,7 +249,8 @@ EString Recipient::plainTextParagraph() const
     EString a;
 
     if ( finalRecipient() && originalRecipient() &&
-         finalRecipient()->toString() != originalRecipient()->toString() ) {
+         finalRecipient()->toString(false) !=
+         originalRecipient()->toString(false) ) {
         a.append( finalRecipient()->lpdomain() );
         a.append( " (forwarded from " );
         a.append( originalRecipient()->lpdomain() );

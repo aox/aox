@@ -311,7 +311,7 @@ EString Header::subject() const
 {
     HeaderField * s = field( HeaderField::Subject );
     if ( s )
-        return s->rfc822().simplified();
+        return s->rfc822( false ).simplified();
     return "";
 }
 
@@ -324,7 +324,7 @@ EString Header::inReplyTo() const
 {
     HeaderField * s = field( HeaderField::InReplyTo );
     if ( s )
-        return s->rfc822().simplified();
+        return s->rfc822( false ).simplified();
     return "";
 }
 
@@ -341,7 +341,7 @@ EString Header::messageId( HeaderField::Type t ) const
     AddressField *af = addressField( t );
     if ( !af )
         return "";
-    return af->rfc822();
+    return af->rfc822( true );
 }
 
 
@@ -405,7 +405,7 @@ EString Header::contentDescription() const
     HeaderField *hf = field( HeaderField::ContentDescription );
     if ( !hf )
         return "";
-    return hf->rfc822().simplified();
+    return hf->rfc822( false ).simplified();
 }
 
 
@@ -418,7 +418,7 @@ EString Header::contentLocation() const
     HeaderField *hf = field( HeaderField::ContentLocation );
     if ( !hf )
         return "";
-    return hf->rfc822();
+    return hf->rfc822( false );
 }
 
 
@@ -577,7 +577,7 @@ void Header::simplify()
     }
 
     HeaderField *cde = field( HeaderField::ContentDescription );
-    if ( cde && cde->rfc822().isEmpty() ) {
+    if ( cde && cde->rfc822( false ).isEmpty() ) {
         removeField( HeaderField::ContentDescription );
         cde = 0;
     }
@@ -640,7 +640,7 @@ void Header::simplify()
     }
 
     HeaderField *m = field( HeaderField::MessageId );
-    if ( m && m->rfc822().isEmpty() )
+    if ( m && m->rfc822( false ).isEmpty() )
         removeField( HeaderField::MessageId );
 
     if ( sameAddresses( addressField( HeaderField::From ),
@@ -703,7 +703,7 @@ void Header::repair()
             while ( it ) {
                 if ( it->type() == conditions[i].t ) {
                     n++;
-                    if ( n > 1 && h->rfc822() == it->rfc822() )
+                    if ( n > 1 && h->rfc822( false ) == it->rfc822( false ) )
                         d->fields.take( it );
                     else
                         ++it;
@@ -895,7 +895,7 @@ void Header::repair( Multipart * p, const EString & body )
             // First, we take the date from the oldest plausible
             // Received field.
             if ( it->type() == HeaderField::Received ) {
-                EString v = it->rfc822();
+                EString v = it->rfc822( false );
                 int i = 0;
                 while ( v.find( ';', i+1 ) > 0 )
                     i = v.find( ';', i+1 );
@@ -1002,14 +1002,14 @@ void Header::repair( Multipart * p, const EString & body )
             while ( f && f->name() != "X-From-Line" )
                 ++f;
             if ( f ) {
-                AddressParser ap( f->rfc822().section( " ", 1 ) );
+                AddressParser ap( f->rfc822( false ).section( " ", 1 ) );
                 ap.assertSingleAddress();
                 if ( ap.error().isEmpty() )
                     a = ap.addresses();
             }
         }
         if ( a )
-            add( "From", a->first()->toString() );
+            add( "From", a->first()->toString( false ) );
     }
 
     // Some spammers like to get return receipts while hiding their
@@ -1024,7 +1024,7 @@ void Header::repair( Multipart * p, const EString & body )
         while ( f && !a ) {
             if ( f->name() == "Return-Receipt-To" ||
                  f->name() == "Disposition-Notification-To" ) {
-                AddressParser ap( f->rfc822().section( " ", 1 ) );
+                AddressParser ap( f->rfc822( false ).section( " ", 1 ) );
                 ap.assertSingleAddress();
                 if ( ap.error().isEmpty() )
                     a = ap.addresses();
@@ -1033,7 +1033,7 @@ void Header::repair( Multipart * p, const EString & body )
         }
         if ( a ) {
             removeField( HeaderField::From );
-            add( "From", a->first()->toString() );
+            add( "From", a->first()->toString( false ) );
         }
     }
 
@@ -1752,16 +1752,18 @@ void Header::repair( Multipart * p, const EString & body )
 }
 
 
-/*! Returns the canonical text representation of this Header. */
+/*! Returns the canonical text representation of this Header.
+    Downgrades rather than inclding UTF-8 if \a avoidUtf8 is true.
+*/
 
-EString Header::asText() const
+EString Header::asText( bool avoidUtf8 ) const
 {
     EString r;
     r.reserve( d->fields.count() * 100 );
 
     List< HeaderField >::Iterator it( d->fields );
     while ( it ) {
-        appendField( r, it );
+        appendField( r, it, avoidUtf8 );
         ++it;
     }
 
@@ -1777,14 +1779,14 @@ EString Header::asText() const
     (The details of the function are liable to change.)
 */
 
-void Header::appendField( EString &r, HeaderField *hf ) const
+void Header::appendField( EString &r, HeaderField *hf, bool avoidUtf8 ) const
 {
     if ( !hf )
         return;
 
     r.append( hf->name() );
     r.append( ": " );
-    r.append( hf->rfc822() );
+    r.append( hf->rfc822( avoidUtf8 ) );
     r.append( crlf );
 }
 
