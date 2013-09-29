@@ -262,7 +262,13 @@ void MimeField::parseParameters( EmailParser *p )
 }
 
 
-EString MimeField::rfc822() const
+/* This reimplementation of rfc822() never generates UTF-8 at the
+   moment. Merely a SMoP, but I haven't the guts to do it at the
+   moment.
+*/
+
+
+EString MimeField::rfc822( bool ) const
 {
     EString s = baseValue();
     uint lineLength = name().length() + 2 + s.length();
@@ -305,7 +311,7 @@ EString MimeField::rfc822() const
 UString MimeField::value() const
 {
     Utf8Codec c;
-    return c.toUnicode( rfc822() );
+    return c.toUnicode( rfc822( false ) );
     // the best that can be said about this is that it corresponds to
     // HeaderField::assemble.
 }

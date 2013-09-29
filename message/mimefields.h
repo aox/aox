@@ -25,7 +25,7 @@ public:
     void removeParameter( const EString & );
     void parseParameters( EmailParser * );
 
-    EString rfc822() const;
+    EString rfc822( bool ) const;
     UString value() const;
 
     virtual EString baseValue() const = 0;
