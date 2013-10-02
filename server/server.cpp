@@ -696,7 +696,7 @@ void Server::maintainChildren()
         i++;
     }
     uint failures = 0;
-    while ( d->mainProcess ) {
+    while ( children > 1 && d->mainProcess ) {
         // check that all children exist
         List<pid_t>::Iterator c( d->children );
         while ( c ) {
@@ -758,7 +758,8 @@ void Server::maintainChildren()
         }
     }
 
-    // only a child gets this far
+    // the mother never gets this far: by this time, we know we should
+    // serve users.
     d->children = 0;
     EventLoop::global()->closeAllExceptListeners();
     log( "Process " + fn( getpid() ) + " started" );
