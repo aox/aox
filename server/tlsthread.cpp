@@ -128,16 +128,23 @@ void TlsThread::setup()
 
 
 
-/*! Constructs an empty TlsThread */
+/*! Constructs a TlsThread. If \a asClient is supplied and true (the
+    default is false), the thread acts as client (and initiates a TLS
+    handshake). If not, it acts as a server (and expects the other end
+    to initiate the handshake).
+*/
 
-TlsThread::TlsThread()
+TlsThread::TlsThread( bool asClient )
     : d( new TlsThreadData )
 {
     if ( !ctx )
         setup();
 
     d->ssl = ::SSL_new( ctx );
-    SSL_set_accept_state( d->ssl );
+    if ( asClient )
+        SSL_set_connect_state( d->ssl );
+    else
+        SSL_set_accept_state( d->ssl );
 
     if ( !BIO_new_bio_pair( &d->sslBio, bs, &d->networkBio, bs ) ) {
         // an error. hm?
