@@ -871,6 +871,7 @@ PgDataRow::PgDataRow( Buffer *b, const PgRowDescription *d )
         case 18:    // CHAR
         case 25:    // TEXT
         case 1043:  // VARCHAR
+        case 96087: // CITEXT
             cv->type = Column::Bytes;
             break;
         case 1184:
