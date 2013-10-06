@@ -517,7 +517,7 @@ Query * AddressCreator::makeSelect()
         if ( !i->id() ) {
             EString name( p.fromUnicode( i->uname() ) );
             EString lp( i->localpart().utf8() );
-            EString dom( i->domain().utf8().lower() );
+            EString dom( i->domain().utf8() );
 
             uint bn = param( &binds, name, n, q );
             uint bl = param( &binds, lp, n, q );
@@ -640,8 +640,8 @@ void AddressCreator::execute()
                                   "id integer, "
                                   "f boolean, "
                                   "name text, "
-                                  "localpart text, "
-                                  "domain text )", 0 ) );
+                                  "localpart citext, "
+                                  "domain citext )", 0 ) );
         Query * q = new Query( "copy na (id, f, name,localpart,domain) "
                                "from stdin with binary", this );
         Dict<Address>::Iterator i( a );
@@ -671,7 +671,7 @@ void AddressCreator::execute()
             new Query(
                 "update na set f=true, id=a.id from addresses a "
                 "where na.localpart=a.localpart "
-                "and lower(na.domain)=lower(a.domain) "
+                "and na.domain=a.domain "
                 "and na.name=a.name "
                 "and not f", 0 ) );
         sub->enqueue(
