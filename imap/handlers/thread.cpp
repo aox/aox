@@ -102,8 +102,6 @@ void Thread::parse()
     else
         error( Bad, "Unsupported thread algorithm" );
     space();
-    setCharset( astring() );
-    space();
     d->s = new Selector;
     d->s->add( parseKey() );
     while ( ok() && !parser()->atEnd() ) {
