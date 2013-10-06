@@ -530,7 +530,7 @@ Query * AddressCreator::makeSelect()
             s.appendNumber( bn );
             s.append( " and localpart=$" );
             s.appendNumber( bl );
-            s.append( " and lower(domain)=$" );
+            s.append( " and domain=$" );
             s.appendNumber( bd );
             s.append( ")" );
 
@@ -596,7 +596,7 @@ EString AddressCreator::key( Address * a )
     EString r;
     r.append( a->domain().utf8().lower() );
     r.append( '\0' );
-    r.append( a->localpart().utf8() );
+    r.append( a->localpart().utf8().lower() );
     r.append( '\0' );
     r.append( a->uname().utf8() );
     return r;
