@@ -4375,8 +4375,8 @@ bool Schema::stepTo95()
 
 bool Schema::stepTo96()
 {
-    describeStep("Convert addresses to use CITEXT");
-    d->t->enqueue( "create extension citext" );
+    describeStep("Convert addresses to use CITEXT (slow)");
+    d->t->enqueue( "create extension if not exists citext" );
     d->t->enqueue( "drop index addresses_nld_key" );
     d->t->enqueue( "drop index ald" );
     d->t->enqueue( "alter table addresses alter localpart type citext" );
