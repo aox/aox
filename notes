@@ -25,23 +25,10 @@
   write that sort of thing.
 
 
-SEARCH=ADDRESS
-
-  Hack roundcube to use S=A, S=I and blah in order to present
-  gmail-like a thread/address view.
-
-
 HelperRowCreator
 
   If that were to use a Cache, message injection would be speeded up
   significantly.
-
-
-DWIM, the 80% way
-
-  A new configuration variable, use-inbox-flag-views. If that's set,
-  then setting a flag in an inbox implicitly creates an eponymous view
-  onto the inbox.
 
 
 Open Bug: aox add view broken
@@ -214,41 +201,6 @@ aox check schema
   checking/granting/whatevering. but that's okay.
 
 
-The \Answered flag
-
-  We could add a little code to help that flag.
-
-  1. Disallow clearing it once set.
-  2. Set it on messages when we see an outgoing reply.
-
-  This would make it easier to force archiving.
-
-
-5255
-
-  We already inplement I18NLEVEL=1, so I advertised that. I18NLEVEL=2
-  doesn't seem very useful. I also don't know how to do that in SQL.
-
-
-Other RFCs
-
-  I think we need to consider these RFCs, or at least mention them
-  somewhere in the documentation so we know we've considered them:
-
-  821
-  934  (?)
-  974
-  1049 (should be handled fine, so check and mention)
-  1641 (old mime?)
-  1731 (old imap?)
-  1893 (ditto)
-  1894 (older version of something we handle, right?)
-  2044 (?)
-  2068 (HTTP? surely we do that)
-  2222
-  2244
-
-
 Cleartext passwords
 
   We help migrating away from cleartext/plaintext passwords:
@@ -298,56 +250,6 @@ Database schema range
   nulls in bodyparts'.
 
 
-Reject or ereject may want MDNs instead of DSNs
-
-  Our sieve code generates DSNs if it can't generate protocol-level
-  refusal, which it always can in practice. MDNs should be used in at
-  least some cases, if a non-zero percentage of zero can be considered
-  "some cases".
-
-
-Message tracking
-
-  RFCs 3885-8 specify ways to track messages that have been sent. We
-  can implement that fairly easily.
-
-  If we route outgoing mail via a smarthost, that smarthost has to
-  support MTRK in order for tracking to work well.
-
-  We can track mail provided that at least one of these is true:
-
-  - we deliver directly to the end server (we don't know whether
-    that's the case, though)
-
-  - we deliver via an MTRK-capable server
-
-  - we deliver into our own database
-
-  Sounds likely to be true maybe 80-90% of the time.
-
-  If none are true, we can at least say, easily, where we delivered,
-  when, and why.
-
-  We could implement the tracking protocol (and I'd write a query blah
-  in mailchen), and also provide a query interface via the web.
-
-
-Message tracking 2
-
-  We can recognize the ESMTP id for the most common MTAs. Postfix says:
-
-    250 Ok: queued as D1A324AC85
-
-  Sendmail and exim surely say something similar. We could keep that ID
-  in delivery_recipients and use it in DSNs.
-
-
-Generating bounces
-
-  Our bounces would look better if they included the entire SMTP
-  conversation (starting with RSET or EHLO).
-
-
 Bounces and DSNs
 
   Mail is currently fairly reliable. There is one big exception:
@@ -372,70 +274,11 @@ Bounces and DSNs
   (answered) messages.)
 
 
-RFC 2554
-
-  Have to look closer at that, I hadn't grasped the MAIL FROM AUTH
-  issue and there may be more.
-
-  addParams( "auth", ... ) in MAIL FROM needs consideration. Not
-  important.
-
-
 imapd/handlers/acl.cpp
 
   Different tasks, some shared code, same file. Separate this out into
   different classes inheriting something. Then add the right sort of
   logging statement to the end of parse().
-
-
-Threads in Archiveopteryx 4.0
-
-  I'm growing more and more fond of using a few threads, and not using
-  server-processes any more.  We'd replace server-processes with
-  server-threads, or just keep the name.
-
-  The core event loop would create a queue of work to be done based on
-  which file descriptors have input, and worker threads would take a
-  piece of work, obtain the fd's lock, and do it.
-
-  The Query would have a optional Connection pointer, the Transaction
-  would have a mandatory one. Scope would probably have one. Perhaps
-  Q+T could copy Scope's. A worker thread which processes database
-  input would have to obtain the lock for the scope's fd whenever it
-  enters the scope.
-
-  We'd be able to collect garbage without halts. Large IMAP Fetch
-  commands would also not cause halts. We'd be able to serve all
-  clients fairly, using all cores, using fewer database backends than
-  with server-processes.
-
-  The Apple Autozone GC looks good for this.
-
-  The default for server-processes ought to change to match the number
-  of processors:
-
-    Linux, Solaris, & AIX (per comments):
-        numCPU = sysconf( _SC_NPROCESSORS_ONLN );
-
-    FreeBSD, macosx, NetBSD, OpenBSD, etc.:
-        int mib[4];
-        size_t len;
-
-        /* set the mib for hw.ncpu */
-        mib[0] = CTL_HW;
-        mib[1] = HW_AVAILCPU;  // alternatively, try HW_NCPU;
-
-        /* get the number of CPUs from the system */
-        sysctl(mib, 2, &numCPU, &len, NULL, 0);
-
-        if( numCPU < 1 )
-        {
-             mib[1] = HW_NCPU;
-             sysctl( mib, 2, &numCPU, &len, NULL, 0 );
-
-             if( numCPU < 1 )
-                  numCPU = 1;
-        }
 
 
 Full-text search
@@ -468,11 +311,6 @@ aox/conf/tls-certificate
   Also, -secret is probably misnamed, we use -password for other
   cases. I expect that's why aox show cf tls-certificate-secret yields
   while e.g. aox show cf db-password does not.
-
-
-METADATA
-
-  Needed for lemonade, as easy as annotate.
 
 
 Autoresponder
@@ -573,25 +411,6 @@ C/R
   field.
 
 
-Squirrelmail
-
-  Inefficiency has a name.
-
-  1. Too many LOGINs. We can cache Users using a Cache, that'll solve
-     that. But LOGIN isn't that slow, so I'm not sure it's worth it.
-
-  2. Too many SELECTs and EXAMINEs. SessionCAche and FirstUnreadCache
-     solve that.
-
-  3. Too many EXPUNGEs. If we keep a "last expunged at modseq" in
-     ImapSession, check and set it in Expunge, and check and set it in
-     store ("if the last expunge was the previous modseq, and I'm not
-     adding any \deleted flags, then increase"), then we can turn
-     those expunges into noops.
-
-  That should speed up SM and probably other webmail systems nicely.
-
-
 Using rrdtool
 
   What could we want to graph with rrdtool? Lots.
@@ -685,15 +504,6 @@ Recognising spam
 
   We can connect to a local server to ask whether a message is spam.
   They seem to work that way, but with n different protocols.
-
-
-"Writing Secure Code"
-
-  We have a page about security, /mailstore/security.html, and a
-  section of the mailstore.7 man page mentions it too.
-
-  We need to look at ISBN 0735617228 and improve security.html with
-  points from it. It could also be that we'll improve the code itself.
 
 
 Faster mapping from unicode to 8-bit encodings
@@ -817,7 +627,6 @@ SMTP extensions
   at some point:
 
   DELIVERBY (RFC 2852): At some time.
-  MTRK: As soon as someone else does it.
 
   http://www.iana.org/assignments/mail-parameters
 
@@ -892,42 +701,6 @@ Defending against PGP Desktop and similar
     setting up a more sensible selector.
 
   The first two make sense IMO.
-
-
-SMS gateway
-
-  We want Archiveopteryx to work as installed. We want to support
-  Sieve notify, including SMS.
-
-  I think that means we need to operate an Archiveopteryx->SMS
-  gateway, allow people do send a few SMSes, and provide people with
-  the ability to operate a gateway of their own.
-
-  There are many IP->SMS gateways in the world. Some free, but we
-  don't want to use those, they're unreliable. Many paid for, those
-  are reliable. Most of them work using HTTP requests: You POST a
-  query with your credentials and the gateway reports.
-
-  So my plan is as follows:
-
-  1. Become a customer of someone like that.
-
-  2. Write a program which accepts requests in a format we define,
-     forwards them in the HTTP-based format our provider uses, and
-     relays the response back.
-
-  3. Provide that service to new Archiveopteryx installations, with
-     limitations on use.
-
-  4. Provide the gateway program along with Archiveopteryx, so people
-     can run it themselves.
-
-  I haven't thought of a good way to provide the service to
-  Archiveopteryx users and weed out most other people.
-
-  Perhaps a better alternative: Automatically register with clickatell
-  if SMS is enabled and not configured when it's first used. (But it's
-  not possible to register with clickatell without intervention.)
 
 
 New RFCs
