@@ -860,41 +860,6 @@ We need to be able to disable users
   - a group admin cannot unblock an overall blockage
 
 
-aox.org/badmail/
-
-  Explain that aox can't store everything, why not (in short), that it
-  has many workarounds and point to examples/, how to detect/report
-  bad messages and how to fix things with reparse. Point to
-  /aox/reparse for more detail.
-
-  Subpages:
-
-  badmail/examples/n for 1<=n<=8, with good and bad blah, generated
-  from chosen canonicals, to show how we fix things up. Each page
-  showing old and new, with differences indicated, and they should be
-  ordered from reasonable/common to outrageous.
-
-  badmail/examples/ summing up 1-8 and giving one or two truly
-  hopeless cases. The hopeless case(s) should also be shown in
-  anonymised form.
-
-  badmail/examples/comparison if I feel nasty and bored one day,
-  showing how a few IMAP servers handle messages 1-8 and the
-  impossible one(s). Does "fetch envelope" return the right thing?
-  "fetch bodystructure"? Some choice searches? We don't want to link
-  to this page very much. It gets a fine <table> containing many/few
-  &#x2713; cells.
-
-  Possibly we want to include screenshots showing how Thunderbird or
-  another GUI client that uses envelope/bodystructure renders a
-  mailbox containing 1-8. Screenshots using aox and using another
-  server, one that gets few &#x2713; cells in the table. I'm not sure
-  where to link to these screenshots. Apple Mail?
-
-  We also need aox.org/aox/reparse and I suppose other /aox/<command>
-  pages.
-
-
 Dynamically preparing often-used queries
 
   We can prepare queries cleverly.
@@ -1022,11 +987,6 @@ Problems found in 3.0.0 by Timo
     imaptest complains about.
 
 
-Use current_setting('server_version_num') instead of parsing version()
-
-  (But only under 8.2+)
-
-
 Caching search results
 
   If a selector is !dynamic(), its results can be cached until the next
@@ -1036,3 +996,28 @@ Caching search results
 Bugs
 
   - "aox start" doesn't complain when there's a schema mismatch error.
+
+
+Gmail compatibility
+
+  https://developers.google.com/gmail/imap_extensions is easy, but
+  requires https://support.google.com/mail/answer/7190?hl=en, which is
+  simple but tiresome. Oh no.
+
+  Steps:
+
+  - Implement special-use mailboxes. Will need trash, inbox, allmail,
+    but don't need all of them right away.
+
+  - a trigger on mailbox_messages insertion:
+      if the mailbox has an owner
+        make sure the message is also in the owner's allmail
+        make all other messages with the same thread_root and in the
+        owner's mailboxes are in the same mailbox
+
+  - Make expunge move things to trash, with a time, and delete
+    messages after 30 days. Probably best done as another trigger.
+
+  - X-GM-blah except the RAW search key
+
+  - X-GM-blah RAW search key. work.
