@@ -138,3 +138,18 @@ begin
     create index ald on addresses(lower(localpart), lower(domain));
     return 0;
 end;$$ language 'plpgsql';
+
+create or replace function downgrade_to_96()
+returns int as $$
+begin
+    create table views (
+        id          serial primary key,
+        source      integer not null references mailboxes(id)
+                    on delete cascade,
+        view        integer not null references mailboxes(id)
+                    on delete cascade unique,
+        nextmodseq  bigint not null,
+        selector    text
+    );
+    return 0;
+end;$$ language 'plpgsql';

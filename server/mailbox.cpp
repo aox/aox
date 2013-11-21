@@ -36,9 +36,7 @@ public:
           uidnext( 0 ), uidvalidity( 0 ), owner( 0 ),
           parent( 0 ), children( 0 ),
           sessions( 0 ),
-          nextModSeq( 1 ),
-          source( 0 ),
-          views( 0 )
+          nextModSeq( 1 )
     {}
 
     UString name;
@@ -55,19 +53,6 @@ public:
     List<Session> * sessions;
 
     int64 nextModSeq;
-
-    uint source;
-    EString selector;
-    int64 viewnms;
-    IntegerSet modifiedMessages;
-
-    List<Mailbox> * views;
-
-    class Ignorer
-        : public EventHandler {
-    public:
-        void execute() {};
-    };
 };
 
 
@@ -114,12 +99,9 @@ MailboxReader::MailboxReader( EventHandler * ev, int64 c )
     }
     ::readers->append( this );
     q = new Query( "select m.id, m.name, m.deleted, m.owner, "
-                   "m.uidnext, m.nextmodseq, m.uidvalidity, "
-                   "v.nextmodseq as viewnms, v.selector, "
-                   "v.view, v.source "
+                   "m.uidnext, m.nextmodseq, m.uidvalidity "
                    //"m.change " // better: m.change
-                   "from mailboxes m "
-                   "left join views v on (m.id=v.view) ",
+                   "from mailboxes m ",
                    //"where change>=$1"
                    this );
     c = c; //query->bind( 1, c );
@@ -145,28 +127,16 @@ void MailboxReader::execute() {
 
         if ( r->getBoolean( "deleted" ) )
             m->setType( Mailbox::Deleted );
-        else if ( r->isNull( "view" ) )
-            m->setType( Mailbox::Ordinary );
         else
-            m->setType( Mailbox::View );
+            m->setType( Mailbox::Ordinary );
 
         m->d->uidvalidity = r->getInt( "uidvalidity" );
         if ( !r->isNull( "owner" ) )
             m->setOwner( r->getInt( "owner" ) );
 
-        if ( m->type() == Mailbox::View ) {
-            m->d->source = r->getInt( "source" );
-            m->d->selector = r->getEString( "selector" );
-            m->d->viewnms = r->getBigint( "viewnms" );
-            m->setUidnextAndNextModSeq( r->getInt( "uidnext" ),
-                                        r->getBigint( "nextmodseq" ),
-                                        q->transaction() );
-        }
-        else {
-            m->setUidnextAndNextModSeq( r->getInt( "uidnext" ),
-                                        r->getBigint( "nextmodseq" ),
-                                        q->transaction() );
-        }
+        m->setUidnextAndNextModSeq( r->getInt( "uidnext" ),
+                                    r->getBigint( "nextmodseq" ),
+                                    q->transaction() );
     }
 
     if ( !q->done() || done )
@@ -383,30 +353,6 @@ bool Mailbox::deleted() const
 }
 
 
-/*! Returns true if this mailbox is really a view. */
-
-bool Mailbox::view() const
-{
-    return d->type == View;
-}
-
-
-/*! Returns true if this mailbox is a view and may require an
-    update. Returns false if it isn't a view, or if it is known not to
-    require an update.
-*/
-
-bool Mailbox::needsUpdate() const
-{
-    Mailbox * s = source();
-    if ( !s )
-        return false;
-    if ( s->nextModSeq() <= d->viewnms )
-        return false;
-    return true;
-}
-
-
 /*! Returns true if this Mailbox represents a user's "home directory",
     e.g. /users/ams.
 */
@@ -466,26 +412,6 @@ bool Mailbox::hasChildren() const
         ++it;
     }
     return false;
-}
-
-
-/*! Returns a pointer to the source Mailbox that this View is based on,
-    or 0 if this Mailbox is not a View.
-*/
-
-Mailbox * Mailbox::source() const
-{
-    return Mailbox::find( d->source );
-}
-
-
-/*! Returns the text of the selector that defines this view, or an empty
-    string if this is not a View.
-*/
-
-EString Mailbox::selector() const
-{
-    return d->selector;
 }
 
 
@@ -633,12 +559,6 @@ void Mailbox::setUidnextAndNextModSeq( uint n, int64 m, Transaction * t )
 
     if ( d->sessions )
         (void)new SessionInitialiser( this, t );
-
-    List<Mailbox>::Iterator v( d->views );
-    while ( v ) {
-        (void)new SessionInitialiser( v, t );
-        ++v;
-    }
 }
 
 
@@ -737,10 +657,6 @@ Query * Mailbox::remove( Transaction * t )
     q->bind( 1, id() );
     t->enqueue( q );
 
-    q = new Query( "delete from views where source=$1 or view=$1", 0 );
-    q->bind( 1, id() );
-    t->enqueue( q );
-
     t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
 
     return q;
@@ -770,13 +686,6 @@ void Mailbox::refreshMailboxes( class Transaction * t )
 
 void Mailbox::addSession( Session * s )
 {
-    if ( d->source ) {
-        Mailbox * sm = source();
-        if ( sm && !sm->d->views )
-            sm->d->views = new List<Mailbox>;
-        if ( sm && !sm->d->views->find( this ) )
-            sm->d->views->append( this );
-    }
     if ( !d->sessions )
         d->sessions = new List<Session>;
     if ( s && !d->sessions->find( s ) ) {
@@ -802,14 +711,6 @@ void Mailbox::removeSession( Session * s )
          ", new count " + fn( d->sessions->count() ), Log::Debug );
     if ( d->sessions->isEmpty() )
         d->sessions = 0;
-    if ( d->source ) {
-        writeBackMessageState();
-        Mailbox * sm = source();
-        if ( sm->d->views )
-            sm->d->views->remove( this );
-        if ( sm->d->views->isEmpty() )
-            sm->d->views = 0;
-    }
 }
 
 
@@ -946,66 +847,4 @@ void Mailbox::abortSessions()
         ++it;
         s->abort();
     }
-}
-
-
-
-/*! Updates the backing mailbox with flag and annotation changes made
-    in this mailbox. Does not update the backing mailbox' "\deleted"
-    flag, and only updates those messages for which
-    addWriteBackMessages() have been called.
-*/
-
-void Mailbox::writeBackMessageState()
-{
-    if ( d->modifiedMessages.isEmpty() )
-        return;
-    Mailbox * s = source();
-    if ( !s )
-        return;
-
-    // we don't really care about this transaction. we do want it to
-    // go through, but nothing very bad happens if it fails, so we
-    // just ignore its results.
-    Transaction * t = new Transaction( new MailboxData::Ignorer );
-
-    Query * q
-        = new Query( "select * from mailboxes where id=$1 for update", 0 );
-    q->bind( 1, s->id() );
-    t->enqueue( q );
-
-    q = new Query( "update mailbox_messages mm "
-                   "set seen=vmm.seen, modseq=mb.nextmodseq "
-                   "from messages m, mailbox_messages vmm, mailboxes mb "
-                   "where mm.message=vmm.message and "
-                   "vmm.mailbox=$1 and vmm.uid=any($2) and mm.mailbox=$3 and "
-                   "mb.id=mm.mailbox", 0 );
-    q->bind( 1, id() );
-    q->bind( 2, d->modifiedMessages );
-    q->bind( 3, s->id() );
-    t->enqueue( q );
-
-    q = new Query( "update mailboxes "
-                   "set nextmodseq=nextmodseq+1 "
-                   "where id=$1", 0 );
-    q->bind( 1, s->id() );
-    t->enqueue( q );
-
-    t->enqueue( "notify mailboxes_updated" );
-
-    t->commit();
-
-    d->modifiedMessages.clear();
-}
-
-
-/*! Records that the messages in \a s have been changed in this
-    Mailbox, and that the changes should eventually be propagated back
-    to the backing mailbox. Does nothing if this message isn't a view.
-*/
-
-void Mailbox::addWriteBackMessages( const IntegerSet & s )
-{
-    if ( d->type == View )
-        d->modifiedMessages.add( s );
 }

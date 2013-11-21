@@ -20,7 +20,7 @@ class Mailbox
     Mailbox( const UString & );
 
 public:
-    enum Type { Ordinary, Deleted, View };
+    enum Type { Ordinary, Deleted };
 
     UString name() const;
     uint id() const;
@@ -34,9 +34,6 @@ public:
 
     bool ordinary() const;
     bool deleted() const;
-    bool view() const;
-
-    bool needsUpdate() const;
 
     bool isHome() const;
     uint owner() const;
@@ -49,9 +46,6 @@ public:
     Mailbox * parent() const;
     List< Mailbox > * children() const;
     bool hasChildren() const;
-
-    Mailbox * source() const;
-    EString selector() const;
 
     static void setup( class EventHandler * = 0 );
     static Mailbox * find( const UString &, bool = false );
@@ -82,9 +76,6 @@ public:
     List<class Session> * sessions() const;
 
     static bool refreshing();
-
-    void writeBackMessageState();
-    void addWriteBackMessages( const IntegerSet & );
 
 private:
     class MailboxData * d;

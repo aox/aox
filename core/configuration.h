@@ -133,7 +133,6 @@ public:
         UseStatistics,
         SoftBounce,
         CheckSenderAddresses,
-        AutoFlagViews,
         UseImapQuota,
         // additional toggles go ABOVE THIS LINE
         NumToggles

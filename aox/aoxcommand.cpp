@@ -22,7 +22,6 @@
 #include "undelete.h"
 #include "reparse.h"
 #include "rights.h"
-#include "views.h"
 #include "help.h"
 #include "db.h"
 

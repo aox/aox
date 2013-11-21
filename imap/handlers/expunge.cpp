@@ -94,8 +94,6 @@ void Expunge::execute()
             return;
         }
         requireRight( d->s->mailbox(), Permissions::Expunge );
-
-        d->s->mailbox()->writeBackMessageState();
     }
 
     if ( !permitted() || !ok() )

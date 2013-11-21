@@ -21,19 +21,12 @@ void Noop::execute()
 
 
 /*! \class Check noop.h
-    Performs a checkpoint of the selected mailbox (RFC 3501 section 6.4.1)
 
-    In our implementation, all this does it write "\seen" flags from a
-    view to its backing mailbox.
+    Performs a checkpoint of the selected mailbox (RFC 3501 section
+    6.4.1), which is a noop for in all the implementations I know.
 */
 
 void Check::execute()
 {
-    Mailbox * m = 0;
-    if ( imap()->session() )
-        m = imap()->session()->mailbox();
-    if ( m )
-        m->writeBackMessageState();
-
     finish();
 }

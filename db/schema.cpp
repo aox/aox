@@ -4428,3 +4428,14 @@ bool Schema::stepTo96()
                    "on addresses (localpart, domain, name)" );
     return true;
 }
+
+
+/*! Remove the views table, to pave the way for gmail-like views. */
+
+bool Schema::stepTo97()
+{
+    describeStep( "Dropping aox views." );
+    d->t->enqueue( "delete from views" );
+    d->t->enqueue( "drop table views" );
+    return true;
+}

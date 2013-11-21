@@ -362,22 +362,6 @@ create table annotations (
 );
 
 
--- One entry per view: the view is a mailbox that contains the result
--- of applying the selector to the source mailbox.
-
-create table views (
-    -- Grant: select, insert, delete, update
-    id          serial primary key,
-    source      integer not null references mailboxes(id)
-                on delete cascade,
-    view        integer not null references mailboxes(id)
-                on delete cascade unique,
-    -- We need to keep track of how far we've searched already.
-    nextmodseq  bigint not null,
-    selector    text
-);
-
-
 -- One entry per SIEVE script owned by a user.
 
 create table scripts (

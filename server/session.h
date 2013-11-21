@@ -91,9 +91,6 @@ private:
     void grabLock();
     void releaseLock();
     void findRecent();
-    void findUidnext();
-    void findViewChanges();
-    void writeViewChanges();
     void findMailboxChanges();
     void recordMailboxChanges();
     void recordExpunges();

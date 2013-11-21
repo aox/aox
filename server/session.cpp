@@ -389,8 +389,7 @@ class SessionInitialiserData
 public:
     SessionInitialiserData()
         : mailbox( 0 ),
-          t( 0 ), recent( 0 ), messages( 0 ), expunges( 0 ), nms( 0 ),
-          viewnms( 0 ),
+          t( 0 ), recent( 0 ), messages( 0 ), expunges( 0 ),
           oldUidnext( 0 ), newUidnext( 0 ),
           state( NoTransaction ),
           changeRecent( false )
@@ -403,8 +402,6 @@ public:
     Query * recent;
     Query * messages;
     Query * expunges;
-    Query * nms;
-    int64 viewnms;
 
     uint oldUidnext;
     uint newUidnext;
@@ -466,23 +463,15 @@ void SessionInitialiser::execute()
             break;
         case SessionInitialiserData::SessionInitialiserData::WaitingForLock:
             findRecent();
-            findUidnext();
-            if ( ( !d->recent || d->recent->done() ) &&
-                 ( !d->nms || d->nms->done() ) )
+            if ( !d->recent || d->recent->done() )
                 d->state = SessionInitialiserData::HaveUidnext;
             break;
         case SessionInitialiserData::HaveUidnext:
-            if ( d->mailbox->view() )
-                findViewChanges();
-            else
-                findMailboxChanges();
+            findMailboxChanges();
             d->state = SessionInitialiserData::ReceivingChanges;
             break;
         case SessionInitialiserData::ReceivingChanges:
-            if ( d->mailbox->view() )
-                writeViewChanges();
-            else
-                recordMailboxChanges();
+            recordMailboxChanges();
             recordExpunges();
             if ( d->messages->done() &&
                  ( !d->expunges || d->expunges->done() ) )
@@ -540,16 +529,12 @@ void SessionInitialiser::findSessions()
     // if none are, and the mailbox is ordinary, we don't need anything
     if ( d->mailbox->ordinary() )
         d->sessions.clear();
-    // if none are, and the view is up to date, we don't need anything
-    if ( !d->mailbox->needsUpdate() )
-        d->sessions.clear();
     // otherwise we may need to do work
 }
 
 
 /*! Grabs enough locks on the database that we can update what we need
-    to update: Only one session must get the "\recent" flag, and if we
-    change view contents, noone else must do so at the same time.
+    to update: Only one session must get the "\recent" flag.
 */
 
 void SessionInitialiser::grabLock()
@@ -568,8 +553,6 @@ void SessionInitialiser::grabLock()
 
     if ( highestRecent + 1 == d->newUidnext )
         d->changeRecent = false;
-    if ( d->mailbox->view() )
-        d->changeRecent = false;
 
     log( "Updating " + fn( d->sessions.count() ) + " (of " +
          fn( d->mailbox->sessions() ? d->mailbox->sessions()->count() : 0 ) +
@@ -579,13 +562,13 @@ void SessionInitialiser::grabLock()
          fn( d->newModSeq ) + ">, UID [" + fn( d->oldUidnext ) + "," +
          fn( d->newUidnext ) + ">" );
 
-    if ( !d->t && ( d->changeRecent || d->mailbox->view() ) )
+    if ( !d->t && d->changeRecent )
         d->t = new Transaction( this );
 
     if ( d->changeRecent )
         d->recent = new Query( "select first_recent from mailboxes "
                                "where id=$1 for update", this );
-    else if ( highestRecent < d->newUidnext - 1 && !d->mailbox->view() )
+    else if ( highestRecent < d->newUidnext - 1 )
         d->recent = new Query( "select first_recent from mailboxes "
                                "where id=$1", this );
     if ( d->recent ) {
@@ -593,15 +576,7 @@ void SessionInitialiser::grabLock()
         submit( d->recent );
     }
 
-    if ( !d->mailbox->view() )
-        return;
-    d->nms = new Query( "select mb.uidnext, mb.nextmodseq, "
-                        " v.nextmodseq as viewnms, v.source "
-                        "from mailboxes mb "
-                        "join views v on (v.view=mb.id) "
-                        "where mb.id=$1 for update", this );
-    d->nms->bind( 1, d->mailbox->id() );
-    submit( d->nms );
+    return;
 }
 
 
@@ -661,172 +636,6 @@ void SessionInitialiser::findRecent()
     q->bind( 1, d->mailbox->id() );
     q->bind( 2, recent );
     submit( q );
-}
-
-
-/*! It may be that Mailbox::uidnext() is a little behind the times. If
-    we retrieve the values from the database anyway, this function
-    updates the Mailbox.
-*/
-
-void SessionInitialiser::findUidnext()
-{
-    if ( !d->nms )
-        return;
-    Row * r = d->nms->nextRow();
-    if ( !r )
-        return;
-
-    if ( d->mailbox->view() )
-        d->viewnms = r->getBigint( "viewnms" );
-}
-
-
-/*! Constructs a big complex query to find out what a view's contents
-    should be like, which writeViewChanges() can use to update the
-    view_messages table and the Sessions. Takes care to make the query
-    as simple as possible, so it only looks at modseq if necessary.
-
-    The generated query is big, complex and invariant. Perhaps we
-    should try to make a PreparedStatement. Not sure how. There's
-    nowhere natural to put it.
-*/
-
-void SessionInitialiser::findViewChanges()
-{
-    Selector * sel = new Selector;
-    sel->add( Selector::fromString( d->mailbox->selector() ) );
-
-    // if not dynamic, uidnext changed by >0 and modsec by <= 1,, we
-    // can add UID logic to _both_ the mm and s selects, and it'll do
-    // the right thing.
-
-    if ( d->viewnms )
-        sel->add( new Selector( Selector::Modseq, Selector::Larger,
-                                d->viewnms ) );
-    sel->simplify();
-
-    EStringList * want = new EStringList;
-    want->append( "uid" );
-    want->append( "modseq" );
-    want->append( "message" );
-    want->append( "seen" );
-
-    d->messages = sel->query( 0, d->mailbox->source(), 0, this,
-                              true, want, false );
-    uint vid = sel->placeHolder();
-    d->messages->bind( vid, d->mailbox->id() );
-    uint vnms = sel->placeHolder();
-    d->messages->bind( vnms, d->viewnms );
-
-    EString s( "select m.id, "
-              "v.uid as vuid, v.modseq as vmodseq, "
-              "s.uid as suid, s.modseq as smodseq, "
-              "s.seen as sseen, "
-              "s.message as smessage "
-              "from messages m "
-              "left join mailbox_messages v "
-              " on (m.id=v.message and v.mailbox=$" + fn( vid ) + ") "
-              "left join (" + d->messages->string() + ") s "
-              " on m.id=s.message "
-              "where ((s.uid is not null and v.uid is null)"
-              "    or (s.uid is null and v.uid is not null)"
-              "    or s.modseq>=$" + fn( vnms ) + ") "
-              "order by v.uid, s.uid, m.id" );
-    d->messages->setString( s );
-    submit( d->messages );
-}
-
-
-/*! Processes the query results from the Query generated by
-    findViewChanges(), adds to and/or removes from the view_messages
-    table and the in-RAM Session object as a result, and updates the
-    view so the next SessionInitialiser will not have to consider the
-    same messages.
-*/
-
-void SessionInitialiser::writeViewChanges()
-{
-    if ( !d->messages->done() )
-        return;
-    IntegerSet removeInDb;
-    Query * add = 0;
-    Query * remove = 0;
-    Row * r = 0;
-    while ( (r=d->messages->nextRow()) != 0 ) {
-        uint vuid = 0;
-        if ( !r->isNull( "vuid" ) )
-            vuid = r->getInt( "vuid" );
-
-        bool matched = true;
-        if ( r->isNull( "suid" ) )
-            matched = false;
-
-        if ( vuid && !matched ) {
-            // if it left the search result but still is in the db, we
-            // want to remove it from the db
-            if ( !remove )
-                remove = new Query( "copy deleted_messages "
-                                    "(mailbox,uid,message,modseq,"
-                                    " deleted_by,reason) "
-                                    "from stdin with binary", 0 );
-            remove->bind( 1, d->mailbox->id() );
-            remove->bind( 2, vuid );
-            remove->bind( 3, r->getInt( "id" ) );
-            remove->bind( 4, d->newModSeq-1 );
-            remove->bindNull( 5 );
-            remove->bind( 6, EString( "left view" ) );
-            remove->submitLine();
-            removeInDb.add( vuid );
-        }
-        else if ( matched && !vuid ) {
-            // if it entered the search result and isn't in the db, we
-            // want to add it to the db
-            if ( !add )
-                add = new Query ( "copy mailbox_messages "
-                                  "(mailbox,uid,message,modseq,seen,deleted) "
-                                  "from stdin with binary", 0 );
-            vuid = d->newUidnext;
-            d->newUidnext++;
-            add->bind( 1, d->mailbox->id() );
-            add->bind( 2, vuid );
-            add->bind( 3, r->getInt( "smessage" ) );
-            add->bind( 4, d->newModSeq-1 );
-            add->bind( 5, r->getBoolean( "sseen" ) );
-            add->bind( 6, false );
-            add->submitLine();
-            addToSessions( vuid, d->newModSeq-1 );
-        }
-        else if ( matched && vuid ) {
-            // if it is in the search results and also in the db, then
-            // it's new to the session or changed in the session.
-            addToSessions( vuid, r->getBigint( "vmodseq" ) );
-        }
-    }
-
-    if ( add || remove ) {
-        Query * q = new Query( "update mailboxes "
-                               "set uidnext=$1,nextmodseq=$2 "
-                               "where id=$3", 0 );
-        q->bind( 1, d->newUidnext );
-        q->bind( 2, d->newModSeq + 1 );
-        q->bind( 3, d->mailbox->id() );
-        submit( q );
-    }
-
-    if ( add ) {
-        submit( add );
-    }
-
-    if ( remove ) {
-        submit( remove );
-        List<Session>::Iterator i( d->sessions );
-        while ( i ) {
-            Session * s = i;
-            ++i;
-            s->expunge( removeInDb );
-        }
-    }
 }
 
 
@@ -919,11 +728,6 @@ void SessionInitialiser::emitUpdates()
             s->setUidnext( d->newUidnext );
         ++s;
     }
-    if ( d->mailbox->view() &&
-         ( d->mailbox->uidnext() < d->newUidnext ||
-           d->mailbox->nextModSeq() < d->newModSeq ) )
-        d->mailbox->setUidnextAndNextModSeq( d->newUidnext,
-                                             d->newModSeq, d->t );
     s = d->sessions.first();
     while ( s ) {
         s->emitUpdates( d->t );

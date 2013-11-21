@@ -428,8 +428,6 @@ void Listext::makeResponse( Row * row )
         a.append( "\\haschildren" );
     else if ( !mailbox->deleted() )
         a.append( "\\hasnochildren" );
-    if ( mailbox->view() )
-        a.append( "\\view" );
 
     // then there's subscription
     bool include = false;

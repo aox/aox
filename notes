@@ -790,6 +790,7 @@ Gmail compatibility
 
   - Make expunge move things to trash, with a time, and delete
     messages after 30 days. Probably best done as another trigger.
+    Expunge in allmail expunges everywhere except trash.
 
   - X-GM-blah except the RAW search key
 
