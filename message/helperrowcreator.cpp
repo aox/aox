@@ -530,9 +530,9 @@ Query * AddressCreator::makeSelect()
             s.appendNumber( bn );
             s.append( " and localpart=$" );
             s.appendNumber( bl );
-            s.append( " and domain=$" );
+            s.append( "::citext and domain=$" );
             s.appendNumber( bd );
-            s.append( ")" );
+            s.append( "::citext)" );
 
             asked.append( i );
         }
