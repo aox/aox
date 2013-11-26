@@ -120,9 +120,11 @@ EString Capability::capabilities( IMAP * i, bool all )
     if ( Configuration::toggle( Configuration::UseTls ) && !i->hasTls() )
         c.append( "STARTTLS" );
     if ( all || login ) {
-        c.append( "THREAD=ORDEREDSUBJECT" );
-        c.append( "THREAD=REFS" );
-        c.append( "THREAD=REFERENCES" );
+        // We don't advertise THREAD, since the command is
+        // buggy. Patches welcome.
+        // c.append( "THREAD=ORDEREDSUBJECT" );
+        // c.append( "THREAD=REFS" );
+        // c.append( "THREAD=REFERENCES" );
         c.append( "UIDPLUS" );
         c.append( "UNSELECT" );
         c.append( "URLAUTH" );
