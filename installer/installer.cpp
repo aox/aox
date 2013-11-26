@@ -87,6 +87,7 @@ void createUser();
 void createSuperuser();
 void createDatabase();
 void createLang();
+void createExtensions();
 void createNamespace();
 void checkOwnership();
 void grantUsage();
@@ -765,6 +766,7 @@ void aoxUser()
 enum DbState {
     CheckVersion, CheckEncoding,
     CreateUser, CreateSuperuser, CreateDatabase, CreateLang,
+    CreateExtensions,
     CreateNamespace, CheckOwnership, GrantUsage, SplitPrivileges,
     CreateSchema, UpgradeSchema, GrantPrivileges,
     Done
@@ -868,6 +870,10 @@ void database()
 
         case CreateLang:
             createLang();
+            break;
+
+        case CreateExtensions:
+            createExtensions();
             break;
 
         case CreateNamespace:
@@ -1230,6 +1236,75 @@ void createLang()
 
         if ( d->u->failed() ) {
             d->error( "Couldn't add PL/PgSQL to the " + dbname->quoted() +
+                      "database (" + pgErr( d->u ) + ").\nPlease do it by "
+                      "hand and re-run the installer." );
+            return;
+        }
+    }
+
+    d->nextState();
+}
+
+
+// We need the citext extension.
+
+void createExtensions()
+{
+    if ( !d->databaseExists && report ) {
+        todo++;
+        printf( " - Add the citext extension to the '%s' database.\n"
+                "   As user %s, run:\n\n"
+                "psql %s -c 'create extension citext'\n\n",
+                dbname->cstr(), PGUSER, dbname->cstr() );
+        d->nextState();
+        return;
+    }
+
+    if ( !d->q ) {
+        Database::disconnect();
+        connectToDb( *dbname );
+
+        d->q = new Query( "select extname::text from pg_catalog.pg_extension "
+                          "where extname='citext'", d );
+        d->q->execute();
+    }
+
+    if ( !d->u ) {
+        if ( !d->q->done() )
+            return;
+
+        if ( d->q->failed() ) {
+            d->error( "Couldn't check for citext. " + pgErr( d->q ) );
+            return;
+        }
+
+        Row * r = d->q->nextRow();
+        if ( !r ) {
+            EString create( "create extension citext" );
+
+            if ( report ) {
+                todo++;
+                printf( " - Add citext to the '%s' database.\n"
+                        "   As user %s, run:\n\n"
+                        "psql %s -c 'create extension citext'\n\n",
+                        dbname->cstr(), PGUSER, dbname->cstr() );
+            }
+            else {
+                if ( !silent )
+                    printf( "Adding citext to the '%s' database.\n",
+                            dbname->cstr() );
+                d->u = new Query( create, d );
+                d->u->execute();
+            }
+        }
+    }
+
+    if ( d->u ) {
+        if ( !d->u->done() )
+            return;
+
+        if ( d->u->failed() ) {
+            d->error( "Couldn't add citext to the " + dbname->quoted() +
                       "database (" + pgErr( d->u ) + ").\nPlease do it by "
                       "hand and re-run the installer." );
             return;
