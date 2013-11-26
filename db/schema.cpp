@@ -4377,7 +4377,7 @@ bool Schema::stepTo95()
 
 bool Schema::stepTo96()
 {
-    describeStep("Convert addresses to use CITEXT (slow)");
+    describeStep("Convert addresses to use CITEXT. If this fails, please run \"CREATE EXTENSION citext;\" as the postgres superuser and then rerun aox upgrade schema.");
     d->t->enqueue( "create extension if not exists citext" );
     d->t->enqueue( "drop index addresses_nld_key" );
     d->t->enqueue( "drop index ald" );
