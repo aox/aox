@@ -3,8 +3,33 @@
 #include "pgmessage.h"
 
 #include "log.h"
+#include "event.h"
 #include "estring.h"
 #include "buffer.h"
+#include "query.h"
+
+
+static bool haveAskedForCitext;
+static int citextOid;
+
+class CitextLookup
+    : public EventHandler {
+public:
+    CitextLookup() : EventHandler() {
+        ::haveAskedForCitext = true;
+        q = new Query( "select oid::int4 from pg_catalog.pg_type "
+                       "where typname='citext'", this );
+        q->execute();
+    }
+
+    void execute() {
+        Row * r = q->nextRow();
+        if ( r )
+            ::citextOid = r->getInt( "oid" );
+    }
+
+    Query * q;
+};
 
 
 /*! \class PgServerMessage pgmessage.h
@@ -41,6 +66,10 @@ PgServerMessage::PgServerMessage( Buffer *b )
 
     l = (uint)(((*b)[1]<<24)|((*b)[2]<<16)|((*b)[3]<<8)|((*b)[4])) - 4;
     b->remove( 5 );
+
+    if ( !::haveAskedForCitext ) {
+        (void)new CitextLookup();
+    }
 }
 
 
@@ -871,13 +900,16 @@ PgDataRow::PgDataRow( Buffer *b, const PgRowDescription *d )
         case 18:    // CHAR
         case 25:    // TEXT
         case 1043:  // VARCHAR
-        case 96087: // CITEXT
             cv->type = Column::Bytes;
             break;
         case 1184:
             cv->type = Column::Timestamp;
             break;
         default:
+            if ( it->type == ::citextOid ) { // CITEXT
+                cv->type = Column::Bytes;
+                break;
+            }
             log( "PostgreSQL: Unknown field type " + fn( it->type ) +
                  " for column " + it->name.quoted(),
                  Log::Error );
