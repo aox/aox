@@ -782,11 +782,22 @@ Gmail compatibility
   - Implement special-use mailboxes. Will need trash, inbox, allmail,
     but don't need all of them right away.
 
-  - a trigger on mailbox_messages insertion:
-      if the mailbox has an owner
-        make sure the message is also in the owner's allmail
-        make all other messages with the same thread_root and in the
-        owner's mailboxes are in the same mailbox
+  - A trigger on mailbox_messages insertion:
+      if the mailbox has an owner:
+        look up the owner's allmail and trash mailboxes
+        if this is allmail:
+          insert the message into those of the owner's other mailboxes
+          that contain >=1 message with the same messages.thread_root
+        else if this is trash:
+          remove from allmail (perhaps?)
+        else:
+          make sure the message is also in the owner's allmail
+          also insert all other messages that are in the owner's allmail
+          and have the same messages.thread_root.
+
+    This trigger ensures that mailboxes tend to contain complete
+    threads, that all mail contains everything except trash, and that
+    delivery just magically picks all the right mailboxes.
 
   - Make expunge move things to trash, with a time, and delete
     messages after 30 days. Probably best done as another trigger.
