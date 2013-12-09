@@ -380,7 +380,7 @@ Endpoint Database::server()
 
 EString Database::address()
 {
-    return Configuration::text( Configuration::DbAddress );
+    return server().address();
 }
 
 
@@ -388,7 +388,7 @@ EString Database::address()
 
 uint Database::port()
 {
-    return Configuration::scalar( Configuration::DbPort );
+    return server().port();
 }
 
 

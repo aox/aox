@@ -4,6 +4,7 @@
 
 #include "estring.h"
 #include "file.h"
+#include "resolver.h"
 
 #include <string.h>
 #include <sys/types.h>
@@ -174,10 +175,16 @@ Endpoint::Endpoint( Configuration::Text address,
                  Log::Error );
     }
     else {
-        uint p = Configuration::scalar( port );
-        // what a hack...
-        Endpoint tmp( a, p );
-        *this = tmp;
+        const EStringList & r = Resolver::resolve( a );
+        if ( r.isEmpty() )
+            log( "Could not resolve "
+                  + EString( Configuration::name( address ) )
+                  + " = " + a, Log::Error );
+	else {
+            // what a hack...
+            Endpoint tmp( *r.first(), Configuration::scalar( port ) );
+            *this = tmp;
+        }
     }
 }
 

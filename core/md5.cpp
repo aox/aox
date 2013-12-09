@@ -149,8 +149,12 @@ EString MD5::hash()
     }
     swapBytes( in, 14 );
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
     /* Append length in bits and transform. */
-    memcpy( in + 14 * sizeof( uint32 ), bits, sizeof( bits ) );
+    ((uint32 *)in)[14] = bits[0];
+    ((uint32 *)in)[15] = bits[1];
+#pragma GCC diagnostic pop
     transform();
     swapBytes( (char *)buf, 4 );
 

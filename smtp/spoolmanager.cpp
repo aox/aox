@@ -15,6 +15,9 @@
 #include "allocator.h"
 #include "scope.h"
 
+#define SPOOLINTERVAL    900
+#define SSPOOLINTERVAL  "900"  /* Keep this in sync with SPOOLINTERVAL */
+
 
 static SpoolManager * sm;
 static bool shutdown;
@@ -50,8 +53,10 @@ SpoolManager::SpoolManager()
     setLog( new Log );
 
     Query * q = new Query( "update deliveries "
-                           "set expires_at=current_timestamp+interval '900 s' "
-                           "where expires_at<current_timestamp+interval '900 s' "
+                           "set expires_at=current_timestamp+interval '"
+                           SSPOOLINTERVAL " s' "
+                           "where expires_at<current_timestamp+interval '"
+                           SSPOOLINTERVAL " s' "
                            "and id in "
                            "(select delivery from delivery_recipients"
                            " where action=$1 or action=$2)",
@@ -75,7 +80,7 @@ void SpoolManager::execute()
         while ( a ) {
             if ( a->working() ) {
                 have.add( a->messageId() );
-                delay = 900;
+                delay = SPOOLINTERVAL;
                 ++a;
             }
             else {
@@ -88,7 +93,8 @@ void SpoolManager::execute()
         reset();
         EString s( "select d.message, "
                    "extract(epoch from"
-                   " min(coalesce(dr.last_attempt+interval '900 s',"
+                   " min(coalesce(dr.last_attempt+interval '"
+                   SSPOOLINTERVAL " s',"
                    " d.deliver_after,"
                    " current_timestamp)))::bigint"
                    "-extract(epoch from current_timestamp)::bigint as delay "

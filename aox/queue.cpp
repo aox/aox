@@ -88,7 +88,7 @@ void ShowQueue::execute()
 
             EString s(
                 "select action, status, "
-                "lower(a.domain) as domain::text, a.localpart::text, "
+                "a.domain as domain::text, a.localpart::text, "
                 "a.localpart||'@'||a.domain as recipient::text "
                 "from delivery_recipients dr join addresses a "
                 "on (dr.recipient=a.id) where dr.delivery=$1 "

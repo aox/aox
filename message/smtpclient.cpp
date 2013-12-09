@@ -690,8 +690,8 @@ SmtpClient * SmtpClient::provide()
     if ( c )
         return c;
 
-    Endpoint e( Configuration::text( Configuration::SmartHostAddress ),
-                Configuration::scalar( Configuration::SmartHostPort ) );
+    Endpoint e( Configuration::SmartHostAddress,
+                Configuration::SmartHostPort );
     return new SmtpClient( e );
 }
 

@@ -624,6 +624,9 @@ bool PopCommand::retr( bool lines )
         else
             log( "RETR command" );
         if ( !ok || msn < 1 || msn > s->count() ) {
+            log( "Bad message number "
+             +fn(s->uid(msn))+" "+fn(msn)+"<"+fn(s->count()),
+             Log::Significant);
             d->pop->err( "Bad message number" );
             return true;
         }
@@ -631,6 +634,7 @@ bool PopCommand::retr( bool lines )
         if ( lines ) {
             d->n = nextArg().number( &ok );
             if ( !ok ) {
+                log( "Bad line count "+fn(d->n), Log::Significant);
                 d->pop->err( "Bad line count" );
                 return true;
             }
@@ -638,6 +642,8 @@ bool PopCommand::retr( bool lines )
 
         d->message = d->pop->message( s->uid( msn ) );
         if ( !d->message ) {
+            log( "No such message "+fn(s->uid(msn))+" "+fn(msn),
+             Log::Significant);
             d->pop->err( "No such message" );
             return true;
         }
@@ -658,13 +664,22 @@ bool PopCommand::retr( bool lines )
             d->message->hasAddresses() ) )
         return false;
 
-    d->pop->ok( "Done" );
+    if ( d->message->rfc822Size() > 2 )
+        d->pop->ok( "Done" );
+    else {
+        log( "Aborting due to overlapping session", Log::Significant );
+        d->pop->abort( "Overlapping sessions" );
+	return true;
+    }
 
     Buffer * b = new Buffer;
     b->append( d->message->rfc822( true ) ); // XXX always downgrades
 
     int ln = d->n;
     bool header = true;
+    int lnhead = 0;
+    int lnbody = 0;
+    int msize = b->size();
 
     EString * t;
     while ( ( t = b->removeLine() ) != 0 ) {
@@ -673,6 +688,11 @@ bool PopCommand::retr( bool lines )
 
         if ( !header && lines && ln-- < 0 )
             break;
+
+        if ( header )
+            lnhead++;
+        else
+            lnbody++;
 
         if ( t->startsWith( "." ) )
             d->pop->enqueue( "." );
@@ -689,6 +709,12 @@ bool PopCommand::retr( bool lines )
     }
 
     d->pop->enqueue( ".\r\n" );
+
+    if( !lines )
+        log( "Retrieved "
+         + fn( lnhead ) + ":" + fn( lnbody ) + "/" + fn( msize )
+         + " " + d->message->header()->messageId().forlog(),
+         Log::Significant );
     return true;
 }
 

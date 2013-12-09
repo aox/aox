@@ -168,31 +168,32 @@ void Sieve::execute()
         bool wasReady = ready();
         List<SieveData::Recipient>::Iterator i( d->recipients );
         while ( i ) {
-            if ( i->sq ) {
-                Row * r = i->sq->nextRow();
-                if ( r || i->sq->done() )
-                    i->sq = 0;
-                if ( r ) {
+            if ( i->sq && i->sq->hasResults() ) {
+                Row * r;
+                SieveData::Recipient *in = i;
+                for ( in = i ;
+                      (r = i->sq->nextRow()) ;
+                      in = new SieveData::Recipient( i->address, 0, d) ) {
                     if ( !r->isNull( "mailbox" ) )
-                        i->mailbox = Mailbox::find( r->getInt( "mailbox" ) );
+                        in->mailbox = Mailbox::find( r->getInt( "mailbox" ) );
                     if ( !r->isNull( "script" ) ) {
-                        i->prefix = r->getUString( "namespace" ) + "/" +
+                        in->prefix = r->getUString( "namespace" ) + "/" +
                                     r->getUString( "login" ) + "/";
-                        i->user = new User;
-                        i->user->setLogin( r->getUString( "login" ) );
-                        i->user->setId( r->getInt( "userid" ) );
-                        i->user->setAddress( new Address(
+                        in->user = new User;
+                        in->user->setLogin( r->getUString( "login" ) );
+                        in->user->setId( r->getInt( "userid" ) );
+                        in->user->setAddress( new Address(
                                                  r->getUString( "name" ),
                                                  r->getEString( "localpart" ),
                                                  r->getEString( "domain" ) ) );
-                        i->script->parse( r->getEString( "script" ).crlf() );
-                        EString errors = i->script->parseErrors();
+                        in->script->parse( r->getEString( "script" ).crlf() );
+                        EString errors = in->script->parseErrors();
                         if ( !errors.isEmpty() ) {
                             log( "Note: Sieve script for " +
-                                 i->user->login().utf8() +
+                                 in->user->login().utf8() +
                                  "had parse errors.", Log::Error );
                             EString prefix = "Sieve script for " +
-                                            i->user->login().utf8();
+                                            in->user->login().utf8();
                             EStringList::Iterator i(
                                 EStringList::split( '\n', errors ) );
                             while ( i ) {
@@ -201,13 +202,14 @@ void Sieve::execute()
                             }
                         }
                         List<SieveCommand>::Iterator
-                            c(i->script->topLevelCommands());
+                            c(in->script->topLevelCommands());
                         while ( c ) {
-                            i->pending.append( c );
+                            in->pending.append( c );
                             ++c;
                         }
                     }
                 }
+                i->sq = 0;
             }
             ++i;
         }
@@ -247,30 +249,28 @@ void Sieve::execute()
                 d->autoresponses = new Query( "", this );
                 EString s = "select handle from autoresponses "
                            "where expires_at > current_timestamp "
-                           "and (";
-                bool first = true;
+                           "and ( false ";
                 int n = 1;
                 List<SieveAction>::Iterator i( d->vacations );
                 while ( i ) {
-                    if ( !first )
-                        s.append( " or " );
+                    s.append( " or " );
                     s.append( "(handle=$" );
                     s.appendNumber( n );
                     d->autoresponses->bind( n, i->handle() );
                     s.append( " and sent_from in "
                               "(select id from addresses "
-                              " where lower(localpart)=$" );
+                              " where localpart=$" );
                     s.appendNumber( n+1 );
-                    s.append( " and lower(domain)=$" );
+                    s.append( " and domain=$" );
                     s.appendNumber( n+2 );
                     Address * f = i->senderAddress();
                     d->autoresponses->bind( n+1, f->localpart() );
                     d->autoresponses->bind( n+2, f->domain() );
                     s.append( ") and sent_to in "
                               "(select id from addresses "
-                              " where lower(localpart)=$" );
+                              " where localpart=$" );
                     s.appendNumber( n+3 );
-                    s.append( " and lower(domain)=$" );
+                    s.append( " and domain=$" );
                     s.appendNumber( n+4 );
                     Address * r = i->recipientAddress();
                     d->autoresponses->bind( n+3, r->localpart() );
@@ -278,7 +278,6 @@ void Sieve::execute()
                     s.append( "))" );
                     ++i;
                     n += 5;
-                    first = false;
                 }
                 s.append( ")" );
                 d->autoresponses->setString( s );
@@ -490,7 +489,7 @@ void Sieve::addRecipient( Address * address, EventHandler * user )
                        "left join users u on (s.owner=u.id) "
                        "left join namespaces n on (u.parentspace=n.id) "
                        "where m.deleted='f' and "
-                       "lower(a.localpart)=$1 and lower(a.domain)=$2", this );
+                       "a.localpart=$1 and a.domain=$2", this );
     UString localpart( address->localpart() );
     if ( Configuration::toggle( Configuration::UseSubaddressing ) ) {
         EString sep( Configuration::text( Configuration::AddressSeparator ) );

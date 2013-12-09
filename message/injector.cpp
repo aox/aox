@@ -1864,7 +1864,7 @@ void Injector::insertDeliveries()
                            " join addresses a on (dr.recipient=a.id)"
                            " where dr.action>$2"
                            " and dr.last_attempt > current_timestamp-'1 minute'::interval"
-                           " and lower(a.domain)=any($3::text[])))", 0 );
+                           " and a.domain=any($3::text[])))", 0 );
             q->bind( 1, di->message->databaseId() );
             q->bind( 2, Recipient::Delayed );
             domains.removeDuplicates();
@@ -1883,17 +1883,6 @@ void Injector::insertDeliveries()
 }
 
 
-static EString msgid( Message * m ) {
-    Header * h = m->header();
-    EString id;
-    if ( h )
-        id = h->messageId();
-    if ( id.isEmpty() )
-        id = "<>";
-    return id;
-}
-
-
 /*! Logs a little information about the messages to be injected, and a
     little more for the special case of a single message being injected
     into a single mailbox.
@@ -1907,7 +1896,7 @@ void Injector::logDescription()
         ++im;
 
         EString msg( "Injecting message " );
-        msg.append( msgid( m ) );
+        msg.append( m->header()->messageId().forlog() );
         msg.append( " into " );
 
         EStringList into;
@@ -1925,7 +1914,7 @@ void Injector::logDescription()
         ++dm;
 
         EString msg( "Spooling message " );
-        msg.append( msgid( del->message ) );
+        msg.append( del->message->header()->messageId().forlog() );
         msg.append( " from " );
         msg.append( del->sender->lpdomain() );
         msg.append( " to " );

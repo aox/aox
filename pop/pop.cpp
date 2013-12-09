@@ -212,6 +212,8 @@ void POP::setState( State s )
             }
         };
 
+        d->session->earlydeletems( d->toBeDeleted );
+
         PopDeleter * pd = new PopDeleter( user(), d->session->mailbox(),
                                           d->toBeDeleted );
         pd->execute();
@@ -391,6 +393,14 @@ void POP::err( const EString &s )
 {
     enqueue( "-ERR " + s + "\r\n" );
     setReader( 0 );
+}
+
+/*! Sends \a s as a negative -ERR response and drops the connection. */
+
+void POP::abort( const EString &s )
+{
+    err( s );
+    react( Error );
 }
 
 

@@ -804,6 +804,17 @@ void Session::clearExpunged( uint uid )
 }
 
 
+/*! Records that the client has requested that \a uid no longer
+    exists.
+
+    This is POP3 stuff infesting Session.
+*/
+
+void Session::earlydeletems( const IntegerSet & uids )
+{
+    d->msns.remove( uids );
+}
+
 /*! Returns what setNextModSeq() set. The initial value is 0. */
 
 int64 Session::nextModSeq() const

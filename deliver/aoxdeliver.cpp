@@ -57,12 +57,12 @@ public:
                        "join addresses a on (al.address=a.id) "
                        "left join users u on (al.id=u.alias) "
                        "left join namespaces n on (u.parentspace=n.id) "
-                       "where (lower(a.localpart)=$1 and lower(a.domain)=$2) "
+                       "where (a.localpart=$1 and a.domain=$2) "
                        "or (lower(u.login)=$3)", this );
         if ( user.contains( '@' ) ) {
             int at = user.find( '@' );
-            q->bind( 1, user.mid( 0, at ).lower() );
-            q->bind( 2, user.mid( at + 1 ).lower() );
+            q->bind( 1, user.mid( 0, at ) );
+            q->bind( 2, user.mid( at + 1 ) );
         }
         else {
             q->bindNull( 1 );

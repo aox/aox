@@ -60,6 +60,7 @@ public:
 
     void expunge( const IntegerSet & );
     virtual void clearExpunged( uint );
+    virtual void earlydeletems( const IntegerSet & );
 
     virtual void emitUpdates( Transaction * );
 

@@ -295,7 +295,7 @@ void User::refresh( EventHandler * user )
             "join namespaces n on (u.parentspace=n.id) "
             "join aliases al on (u.alias=al.id) "
             "join addresses a on (al.address=a.id) "
-            "where lower(a.localpart)=$1 and lower(a.domain)=$2"
+            "where a.localpart=$1 and a.domain=$2"
         );
     }
     if ( !d->login.isEmpty() ) {
@@ -304,8 +304,8 @@ void User::refresh( EventHandler * user )
     }
     else if ( d->address ) {
         d->q = new Query( *psa, this );
-        d->q->bind( 1, d->address->localpart().utf8().lower() );
-        d->q->bind( 2, d->address->domain().utf8().lower() );
+        d->q->bind( 1, d->address->localpart() );
+        d->q->bind( 2, d->address->domain() );
     }
     if ( d->q ) {
         d->q->execute();
