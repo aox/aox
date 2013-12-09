@@ -27,7 +27,7 @@ create table addresses (
     localpart   citext,
     domain      citext
 );
-create unique index addresses_dln_key on addresses(domain,localpart,name);
+create unique index addresses_ldn_key on addresses(localpart,domain,name);
 
 
 -- One entry per "other users" namespace. Personal namespaces are
