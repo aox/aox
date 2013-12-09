@@ -669,7 +669,7 @@ bool PopCommand::retr( bool lines )
     else {
         log( "Aborting due to overlapping session", Log::Significant );
         d->pop->abort( "Overlapping sessions" );
-	return true;
+        return true;
     }
 
     Buffer * b = new Buffer;

@@ -529,11 +529,11 @@ static void checkMiscellaneous()
     }
 
     if ( !Configuration::toggle( Configuration::UseTls ) ) {
-	if ( Configuration::toggle( Configuration::UseImaps ) )
+        if ( Configuration::toggle( Configuration::UseImaps ) )
             error( "use-imaps enabled, but use-tls disabled" );
-	if ( Configuration::toggle( Configuration::UsePops ) )
+        if ( Configuration::toggle( Configuration::UsePops ) )
             error( "use-pops enabled, but use-tls disabled" );
-	if ( Configuration::toggle( Configuration::UseSmtps ) )
+        if ( Configuration::toggle( Configuration::UseSmtps ) )
             error( "use-smtps enabled, but use-tls disabled" );
     }
 

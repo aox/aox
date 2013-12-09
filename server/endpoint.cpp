@@ -176,11 +176,12 @@ Endpoint::Endpoint( Configuration::Text address,
     }
     else {
         const EStringList & r = Resolver::resolve( a );
-        if ( r.isEmpty() )
+        if ( r.isEmpty() ) {
             log( "Could not resolve "
                   + EString( Configuration::name( address ) )
                   + " = " + a, Log::Error );
-	else {
+        }
+        else {
             // what a hack...
             Endpoint tmp( *r.first(), Configuration::scalar( port ) );
             *this = tmp;
