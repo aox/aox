@@ -505,7 +505,8 @@ uint AddressCreator::param( Dict<uint> * b, const EString & s,
 
 Query * AddressCreator::makeSelect()
 {
-    EString s = "select id, name, localpart, domain from addresses where ";
+    EString s = "select id, name, localpart::text, domain::text "
+                "from addresses where ";
     Query * q = new Query( "", this );
     uint n = 1;
     Dict<uint> binds;
@@ -693,7 +694,7 @@ void AddressCreator::execute()
         return;
 
     if ( !obtain ) {
-        obtain = new Query( "select id, name, localpart, domain "
+        obtain = new Query( "select id, name, localpart::text, domain::text "
                             "from na", this );
         sub->enqueue( obtain );
         sub->enqueue( new Query( "drop table na", 0 ) );

@@ -535,7 +535,7 @@ void Fetcher::makeQueries()
     if ( d->addresses ) {
         q = new Query( "select af.message, "
                        "af.part, af.position, af.field, af.number, "
-                       "a.name, a.localpart, a.domain "
+                       "a.name, a.localpart::text, a.domain::text "
                        "from address_fields af "
                        "join addresses a on (af.address=a.id) "
                        "where af.message=any($1) "

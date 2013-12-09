@@ -321,7 +321,7 @@ void SMTP::authenticated( User * user )
 
     SMTPData::AddressFinder * af
         = new SMTPData::AddressFinder( d->permittedAddresses );
-    af->q = new Query( "select distinct a.localpart, a.domain "
+    af->q = new Query( "select distinct a.localpart::text, a.domain::text "
                        "from addresses a "
                        "join aliases al on (a.id=al.address) "
                        "join mailboxes mb on (al.mailbox=mb.id) "

@@ -47,7 +47,7 @@ void ListUsers::execute()
             error( "Argument encoding: " + c.error() );
 
         database();
-        EString s( "select login, localpart||'@'||domain as address "
+        EString s( "select login, localpart||'@'||domain as address::text "
                   "from users u join aliases al on (u.alias=al.id) "
                   "join addresses a on (al.address=a.id)" );
         if ( !pattern.isEmpty() )

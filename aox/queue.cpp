@@ -35,7 +35,7 @@ void ShowQueue::execute()
 
         EString s(
             "select d.id, d.message, "
-            "a.localpart||'@'||a.domain as sender, "
+            "a.localpart||'@'||a.domain as sender::text, "
             "to_char(d.injected_at, 'YYYY-MM-DD HH24:MI:SS') as submitted, "
             "to_char(max(dr.last_attempt), 'YYYY-MM-DD HH24:MI:SS') as tried, "
             "(extract(epoch from d.expires_at)-extract(epoch from current_timestamp))::bigint as expires_in "
@@ -88,11 +88,11 @@ void ShowQueue::execute()
 
             EString s(
                 "select action, status, "
-                "lower(a.domain) as domain, a.localpart, "
-                "a.localpart||'@'||a.domain as recipient "
+                "lower(a.domain) as domain::text, a.localpart::text, "
+                "a.localpart||'@'||a.domain as recipient::text "
                 "from delivery_recipients dr join addresses a "
                 "on (dr.recipient=a.id) where dr.delivery=$1 "
-                "order by dr.action, lower(a.domain), a.localpart"
+                "order by dr.action, a.domain, a.localpart"
             );
             qr = new Query( s, this );
             qr->bind( 1, delivery );

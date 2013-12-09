@@ -278,7 +278,7 @@ void User::refresh( EventHandler * user )
     if ( !psl ) {
         psl = new PreparedStatement(
             "select u.id, u.login, u.secret, u.ldapdn, "
-            "a.name, a.localpart, a.domain, u.quota, "
+            "a.name, a.localpart::text, a.domain::text, u.quota, "
             "al.mailbox as inbox, n.name as parentspace "
             "from users u "
             "join namespaces n on (u.parentspace=n.id) "
@@ -289,7 +289,7 @@ void User::refresh( EventHandler * user )
 
         psa = new PreparedStatement(
             "select u.id, u.login, u.secret, u.ldapdn, "
-            "a.name, a.localpart, a.domain, u.quota, "
+            "a.name, a.localpart::text, a.domain::text, u.quota, "
             "al.mailbox as inbox, n.name as parentspace "
             "from users u "
             "join namespaces n on (u.parentspace=n.id) "

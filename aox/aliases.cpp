@@ -46,7 +46,7 @@ void ListAliases::execute()
             error( "Argument encoding: " + c.error() );
 
         database();
-        EString s( "select localpart||'@'||domain as address, m.name "
+        EString s( "select localpart||'@'||domain as address::text, m.name "
                   "from aliases join addresses a on (address=a.id) "
                   "join mailboxes m on (mailbox=m.id)" );
         if ( !pattern.isEmpty() )

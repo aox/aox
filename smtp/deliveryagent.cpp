@@ -106,13 +106,13 @@ void DeliveryAgent::execute()
 
         d->deliveryId = r->getInt( "id" );
 
-        d->qs = new Query( "select localpart, domain from addresses "
-                           "where id=$1", this );
+        d->qs = new Query( "select localpart::text, domain::text "
+                           " from addresses where id=$1", this );
         d->qs->bind( 1, r->getInt( "sender" ) );
         d->t->enqueue( d->qs );
 
         d->qr = new Query(
-            "select recipient,localpart,domain,action,status,"
+            "select recipient,localpart::text,domain::text,action,status,"
             "extract(epoch from last_attempt)::integer as last_attempt "
             "from delivery_recipients dr join addresses "
             "on (recipient=addresses.id) "

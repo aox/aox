@@ -481,7 +481,7 @@ void Sieve::addRecipient( Address * address, EventHandler * user )
 
     r->sq = new Query( "select al.mailbox, s.script, m.owner, "
                        "n.name as namespace, u.id as userid, u.login, "
-                       "a.name, a.localpart, a.domain "
+                       "a.name, a.localpart::text, a.domain::text "
                        "from aliases al "
                        "join addresses a on (al.address=a.id) "
                        "join mailboxes m on (al.mailbox=m.id) "
