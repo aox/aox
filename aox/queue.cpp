@@ -35,7 +35,7 @@ void ShowQueue::execute()
 
         EString s(
             "select d.id, d.message, "
-            "a.localpart||'@'||a.domain as sender::text, "
+            "(a.localpart||'@'||a.domain)::text as sender, "
             "to_char(d.injected_at, 'YYYY-MM-DD HH24:MI:SS') as submitted, "
             "to_char(max(dr.last_attempt), 'YYYY-MM-DD HH24:MI:SS') as tried, "
             "(extract(epoch from d.expires_at)-extract(epoch from current_timestamp))::bigint as expires_in "
@@ -88,8 +88,8 @@ void ShowQueue::execute()
 
             EString s(
                 "select action, status, "
-                "a.domain as domain::text, a.localpart::text, "
-                "a.localpart||'@'||a.domain as recipient::text "
+                "a.domain::text as domain, a.localpart::text, "
+                "(a.localpart||'@'||a.domain)::text as recipient "
                 "from delivery_recipients dr join addresses a "
                 "on (dr.recipient=a.id) where dr.delivery=$1 "
                 "order by dr.action, a.domain, a.localpart"
