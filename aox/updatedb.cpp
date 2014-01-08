@@ -44,7 +44,7 @@ public:
         : Garbage(), t( 0 ),
           findMessages( 0 ),
           threader( 0 ),
-          messages( 0 ),
+          messages( 0 ), byMessageId( 0 ),
           report( 0 ), temp( 0 ), update( 0 ),
           sofar( 0 ), threading( true )
         {}
@@ -53,6 +53,7 @@ public:
     Query * findMessages;
     ThreadRootCreator * threader;
     List<ThreadRootCreator::Message> * messages;
+    Dict<DbMessage> * byMessageId;
 
     Query * report;
     Query * temp;
@@ -101,7 +102,7 @@ void UpdateDatabase::execute()
         return;
     if ( d->report->hasResults() ) {
         Row * r = d->report->nextRow();
-        printf( "Messages needing threading: %d.\n",
+        printf( "Messages that might need threading: %d.\n",
                 r->getInt( "threadnull" ) );
     }
 
@@ -117,24 +118,25 @@ void UpdateDatabase::execute()
     end();
 
     if ( !d->t ) {
-        printf( "Looking for 32768 more messages to thread.\n" );
+        printf( "Looking for 4096 more messages to thread.\n" );
         d->t = new Transaction( this );
         d->findMessages
             = new Query( "select m.id, msgid.value as messageid, "
                          "ref.value as references "
                          "from messages m "
-                         "left join header_fields msgid on"
+                         "join header_fields msgid on"
                          " (m.id=msgid.message and msgid.field=$2 and msgid.part='') "
                          "left join header_fields ref on"
                          " (m.id=ref.message and ref.field=$3 and ref.part='') "
                          "where m.thread_root is null and m.id>$1 "
-                         "order by id limit 32768", this );
+                         "order by id limit 4096", this );
         d->findMessages->bind( 1, d->sofar );
         d->findMessages->bind( 2, HeaderField::MessageId );
         d->findMessages->bind( 3, HeaderField::References );
         d->t->enqueue( d->findMessages );
         d->t->execute();
         d->messages = new List<ThreadRootCreator::Message>();
+        d->byMessageId = new Dict<DbMessage>();
         d->threader = 0;
         d->temp = 0;
         d->update = 0;
@@ -149,6 +151,7 @@ void UpdateDatabase::execute()
             d->sofar = m->id;
         if ( !r->isNull( "messageid" ) ) {
             m->mid = r->getEString( "messageid" );
+            d->byMessageId->insert( m->mid, m );
         }
         if ( !r->isNull( "references" ) ) {
             AddressParser * ap
@@ -193,30 +196,33 @@ void UpdateDatabase::execute()
         return;
 
     if ( !d->update ) {
-        Query * q = new Query( "copy md( messageid, thread_root ) "
+        Query * q = new Query( "copy md( message, messageid, thread_root ) "
                              "from stdin with binary", 0 );
         Dict<ThreadRootCreator::ThreadNode>::Iterator
             i( d->threader->threadNodes() );
         while ( i ) {
             ThreadRootCreator::ThreadNode * n = i;
-            q->bind( 1, n->id );
-            while ( n->parent )
-                n = n->parent;
-            q->bind( 2, n->trid );
-            q->submitLine();
+            DbMessage * m = d->byMessageId->find( n->id );
+            if ( m ) {
+                q->bind( 1, m->id );
+                q->bind( 2, n->id );
+                while ( n->parent )
+                    n = n->parent;
+                q->bind( 3, n->trid );
+                q->submitLine();
+            }
             ++i;
         }
         d->t->enqueue( q );
 
-        // update the md table to refer to extant messages ONLY
-        d->t->enqueue(
-            "update md set message=header_fields.message "
-            "from header_fields "
-            "where header_fields.field=13 and header_fields.value=messageid" );
-        d->t->enqueue(
-            "delete from md where message is null or message in ("
-            "select id from messages m join md on (m.id=md.message)"
-            " where m.thread_root is not null)" );
+        // occasionally messages are duplicated. thread all duplicates.
+        d->t->enqueue( "insert into md( message, messageid, thread_root ) "
+                       "select m.id, md.messageid, md.thread_root"
+                       "  from messages m"
+                       "  join header_fields hf on"
+                       "   (m.id=hf.message and hf.field=13 and hf.part='')"
+                       "  join md on (hf.value=md.messageid)"
+                       "  where m.id!=md.message and m.thread_root is null" );
 
         // lock for nextmodseq in the right order
         d->t->enqueue( "select * from mailboxes "
