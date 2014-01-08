@@ -57,6 +57,7 @@ public:
           body( false ), bodystructure( false ),
           internaldate( false ), rfc822size( false ),
           annotation( false ), modseq( false ),
+          databaseId( false ), threadId( false ),
           needsHeader( false ), needsAddresses( false ),
           needsBody( false ), needsPartNumbers( false ),
           seenDeletedFetcher( 0 ), flagFetcher( 0 ),
@@ -85,6 +86,8 @@ public:
     bool rfc822size;
     bool annotation;
     bool modseq;
+    bool databaseId;
+    bool threadId;
     List<Section> sections;
 
     // and the sections imply that we...
@@ -261,7 +264,7 @@ void Fetch::parse()
         l.append( "body" );
     if ( d->flags )
         l.append( "flags" );
-    if ( d->internaldate || d->rfc822size )
+    if ( d->internaldate || d->rfc822size || d->databaseId || d->threadId )
         l.append( "trivia" );
     if ( d->needsPartNumbers )
         l.append( "bytes/lines" );
@@ -278,6 +281,15 @@ void Fetch::parse()
 
 void Fetch::parseAttribute( bool alsoMacro )
 {
+    if ( present( "x-gm-msgid" ) ) {
+        d->databaseId = true;
+        return;
+    }
+    else if ( present( "x-gm-thrid" ) ) {
+        d->threadId = true;
+        return;
+    }
+
     EString keyword = dotLetters( 3, 13 ).lower(); // UID/ALL, RFC822.HEADER
     if ( alsoMacro && keyword == "all" ) {
         // equivalent to: (FLAGS INTERNALDATE RFC822.SIZE ENVELOPE)
@@ -676,7 +688,8 @@ void Fetch::execute()
             else if ( d->modseq ||
                       d->needsAddresses || d->needsHeader ||
                       d->needsBody || d->needsPartNumbers ||
-                      d->rfc822size || d->internaldate ) {
+                      d->rfc822size || d->internaldate ||
+                      d->databaseId || d->threadId ) {
                 IntegerSet r;
                 IntegerSet s( d->set );
                 while ( !s.isEmpty() ) {
@@ -855,7 +868,8 @@ void Fetch::sendFetchQueries()
         f->fetch( Fetcher::OtherHeader );
     if ( d->needsBody && !haveBody )
         f->fetch( Fetcher::Body );
-    if ( ( d->rfc822size || d->internaldate ) && !haveTrivia )
+    if ( ( d->rfc822size || d->internaldate ||
+           d->databaseId || d->threadId ) && !haveTrivia )
         f->fetch( Fetcher::Trivia );
     if ( d->needsPartNumbers && !havePartNumbers )
         f->fetch( Fetcher::PartNumbers );
@@ -1067,6 +1081,10 @@ EString Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
     EStringList l;
     if ( d->uid )
         l.append( "UID " + fn( uid ) );
+    if ( d->databaseId )
+        l.append( "X-GM-MSGID " + fn( m->databaseId() ) );
+    if ( d->threadId )
+        l.append( "X-GM-THRID " + fn( m->threadId() ) );
     if ( d->rfc822size )
         l.append( "RFC822.SIZE " + fn( m->rfc822Size() ) );
     if ( d->flags )
@@ -1658,7 +1676,8 @@ void Fetch::pickup()
             ok = false;
         if ( d->needsBody && !m->hasBodies() )
             ok = false;
-        if ( ( d->rfc822size || d->internaldate ) && !m->hasTrivia() )
+        if ( ( d->rfc822size || d->internaldate ||
+               d->databaseId || d->threadId ) && !m->hasTrivia() )
             ok = false;
         if ( ok ) {
             d->processed = uid;

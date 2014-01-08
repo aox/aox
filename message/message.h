@@ -35,6 +35,9 @@ public:
     void setDatabaseId( uint );
     uint databaseId() const;
 
+    void setThreadId( uint );
+    uint threadId() const;
+
     bool isMessage() const;
 
     Bodypart * bodypart( const EString &, bool create = false );

@@ -360,6 +360,16 @@ Selector * Search::parseKey()
         return new Selector( Selector::Rfc822Size, Selector::Smaller,
                              number() );
     }
+    else if ( present( "x-gm-msgid" ) ) {
+        space();
+        return new Selector( Selector::DatabaseId, Selector::Equals,
+                             number() );
+    }
+    else if ( present( "x-gm-thrid" ) ) {
+        space();
+        return new Selector( Selector::ThreadId, Selector::Equals,
+                             number() );
+    }
     else if ( present( "annotation" ) ) {
         space();
         EString a = parser()->listMailbox();

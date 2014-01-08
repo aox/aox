@@ -98,6 +98,14 @@ void dumpSelector( Selector * s, uint l )
         else
             children = false;
         break;
+    case Selector::DatabaseId:
+        a = "Message's database ID is " +
+            fn( s->integerArgument() );
+        break;
+    case Selector::ThreadId:
+        a = "Message's thread ID is " +
+            fn( s->integerArgument() );
+        break;
     }
 
     if ( !a.isEmpty() )

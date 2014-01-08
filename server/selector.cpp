@@ -443,6 +443,12 @@ void Selector::simplify()
         case InThread:
             // cannot be simplified
             break;
+        case DatabaseId:
+            // cannot be simplified
+            break;
+        case ThreadId:
+            // cannot be simplified
+            break;
         case NoField:
             // contains is orthogonal to nofield, so this we cannot
             // simplify
@@ -747,6 +753,12 @@ EString Selector::where()
         break;
     case NoField:
         return whereNoField();
+        break;
+    case DatabaseId:
+        return whereDatabaseId();
+        break;
+    case ThreadId:
+        return whereThreadId();
         break;
     }
     setError( "Internal error for " + debugString() );
@@ -1630,6 +1642,39 @@ EString Selector::whereAge()
 }
 
 
+/*! This implements the x-gm-msgid search-key. */
+
+EString Selector::whereDatabaseId()
+{
+    uint i = placeHolder();
+    root()->d->query->bind( i, d->n );
+
+    if (action() == Equals )
+        return mm() + ".message=$" + fn( i );
+
+    log( "Bad selector", Log::Error );
+    return "false";
+}
+
+
+/*! This implements the x-gm-msgid search-key. */
+
+EString Selector::whereThreadId()
+{
+    uint i = placeHolder();
+    root()->d->query->bind( i, d->n );
+
+    if (action() == Equals ) {
+        root()->d->needMessages = true;
+        return "m.thread_root=$" + fn( i );
+    }
+
+    log( "Bad selector", Log::Error );
+    return "false";
+
+}
+
+
 static bool isAddressField( const EString & s )
 {
     uint t = HeaderField::fieldType( s );
@@ -1835,6 +1880,9 @@ EString Selector::debugString() const
     case None:
         return "none";
         break;
+    case Equals:
+        return "equals";
+        break;
     case Special:
         break;
     };
@@ -1901,6 +1949,10 @@ EString Selector::debugString() const
         break;
     case Age:
         w = "age";
+    case DatabaseId:
+        w = "database-id";
+    case ThreadId:
+        w = "thread-id";
     };
 
     r = w + " " + o + " ";
@@ -2139,6 +2191,9 @@ EString Selector::string()
         break;
     case None:
         r.append( "false" );
+        break;
+    case Equals:
+        // ### not used, to be deleted in a following commit
         break;
     case Special:
         if ( d->f == InThread ) {

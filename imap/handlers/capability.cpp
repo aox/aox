@@ -130,6 +130,7 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "URLAUTH" );
         c.append( "UTF8=ACCEPT" );
         c.append( "WITHIN" );
+        c.append( "X-AOX-GM-1" );
     }
 
     return c.join( " " );

@@ -25,7 +25,7 @@ class MessageData
 {
 public:
     MessageData()
-        : databaseId( 0 ),
+        : databaseId( 0 ), threadId( 0 ),
           wrapped( false ), rfc822Size( 0 ), internalDate( 0 ),
           hasHeaders( false ), hasAddresses( false ), hasBodies( false ),
           hasTrivia( false ), hasBytesAndLines( false )
@@ -34,6 +34,7 @@ public:
     EString error;
 
     uint databaseId;
+    uint threadId;
     bool wrapped;
 
     uint rfc822Size;
@@ -877,7 +878,7 @@ void Message::addMessageId()
 
 
 /*! Records that this message's database ID is \a id. This corresponds
-    to the id column in the messages row.
+    to the id column in messages.
 
 */
 
@@ -894,6 +895,26 @@ void Message::setDatabaseId( uint id )
 uint Message::databaseId() const
 {
     return d->databaseId;
+}
+
+
+/*! Records that this message's database ID is \a id. This corresponds
+    to the thread_root column in messages.
+*/
+
+void Message::setThreadId( uint id )
+{
+    d->threadId = id;
+}
+
+
+/*! Records what setThreadId() recorded, or 0 if setThreadId() has
+    not been called for this object.
+*/
+
+uint Message::threadId() const
+{
+    return d->threadId;
 }
 
 

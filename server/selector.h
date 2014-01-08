@@ -20,12 +20,13 @@ class Selector
 public:
     enum Action {
         OnDate, SinceDate, BeforeDate, Contains, Larger, Smaller,
-        And, Or, Not, All, None, Special
+        And, Or, Not, All, None, Equals, Special
     };
 
     enum Field {
         InternalDate, Sent, Header, Body, Rfc822Size, Flags, Uid,
-        Annotation, Modseq, Age, NoField, MailboxTree, InThread
+        Annotation, Modseq, Age, NoField, MailboxTree, InThread,
+        DatabaseId, ThreadId
     };
 
     Selector();
@@ -111,6 +112,8 @@ private:
     EString whereNoField();
     EString whereMailbox();
     EString whereInThread();
+    EString whereDatabaseId();
+    EString whereThreadId();
 
     EString mm();
 

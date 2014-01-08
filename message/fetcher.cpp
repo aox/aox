@@ -525,7 +525,7 @@ void Fetcher::makeQueries()
 
     if ( d->trivia ) {
         // don't need to order this - just one row per message
-        q = new Query( "select id as message, idate, rfc822size "
+        q = new Query( "select id as message, idate, rfc822size, thread_root "
                        "from messages where id=any($1)", d->trivia );
         bindIds( q, 1, Trivia );
         submit( q );
@@ -816,8 +816,11 @@ bool FetcherData::PartNumberDecoder::isDone( Message * m ) const
 
 void FetcherData::TriviaDecoder::decode( Message * m , List<Row> * rows )
 {
-    m->setInternalDate( rows->firstElement()->getInt( "idate" ) );
-    m->setRfc822Size( rows->firstElement()->getInt( "rfc822size" ) );
+    Row * r = rows->firstElement();
+    m->setInternalDate( r->getInt( "idate" ) );
+    m->setRfc822Size( r->getInt( "rfc822size" ) );
+    m->setDatabaseId( r->getInt( "message" ) );
+    m->setThreadId( r->getInt( "thread_root" ) );
 }
 
 
