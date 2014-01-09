@@ -65,7 +65,7 @@ public:
 
     static EString acceptableBoundary( const EString & );
 
-    void addMessageId();
+    void addMessageId( const EString & );
 
     static Header * parseHeader( uint &, uint, const EString &, Header::Mode );
 

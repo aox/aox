@@ -997,7 +997,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                 // some senders don't add message-id, so we have to
                 // leave out in-reply-to and references.
             }
-            reply->addMessageId();
+            reply->addMessageId( Configuration::hostname() );
             SieveAction * a = new SieveAction( SieveAction::Vacation );
             actions.append( a );
             a->setMessage( reply );

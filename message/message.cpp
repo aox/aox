@@ -859,12 +859,11 @@ void Message::setBytesAndLinesFetched()
 
 
 /*! Adds a message-id header unless this message already has one. The
-    message-id is based on the contents of the message, so if
-    possible, addMessageId() should be called late (or better yet,
-    never).
+    message-id is based on the contents of the message and \a domain, so
+    if possible, addMessageId() should be called late.
 */
 
-void Message::addMessageId()
+void Message::addMessageId( const EString & domain )
 {
     if ( header()->field( HeaderField::MessageId ) )
         return;
@@ -873,13 +872,12 @@ void Message::addMessageId()
     x.add( rfc822( false ) );
     header()->add( "Message-Id",
                    "<" + x.hash().e64().mid( 0, 21 ) + ".md5@" +
-                   Configuration::hostname() + ">" );
+                   domain + ">" );
 }
 
 
 /*! Records that this message's database ID is \a id. This corresponds
     to the id column in messages.
-
 */
 
 void Message::setDatabaseId( uint id )

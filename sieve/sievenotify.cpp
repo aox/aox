@@ -3,6 +3,7 @@
 #include "sievenotify.h"
 
 #include "sieveproduction.h"
+#include "configuration.h"
 #include "addressfield.h"
 #include "estringlist.h"
 #include "bodypart.h"
@@ -270,7 +271,7 @@ Injectee * SieveNotifyMethod::mailtoMessage() const
     else // this will be illegal. maybe better to return 0?
         d->header->add( "Auto-Submitted", "auto-notified" );
 
-    i->addMessageId();
+    i->addMessageId( Configuration::hostname() );
 
     return i;
 }

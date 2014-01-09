@@ -495,14 +495,18 @@ Injectee * SmtpData::message( const EString & body )
             m->recomputeError();
         }
     }
-    // if we're delivering remotely, we'd better do some of the
-    // chores from RFC 4409.
-    if ( server()->dialect() != SMTP::Lmtp ) {
+    if ( server()->dialect() == SMTP::Lmtp ) {
+        // add a message-id if there isn't any, so threading will work
+        // tolerably. perhaps not well, but...
+        m->addMessageId( "buggy-sender.no-message-id.invalid" );
+    } else {
+        // if we're delivering remotely, we'd better do some of the
+        // chores from RFC 4409.
         Header * h = m->header();
         // remove bcc if present
         h->removeField( HeaderField::Bcc );
         // add a message-id if there isn't any
-        m->addMessageId();
+        m->addMessageId( Configuration::hostname() );
         // remove the specified sender if we know who the real sender
         // is, and the specified sender isn't tied to that entity.
         List<Address>::Iterator sender( h->addresses( HeaderField::Sender ) );

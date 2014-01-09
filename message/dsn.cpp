@@ -246,7 +246,7 @@ Injectee * DSN::result() const
 
     plainText->setData( plainBody() );
     dsn->setData( dsnBody() );
-    r->addMessageId();
+    r->addMessageId( Configuration::hostname() );
 
     return r;
 }
