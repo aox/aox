@@ -192,7 +192,7 @@ void TlsThread::start()
     bool ctgone = false;
     bool encgone = false;
     bool finish = false;
-    while ( !finish ) {
+    while ( !finish && !d->broken ) {
         // are our read buffers empty, and select said we can read? if
         // so, try to read
         if ( crct ) {
@@ -298,7 +298,7 @@ void TlsThread::start()
                 d->encwbs = 0;
         }
 
-        if ( !finish ) {
+        if ( !finish && !d->broken ) {
             bool any = false;
             fd_set r, w;
             FD_ZERO( &r );
@@ -369,7 +369,6 @@ void TlsThread::start()
     ::close( d->ctfd );
     SSL_free( d->ssl );
     d->ssl = 0;
-    Allocator::removeEternal( this );
     pthread_exit( 0 );
 }
 
@@ -432,4 +431,17 @@ void TlsThread::setClientFD( int fd )
 bool TlsThread::broken() const
 {
     return d->broken;
+}
+
+
+/*! Causes this TlsThread object to stop doing anything, in a great
+    hurry and without any attempt at talking to the client.
+*/
+
+void TlsThread::close()
+{
+    d->broken = true;
+    ::close( d->encfd );
+    ::close( d->ctfd );
+    pthread_cancel( d->thread );
 }

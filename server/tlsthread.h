@@ -23,6 +23,8 @@ public:
     bool broken() const;
 
     bool sslErrorSeriousness( int );
+    
+    void close();
 
 private:
     class TlsThreadData * d;

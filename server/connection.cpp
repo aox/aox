@@ -35,26 +35,27 @@ class ConnectionData
 {
 public:
     ConnectionData()
-        : fd( -1 ), timeout( 0 ), r( 0 ), w( 0 ),
+        : r( 0 ), w( 0 ),
+          tls( 0 ), l( 0 ),
+          fd( -1 ), timeout( 0 ), 
           wbt( 0 ), wbs( 0 ),
           state( Connection::Invalid ),
           type( Connection::Client ),
-          tls( false ), pending( false ),
-          l( 0 )
+          pending( false )
     {}
 
+    Buffer *r, *w;
+    TlsThread * tls;
+    Log *l;
     int fd;
     uint timeout;
-    Buffer *r, *w;
     uint wbt, wbs;
     Connection::State state;
 
     Connection::Type type;
-    bool tls;
     bool pending;
     Endpoint self, peer;
     Connection::Event event;
-    Log *l;
 };
 
 
@@ -518,6 +519,8 @@ void Connection::close()
 {
     if ( valid() && d->fd >= 0 )
         ::close( d->fd );
+    if ( d->tls )
+        d->tls->close();
     setState( Invalid );
     EventLoop::global()->removeConnection( this );
 }
@@ -628,7 +631,6 @@ void Connection::startTls()
         EventLoop::shutdown();
         return;
     }
-    Allocator::addEternal( t, "another TLS thread" );
 
     int flags = fcntl( sv[0], F_GETFL, 0 );
     if ( flags < 0 )
@@ -643,7 +645,7 @@ void Connection::startTls()
     t->setServerFD( sv[0] );
     d->fd = sv[1];
 
-    d->tls = true;
+    d->tls = t;
 }
 
 
@@ -653,7 +655,9 @@ void Connection::startTls()
 
 bool Connection::hasTls() const
 {
-    return d->tls;
+    if ( d->tls )
+        return true;
+    return false;
 }
 
 
