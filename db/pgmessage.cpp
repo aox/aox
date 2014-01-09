@@ -12,24 +12,22 @@
 static bool haveAskedForCitext;
 static int citextOid;
 
-class CitextLookup
-    : public EventHandler {
-public:
-    CitextLookup() : EventHandler() {
-        ::haveAskedForCitext = true;
-        q = new Query( "select oid::int4 from pg_catalog.pg_type "
-                       "where typname='citext'", this );
-        q->execute();
-    }
+CitextLookup::CitextLookup() : EventHandler() {
+    ::haveAskedForCitext = true;
+    q = new Query( "select oid::int4 from pg_catalog.pg_type "
+                   "where typname='citext'", this );
+    q->execute();
+}
+    
+bool CitextLookup::necessary() {
+    return !haveAskedForCitext;
+}
 
-    void execute() {
-        Row * r = q->nextRow();
-        if ( r )
-            ::citextOid = r->getInt( "oid" );
-    }
-
-    Query * q;
-};
+void CitextLookup::execute() {
+    Row * r = q->nextRow();
+    if ( r )
+        ::citextOid = r->getInt( "oid" );
+}
 
 
 /*! \class PgServerMessage pgmessage.h
@@ -66,10 +64,6 @@ PgServerMessage::PgServerMessage( Buffer *b )
 
     l = (uint)(((*b)[1]<<24)|((*b)[2]<<16)|((*b)[3]<<8)|((*b)[4])) - 4;
     b->remove( 5 );
-
-    if ( !::haveAskedForCitext ) {
-        (void)new CitextLookup();
-    }
 }
 
 

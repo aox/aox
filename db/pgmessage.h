@@ -6,6 +6,7 @@
 #include "database.h"
 #include "estring.h"
 #include "query.h"
+#include "event.h"
 #include "list.h"
 
 class Buffer;
@@ -438,6 +439,19 @@ public:
 private:
     EString n, s;
     uint p;
+};
+
+
+class CitextLookup
+    : public EventHandler {
+public:
+    CitextLookup();
+
+    static bool necessary();
+
+    void execute();
+
+    Query * q;
 };
 
 
