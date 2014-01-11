@@ -820,7 +820,10 @@ void FetcherData::TriviaDecoder::decode( Message * m , List<Row> * rows )
     m->setInternalDate( r->getInt( "idate" ) );
     m->setRfc822Size( r->getInt( "rfc822size" ) );
     m->setDatabaseId( r->getInt( "message" ) );
-    m->setThreadId( r->getInt( "thread_root" ) );
+    if ( r->isNull( "thread_root" ) )
+        m->setThreadId( 0 );
+    else
+        m->setThreadId( r->getInt( "thread_root" ) );
 }
 
 
