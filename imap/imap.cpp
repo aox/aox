@@ -40,7 +40,7 @@ public:
           prefersAbsoluteMailboxes( false ),
           runningCommands( false ), runCommandsAgain( false ),
           readingLiteral( false ),
-          literalSize( 0 ), session( 0 ), mailbox( 0 ),
+          literalSize( 0 ), mailbox( 0 ),
           bytesArrived( 0 ),
           eventMap( new EventMap ),
           lastBadTime( 0 ),
@@ -74,7 +74,6 @@ public:
     List<Command> commands;
     List<ImapResponse> responses;
 
-    ImapSession *session;
     Mailbox *mailbox;
 
     uint bytesArrived;
@@ -196,7 +195,7 @@ void IMAP::react( Event e )
             Scope s( d->reader->log() );
             d->reader->read();
         }
-        endSession();
+        setSession( 0 );
         break;
 
     case Connect:
@@ -204,9 +203,9 @@ void IMAP::react( Event e )
 
     case Error:
     case Close:
-        if ( d->session ) {
+        if ( session() ) {
             log( "Unexpected close by client" );
-            endSession();
+            setSession( 0 );
         }
         if ( !d->commands.isEmpty() ) {
             List<Command>::Iterator i( d->commands );
@@ -224,8 +223,8 @@ void IMAP::react( Event e )
 
     case Shutdown:
         enqueue( "* BYE server shutdown\r\n" );
-        if ( d->session && d->commands.isEmpty() )
-            endSession();
+        if ( session() && d->commands.isEmpty() )
+            setSession( 0 );
         break;
     }
 
@@ -692,46 +691,22 @@ static bool endsWithLiteral( const EString *s, uint *n, bool *plus )
     s. If the object already had a session, ends the previous session.
 */
 
-void IMAP::beginSession( ImapSession * s )
+void IMAP::setSession( Session * s )
 {
-    if ( d->session == s )
+    if ( !s && !session() )
         return;
-    if ( d->session ) {
+
+    if ( session() ) {
         (void)new ImapResponse( this, "OK [CLOSED] " );
-        d->session->end();
     }
-    d->session = s;
-    setState( Selected );
-    log( "Starting session on mailbox " + s->mailbox()->name().ascii() );
-}
-
-
-/*! Returns a pointer to the ImapSession object associated with this
-    IMAP server, or 0 if there is none (which can happen only if the
-    server is not in the Selected state).
-*/
-
-ImapSession *IMAP::session() const
-{
-    return d->session;
-}
-
-
-/*! This function deletes any existing ImapSession associated with this
-    server, whose state changes to Authenticated. It does nothing
-    unless the server has a session().
-*/
-
-void IMAP::endSession()
-{
-    Session * s = d->session;
-    if ( !s )
-        return;
-
-    if ( d->state == Selected )
+    Connection::setSession( s );
+    if ( s ) {
+        setState( Selected );
+        log( "Starting session on mailbox " + s->mailbox()->name().ascii() );
+    }
+    else {
         setState( Authenticated );
-    d->session = 0;
-    s->end();
+    }
 }
 
 

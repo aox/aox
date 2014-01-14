@@ -98,6 +98,9 @@ public:
     };
 
     bool hasProperty( Property ) const;
+    
+    virtual void setSession( class Session * );
+    class Session * session() const;
 
 protected:
     void substitute( Connection *, Event );

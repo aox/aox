@@ -403,7 +403,7 @@ void EventLoop::freeMemory()
         ++i;
     }
 
-    if ( victim && Allocator::allocated() > d->limit ) {
+    if ( victim && Allocator::inUse() > d->limit ) {
         ::log( "Closing connection due to memory overload: " +
                victim->description() );
         victim->react( Connection::Shutdown );

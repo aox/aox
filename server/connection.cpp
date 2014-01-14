@@ -36,7 +36,7 @@ class ConnectionData
 public:
     ConnectionData()
         : r( 0 ), w( 0 ),
-          tls( 0 ), l( 0 ),
+          tls( 0 ), l( 0 ), session( 0 ),
           fd( -1 ), timeout( 0 ), 
           wbt( 0 ), wbs( 0 ),
           state( Connection::Invalid ),
@@ -47,6 +47,7 @@ public:
     Buffer *r, *w;
     TlsThread * tls;
     Log *l;
+    Session * session;
     int fd;
     uint timeout;
     uint wbt, wbs;
@@ -522,6 +523,7 @@ void Connection::close()
     if ( d->tls )
         d->tls->close();
     setState( Invalid );
+    d->session = 0;
     EventLoop::global()->removeConnection( this );
 }
 
@@ -1050,4 +1052,24 @@ void Connection::substitute( Connection * other, Event event )
     other->d->pending = true;
     other->d->event = event;
     EventLoop::global()->addConnection( other );
+}
+
+
+/*! Records that this Connection has an open mailbox \a session. Each
+    connection can have zero or one mailbox sessions going.
+*/
+
+void Connection::setSession( class Session * session )
+{
+    d->session = session;
+}
+
+
+/*! Returns what setSession() recorded, or null if setSession() has
+    not been called.
+*/
+
+class Session * Connection::session() const
+{
+    return d->session;
 }

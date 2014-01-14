@@ -29,7 +29,7 @@ public:
     PopData()
         : state( POP::Authorization ), sawUser( false ),
           commands( new List< PopCommand > ), reader( 0 ),
-          reserved( false ), session( 0 ), messages( 0 )
+          reserved( false ), messages( 0 )
     {}
 
     POP::State state;
@@ -39,7 +39,6 @@ public:
     List< PopCommand > * commands;
     PopCommand * reader;
     bool reserved;
-    Session * session;
     IntegerSet toBeDeleted;
     Map<Message> * messages;
     EString challenge;
@@ -212,9 +211,9 @@ void POP::setState( State s )
             }
         };
 
-        d->session->earlydeletems( d->toBeDeleted );
+        session()->earlydeletems( d->toBeDeleted );
 
-        PopDeleter * pd = new PopDeleter( user(), d->session->mailbox(),
+        PopDeleter * pd = new PopDeleter( user(), session()->mailbox(),
                                           d->toBeDeleted );
         pd->execute();
     }
@@ -263,8 +262,6 @@ void POP::react( Event e )
 
     if ( d->state == Update )
         Connection::setState( Closing );
-    if ( Connection::state() == Closing && session() )
-        session()->end();
 }
 
 
@@ -461,25 +458,6 @@ void POP::setReader( PopCommand * cmd )
 {
     d->reader = cmd;
     d->reserved = d->reader;
-}
-
-
-/*! Sets this POP server's Session object to \a s. */
-
-void POP::setSession( Session * s )
-{
-    log( "Using mailbox " + s->mailbox()->name().ascii() );
-    d->session = s;
-}
-
-
-/*! Returns this POP server's Session object, or 0 if none has been
-    specified with setSession.
-*/
-
-Session * POP::session() const
-{
-    return d->session;
 }
 
 

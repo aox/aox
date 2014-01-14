@@ -25,7 +25,6 @@ public:
     virtual ~Session();
 
     class Connection * connection() const;
-    void end();
     virtual void abort();
 
     bool initialised() const;
@@ -81,7 +80,7 @@ class SessionInitialiser
     : public EventHandler
 {
 public:
-    SessionInitialiser( Mailbox *, Transaction * );
+    SessionInitialiser( Mailbox *, Transaction *, Session * = 0 );
 
     void execute();
 

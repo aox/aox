@@ -465,7 +465,7 @@ void Command::setState( State s )
         (void)::gettimeofday( &d->started, 0 );
         if ( d->permittedStates & ( 1 << imap()->state() ) ) {
             log( "Executing", Log::Debug );
-            d->session = imap()->session();
+            d->session = (ImapSession*)(imap()->session());
             if ( d->session )
                 d->session->emitUpdates( 0 );
         }
@@ -1004,7 +1004,7 @@ IntegerSet Command::set( bool parseMsns = false )
     IntegerSet result;
     ImapSession *s = 0;
     if ( imap() )
-        s = imap()->session();
+        s = (ImapSession*)imap()->session();
 
     uint n1 = 0, n2 = 0;
     bool done = false;
@@ -1061,7 +1061,7 @@ IntegerSet Command::set( bool parseMsns = false )
 
 void Command::shrink( IntegerSet * set )
 {
-    ImapSession * s = imap()->session();
+    Session * s = imap()->session();
     if ( !s || !set || set->isEmpty() )
         return;
 
@@ -1075,7 +1075,7 @@ void Command::shrink( IntegerSet * set )
 uint Command::msn()
 {
     Mailbox *m;
-    ImapSession *session = imap()->session();
+    Session *session = imap()->session();
     if ( !session || ( m = session->mailbox() ) == 0 ) {
         error( Bad, "Need mailbox to parse MSN" );
         return 1;
@@ -1410,7 +1410,7 @@ void Command::setAllowedState( IMAP::State s  ) const
 ImapSession * Command::session()
 {
     if ( d->imap && !d->session )
-        d->session = d->imap->session();
+        d->session = (ImapSession*)d->imap->session();
     if ( d->session )
         return d->session;
     log( "Mailbox session needed, but none present" );

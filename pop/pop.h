@@ -25,9 +25,6 @@ public:
 
     virtual void setUser( User *, const EString & );
 
-    void setSession( Session * );
-    Session * session() const;
-
     class Message * message( uint );
 
     void parse();

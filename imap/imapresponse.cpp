@@ -235,7 +235,6 @@ bool ImapByeResponse::meaningful() const
 
 void ImapByeResponse::setSent()
 {
-    if ( imap()->session() )
-        imap()->endSession();
+    imap()->setSession( 0 );
     imap()->setState( IMAP::Logout );
 }

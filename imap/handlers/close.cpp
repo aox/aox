@@ -20,5 +20,5 @@ void Close::execute()
         return;
     Expunge::execute();
     if ( imap()->session() )
-        imap()->endSession();
+        imap()->setSession( 0 );
 }

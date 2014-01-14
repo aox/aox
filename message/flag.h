@@ -27,8 +27,6 @@ public:
 
     static uint largestId();
     static EStringList allFlags();
-    static void addWatcher( class Session * );
-    static void removeWatcher( class Session * );
 
     void execute();
 

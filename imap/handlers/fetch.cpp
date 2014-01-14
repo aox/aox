@@ -1576,7 +1576,7 @@ void Fetch::parseFetchModifier()
 
 void Fetch::pickup()
 {
-    ImapSession * s = imap()->session();
+    ImapSession * s = (ImapSession *)imap()->session();
     if ( !s )
         return;
 

@@ -5,6 +5,7 @@
 #include "configuration.h"
 #include "transaction.h"
 #include "allocator.h"
+#include "eventloop.h"
 #include "dbsignal.h"
 #include "session.h"
 #include "estring.h"
@@ -29,7 +30,6 @@ public:
     Flag * that;
     Dict<uint> byName;
     Map<EString> byId;
-    List<Session> sessions;
     uint largest;
     bool again;
 
@@ -83,12 +83,14 @@ void Flag::execute()
         execute();
     }
     else {
-        List<Session>::Iterator i( d->sessions );
+        List<Connection> * connections = EventLoop::global()->connections();
+        List<Connection>::Iterator i( connections );
         while ( i ) {
-            Session * s = i;
-            ++i;
-            s->sendFlagUpdate();
+            Session * s = i->session();
+            if ( s )
+                s->sendFlagUpdate();
         }
+        ++i;
     }
 }
 
@@ -200,25 +202,6 @@ uint Flag::largestId()
     if ( ::flagWatcher )
         return ::flagWatcher->d->largest;
     return 0;
-}
-
-
-/*! Records that \a s should be called whenever a new flag is recorded. */
-
-void Flag::addWatcher( class Session * s )
-{
-    if ( !::flagWatcher )
-        setup();
-    ::flagWatcher->d->sessions.append( s );
-}
-
-
-/*! Forgets \a s. */
-
-void Flag::removeWatcher( class Session * s )
-{
-    if ( ::flagWatcher )
-        ::flagWatcher->d->sessions.take( ::flagWatcher->d->sessions.find( s ) );
 }
 
 

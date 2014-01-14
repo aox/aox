@@ -11,7 +11,7 @@
 
 void Logout::execute()
 {
-    imap()->endSession();
+    imap()->setSession( 0 );
     respond( "BYE logout" );
     imap()->setState( IMAP::Logout );
     // close the connection after the next event loop iteration

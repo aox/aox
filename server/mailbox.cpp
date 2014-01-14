@@ -35,7 +35,6 @@ public:
         : type( Mailbox::Ordinary ), id( 0 ),
           uidnext( 0 ), uidvalidity( 0 ), owner( 0 ),
           parent( 0 ), children( 0 ),
-          sessions( 0 ),
           nextModSeq( 1 )
     {}
 
@@ -50,7 +49,6 @@ public:
 
     Mailbox * parent;
     List< Mailbox > * children;
-    List<Session> * sessions;
 
     int64 nextModSeq;
 };
@@ -278,7 +276,7 @@ UString Mailbox::name() const
 void Mailbox::setType( Type t )
 {
     d->type = t;
-    if ( t == Deleted && d->sessions )
+    if ( t == Deleted )
         abortSessions();
 }
 
@@ -557,8 +555,7 @@ void Mailbox::setUidnextAndNextModSeq( uint n, int64 m, Transaction * t )
     d->uidnext = n;
     d->nextModSeq = m;
 
-    if ( d->sessions )
-        (void)new SessionInitialiser( this, t );
+    (void)new SessionInitialiser( this, t );
 }
 
 
@@ -678,42 +675,6 @@ void Mailbox::refreshMailboxes( class Transaction * t )
 }
 
 
-/*! Adds \a s to the list of sessions watching this mailbox. The
-    SessionInitialiser will update \a s when necessary.
-
-    Does nothing if \a s is already watching this mailbox.
-*/
-
-void Mailbox::addSession( Session * s )
-{
-    if ( !d->sessions )
-        d->sessions = new List<Session>;
-    if ( s && !d->sessions->find( s ) ) {
-        d->sessions->prepend( s );
-        log( "Added session to mailbox " + name().utf8() +
-             ", new count " + fn( d->sessions->count() ),
-             Log::Debug );
-    }
-}
-
-
-/*! Removes \a s from the list of sessions for this mailbox, or does
-    nothing if \a s doesn't watch this mailbox.
-*/
-
-void Mailbox::removeSession( Session * s )
-{
-    if ( !d->sessions || !s )
-        return;
-
-    d->sessions->remove( s );
-    log( "Removed session from mailbox " + name().utf8() +
-         ", new count " + fn( d->sessions->count() ), Log::Debug );
-    if ( d->sessions->isEmpty() )
-        d->sessions = 0;
-}
-
-
 /*! Returns a pointer to the sessions on this mailbox. The return
     value may be a null pointer. In the event of client/network
     problems it may also include sessions that have recently become
@@ -722,7 +683,20 @@ void Mailbox::removeSession( Session * s )
 
 List<Session> * Mailbox::sessions() const
 {
-    return d->sessions;
+    List<Session> * r = 0;
+    
+    List<Connection> * connections = EventLoop::global()->connections();
+    List<Connection>::Iterator i( connections );
+    while ( i ) {
+        Session * s = i->session();
+        if ( s && s->mailbox() == this ) {
+            if ( !r )
+                r = new List<Session>;
+            r->append( s );
+        }
+        ++i;
+    }
+    return r;
 }
 
 
@@ -841,7 +815,11 @@ bool Mailbox::refreshing()
 
 void Mailbox::abortSessions()
 {
-    List<Session>::Iterator it( d->sessions );
+    List<Session> * all = sessions();
+    if ( !all )
+        return;
+
+    List<Session>::Iterator it( all );
     while ( it ) {
         Session * s = it;
         ++it;

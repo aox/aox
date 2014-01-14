@@ -227,7 +227,7 @@ void Select::execute()
         d->session = new ImapSession( imap(), d->mailbox,
                                       d->readOnly, d->unicode );
         d->session->setPermissions( d->permissions );
-        imap()->beginSession( d->session );
+        imap()->setSession( d->session );
     }
 
     if ( !d->session->initialised() )

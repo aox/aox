@@ -486,7 +486,7 @@ void Search::considerCache()
 {
     if ( d->returnModseq )
         return;
-    ImapSession * s = imap()->session();
+    Session * s = imap()->session();
     bool needDb = false;
     if ( !s ) {
         needDb = true;

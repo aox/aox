@@ -80,10 +80,9 @@ Session::Session( Mailbox * m, Connection * c, bool readOnly )
     d->connection = c;
     d->readOnly = readOnly;
     Session * other = 0;
-    if ( d->mailbox->sessions() )
-        other = d->mailbox->sessions()->firstElement();
-    d->mailbox->addSession( this );
-    Flag::addWatcher( this );
+    List<Session> * all = d->mailbox->sessions();
+    if ( all )
+        other = all->firstElement();
     if ( other ) {
         d->uidnext = other->d->uidnext;
         d->nextModSeq = other->d->nextModSeq;
@@ -99,7 +98,7 @@ Session::Session( Mailbox * m, Connection * c, bool readOnly )
             d->msns.add( cd->msns );
         }
     }
-    (void)new SessionInitialiser( m, 0 );
+    (void)new SessionInitialiser( m, 0, this );
 }
 
 
@@ -117,37 +116,6 @@ Connection * Session::connection() const
 
 Session::~Session()
 {
-    end();
-}
-
-
-/*! Ensures that the Mailbox will not keep this object alive. */
-
-void Session::end()
-{
-    if ( !d->mailbox )
-        return;
-
-    Flag::removeWatcher( this );
-
-    d->mailbox->removeSession( this );
-    if ( d->mailbox->sessions() )
-        return;
-
-    if ( d->readOnly )
-        return;
-
-    if ( !::cache )
-        ::cache = new SessionData::SessionCache;
-    SessionData::CachedData * cd = ::cache->data.find( d->mailbox->id() );
-    if ( !cd ) {
-        cd = new SessionData::CachedData;
-        ::cache->data.insert( d->mailbox->id(), cd );
-    }
-    cd->uidnext = d->uidnext;
-    cd->msns = d->msns;
-    cd->nextModSeq = d->nextModSeq;
-    cd->msns.remove( d->expunges );
 }
 
 
@@ -390,6 +358,7 @@ public:
     SessionInitialiserData()
         : mailbox( 0 ),
           t( 0 ), recent( 0 ), messages( 0 ), expunges( 0 ),
+          also( 0 ),
           oldUidnext( 0 ), newUidnext( 0 ),
           state( NoTransaction ),
           changeRecent( false )
@@ -402,6 +371,8 @@ public:
     Query * recent;
     Query * messages;
     Query * expunges;
+
+    Session * also;
 
     uint oldUidnext;
     uint newUidnext;
@@ -432,11 +403,13 @@ public:
     for its work.
 */
 
-SessionInitialiser::SessionInitialiser( Mailbox * mailbox, Transaction * t )
+SessionInitialiser::SessionInitialiser( Mailbox * mailbox, Transaction * t,
+                                        Session * also )
     : EventHandler(), d( new SessionInitialiserData )
 {
     setLog( new Log );
     d->mailbox = mailbox;
+    d->also = also;
     if ( t )
         d->t = t->subTransaction( this );
     execute();
@@ -504,23 +477,21 @@ void SessionInitialiser::findSessions()
     d->newModSeq = d->mailbox->nextModSeq();
     d->oldUidnext = d->newUidnext;
     d->oldModSeq = d->newModSeq;
-    List<Session>::Iterator i( d->mailbox->sessions() );
+    List<Session> * sessions =  d->mailbox->sessions();
+    if ( d->also ) {
+        if ( !sessions )
+            sessions = new List<Session>;
+        sessions->append( d->also );
+    }
+    List<Session>::Iterator i( sessions );
     while ( i ) {
         Session * s = i;
         ++i;
-        Connection * c = s->connection();
-        if ( c && c->state() == Connection::Invalid ) {
-            Scope x( c->log() );
-            log( "Mailbox session found for dead connection.", Log::Error );
-            s->end();
-        }
-        else {
-            d->sessions.append( s );
-            if ( s->uidnext() < d->oldUidnext )
-                d->oldUidnext = s->uidnext();
-            if ( s->nextModSeq() < d->oldModSeq )
-                d->oldModSeq = s->nextModSeq();
-        }
+        d->sessions.append( s );
+        if ( s->uidnext() < d->oldUidnext )
+            d->oldUidnext = s->uidnext();
+        if ( s->nextModSeq() < d->oldModSeq )
+            d->oldModSeq = s->nextModSeq();
     }
     // if some session is behind the mailbox, carry out an update
     if ( d->newUidnext > d->oldUidnext ||

@@ -16,6 +16,6 @@
 void Unselect::execute()
 {
     if ( state() == Executing )
-        imap()->endSession();
+        imap()->setSession( 0 );
     finish();
 }

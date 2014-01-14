@@ -71,8 +71,6 @@ public:
     static void refreshMailboxes( class Transaction * );
 
     void abortSessions();
-    void addSession( class Session * );
-    void removeSession( class Session * );
     List<class Session> * sessions() const;
 
     static bool refreshing();

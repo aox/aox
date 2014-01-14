@@ -38,9 +38,7 @@ public:
 
     bool idle() const;
 
-    void beginSession( ImapSession * );
-    ImapSession *session() const;
-    void endSession();
+    void setSession( class Session * );
 
     static void setup();
 
