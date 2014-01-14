@@ -3,7 +3,7 @@
 #ifndef ALLOCATOR_H
 #define ALLOCATOR_H
 
-#include "global.h"
+#include "list.h"
 
 
 class Allocator
@@ -20,7 +20,7 @@ public:
 
     static Allocator * allocator( uint size );
 
-    static void free();
+    static Garbage * free( List<Garbage> * = 0 );
     static void addEternal( const void *, const char * );
 
     static void removeEternal( void * );

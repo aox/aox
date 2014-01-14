@@ -533,9 +533,14 @@ void Allocator::mark()
 }
 
 
-/*! Frees all memory that's no longer in use. This can take some time. */
+/*! Frees all memory that's no longer in use. This can take some time. 
+ 
+    Returns null if entries is null or empty, returns an object in
+    entries else. The returned object is (in some sense) the one
+    that's responsible for the largest share of allocated memory.
+*/
 
-void Allocator::free()
+Garbage * Allocator::free( List<Garbage> * entries )
 {
     struct timeval start, afterMark, afterSweep;
     start.tv_sec = 0;
@@ -553,8 +558,24 @@ void Allocator::free()
     uint freed = 0;
     objects = 0;
     ::marked = 0;
+    
+    Garbage * biggest = 0;
 
     // mark
+    if ( entries ) {
+        uint size = 0;
+        List<Garbage>::Iterator i( entries );
+        while ( i ) {
+            uint m = ::marked;
+            mark( i );
+            mark();
+            if ( !biggest || ::marked - m > size ) {
+                biggest = i;
+                size = ::marked - m;
+            }
+            ++i;
+        }
+    }
     uint i = 0;
     while ( i < ::numRoots ) {
         if ( ::roots[i].root ) {
@@ -613,7 +634,7 @@ void Allocator::free()
     // dumpRandomObject();
 
     if ( !freed )
-        return;
+        return biggest;
 
     if ( verbose && ( ::allocated >= 4*1024*1024 ||
                       timeToMark + timeToSweep >= 10000 ) )
@@ -682,6 +703,7 @@ void Allocator::free()
         }
     }
     ::allocated = 0;
+    return biggest;
 }
 
 

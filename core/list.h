@@ -5,11 +5,11 @@
 
 #include "global.h"
 #include "estring.h"
-#include "allocator.h"
 
 
 typedef int (Comparator)(const void *, const void *);
-void listSortHelper( void *, size_t, size_t, Comparator *);
+void listSortHelper( void *, size_t, size_t, Comparator * );
+void * listAllocatorBouncer( size_t );
 
 
 template< class T >
@@ -307,7 +307,7 @@ public:
     List<T> * sorted( Comparator * comparator ) const
     {
         uint c = count();
-        T** a = (T**)Allocator::alloc( c * sizeof(T*) );
+        T** a = (T**)listAllocatorBouncer( c * sizeof(T*) );
         Iterator i( this );
         uint n = 0;
         while ( i ) {

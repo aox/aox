@@ -5,6 +5,7 @@
 #include "list.h"
 #include "estringlist.h"
 #include "configuration.h"
+#include "allocator.h"
 #include "eventloop.h"
 #include "database.h"
 #include "address.h"

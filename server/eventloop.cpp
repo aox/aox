@@ -45,7 +45,7 @@ class LoopData
 public:
     LoopData()
         : log( new Log ), startup( false ),
-          stop( false ), limit( 0 )
+          stop( false ), limit( 16 * 1024 * 1024 )
     {}
 
     Log *log;
@@ -328,11 +328,7 @@ void EventLoop::start()
                     // time went backwards, best to be paranoid
                     ::freeMemorySoon = true;
                 }
-                else if ( d->limit ) {
-                    // if we have a set limit, and memory usage is
-                    // above the limit, then we have to free memory
-                    // soon.  gcDelay is the basic period.
-
+                else {
                     // if we're below the limit, we don't modify the
                     // limit. if we're above, but below 2x, we halve
                     // the period (right-shift by one bit). if we're at
@@ -344,13 +340,6 @@ void EventLoop::start()
                     uint factor = a / d->limit;
                     uint period = gcDelay >> factor;
                     if ( (uint)(now - gc) > period )
-                        ::freeMemorySoon = true;
-                }
-                else {
-                    // if we don't have a set limit, we try to stay
-                    // below 4MB, but collect garbage no more than
-                    // once per second.
-                    if ( a > 4*1024*1024 && now > gc )
                         ::freeMemorySoon = true;
                 }
             }
@@ -395,7 +384,31 @@ void EventLoop::start()
 
 void EventLoop::freeMemory()
 {
-    Allocator::free();
+    List<Garbage> x;
+    List<Connection>::Iterator i( d->connections );
+    while ( i ) {
+        Connection * c = i;
+        if ( !(c->hasProperty( Connection::Listens )) )
+            x.append( c );
+        ++i;
+    }
+    Garbage * biggest = Allocator::free( &x );
+    // x now points to free memory
+    i = d->connections.first();
+    Connection * victim = 0;
+    while ( i ) {
+        Connection * c = i;
+        if ( c == biggest )
+            victim = i;
+        ++i;
+    }
+
+    if ( victim && Allocator::allocated() > d->limit ) {
+        ::log( "Closing connection due to memory overload: " +
+               victim->description() );
+        victim->react( Connection::Shutdown );
+        victim->close();
+    }
 }
 
 

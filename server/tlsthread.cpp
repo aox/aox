@@ -4,6 +4,7 @@
 
 #include "file.h"
 #include "estring.h"
+#include "allocator.h"
 #include "configuration.h"
 
 #include <unistd.h>

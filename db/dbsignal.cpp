@@ -2,6 +2,7 @@
 
 #include "dbsignal.h"
 
+#include "allocator.h"
 #include "postgres.h"
 #include "event.h"
 #include "scope.h"

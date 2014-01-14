@@ -2,6 +2,7 @@
 
 #include "list.h"
 
+#include "allocator.h"
 #include "estring.h"
 
 #include <stdlib.h>
@@ -13,6 +14,11 @@ void listSortHelper( void * a, size_t n, size_t s,
     ::qsort( a, n, s, c );
 }
 
+
+void * listAllocatorBouncer( size_t s )
+{
+    return Allocator::alloc( s );
+}
 
 
 /*! \class List list.h
