@@ -211,6 +211,8 @@ void Sieve::execute()
                 }
                 i->sq = 0;
             }
+            if ( i->sq && i->sq->done() )
+                i->sq = 0;
             ++i;
         }
         if ( ready() && !wasReady ) {
