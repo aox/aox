@@ -16,7 +16,6 @@ CitextLookup::CitextLookup() : EventHandler() {
     ::haveAskedForCitext = true;
     q = new Query( "select oid::int4 from pg_catalog.pg_type "
                    "where typname='citext'", this );
-    q->execute();
 }
     
 bool CitextLookup::necessary() {

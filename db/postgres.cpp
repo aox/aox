@@ -456,7 +456,7 @@ void Postgres::backendStartup( char type )
         setTimeout( 0 );
         d->startup = false;
         if ( CitextLookup::necessary() )
-            d->queries.append( (new CitextLookup())->q );
+            processQuery( (new CitextLookup())->q );
         addHandle( this );
 
         // This successfully concludes connection startup. We'll leave
