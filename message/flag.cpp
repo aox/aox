@@ -89,6 +89,7 @@ void Flag::execute()
             Session * s = i->session();
             if ( s )
                 s->sendFlagUpdate();
+            ++i;
         }
         ++i;
     }
