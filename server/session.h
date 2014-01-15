@@ -21,11 +21,10 @@ class Session
     : public Garbage
 {
 public:
-    Session( Mailbox *, Connection *, bool );
+    Session( Mailbox *, bool );
     virtual ~Session();
 
     class Connection * connection() const;
-    virtual void abort();
 
     bool initialised() const;
     bool isEmpty() const;

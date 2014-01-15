@@ -23,14 +23,13 @@ class SessionData
 public:
     SessionData()
         : readOnly( true ),
-          mailbox( 0 ), connection( 0 ),
+          mailbox( 0 ),
           uidnext( 1 ), nextModSeq( 1 ),
           permissions( 0 )
     {}
 
     bool readOnly;
     Mailbox * mailbox;
-    Connection * connection;
     IntegerSet msns;
     IntegerSet recent;
     IntegerSet expunges;
@@ -69,15 +68,14 @@ static SessionData::SessionCache * cache = 0;
     provide some protocol-specific actions.
 */
 
-/*! Creates a new Session for the Mailbox \a m tied to Connection \a
-    c. If \a readOnly is true, the session is read-only.
+/*! Creates a new Session for the Mailbox \a m. If \a readOnly is
+    true, the session is read-only.  
 */
 
-Session::Session( Mailbox * m, Connection * c, bool readOnly )
+Session::Session( Mailbox * m, bool readOnly )
     : d( new SessionData )
 {
     d->mailbox = m;
-    d->connection = c;
     d->readOnly = readOnly;
     Session * other = 0;
     List<Session> * all = d->mailbox->sessions();
@@ -102,36 +100,11 @@ Session::Session( Mailbox * m, Connection * c, bool readOnly )
 }
 
 
-/*! Returns a pointer to the Connection served by this Session.
-*/
-
-Connection * Session::connection() const
-{
-    return d->connection;
-}
-
-
 /*! Exists to satisfy g++.
 */
 
 Session::~Session()
 {
-}
-
-
-/*! Aborts this Session. The default implementation disconnects the
-    client, subclasses may be more subtle.
-*/
-
-void Session::abort()
-{
-    if ( !d->connection )
-        return;
-
-    log( "Need to close connection in order to abort this session" );
-    Scope x( d->connection->log() );
-    log( "Session aborted" );
-    d->connection->react( Connection::Close );
 }
 
 

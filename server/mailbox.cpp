@@ -815,14 +815,13 @@ bool Mailbox::refreshing()
 
 void Mailbox::abortSessions()
 {
-    List<Session> * all = sessions();
-    if ( !all )
-        return;
-
-    List<Session>::Iterator it( all );
-    while ( it ) {
-        Session * s = it;
-        ++it;
-        s->abort();
+    List<Connection> * connections = EventLoop::global()->connections();
+    List<Connection>::Iterator i( connections );
+    while ( i ) {
+        Session * s = i->session();
+        if ( s && s->mailbox() == this ) {
+            i->close();
+        }
+        ++i;
     }
 }

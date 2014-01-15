@@ -172,6 +172,7 @@ void Permissions::execute()
                 i++;
             }
             d->ready = true;
+            d->owner = 0;
             return;
         }
 

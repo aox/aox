@@ -57,8 +57,8 @@ public:
         : public Session
     {
     public:
-        PopSession( Mailbox * m, Connection * c, bool ro, PopCommand * pc )
-            : Session( m, c, ro ), p( pc ) {}
+        PopSession( Mailbox * m, bool ro, PopCommand * pc )
+            : Session( m, ro ), p( pc ) {}
 
         void emitUpdates( Transaction * ) { p->execute(); }
 
@@ -437,7 +437,7 @@ bool PopCommand::session()
                  d->permissions->allowed( Permissions::Expunge ) )
                 ro = false;
             d->session =
-                new PopCommandData::PopSession( d->mailbox, d->pop, ro, this );
+                new PopCommandData::PopSession( d->mailbox, ro, this );
             d->session->setPermissions( d->permissions );
             d->pop->setSession( d->session );
         }
