@@ -354,9 +354,11 @@ void User::refreshHelper()
         }
         d->quota = r->getBigint( "quota" );
         d->state = Refreshed;
+        d->q = 0;
     }
     if ( d->user )
         d->user->execute();
+    d->user = 0;
 }
 
 
