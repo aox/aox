@@ -9,9 +9,9 @@
 
 class Row;
 class Query;
-class Buffer;
 class Message;
 class Mailbox;
+class Connection;
 class IntegerSet;
 class PreparedStatement;
 
@@ -20,7 +20,8 @@ class Fetcher
     : public EventHandler
 {
 public:
-    Fetcher( List<Message> *, EventHandler *, Buffer * );
+    Fetcher( List<Message> *, EventHandler *, Connection * );
+
     Fetcher( Message *, EventHandler * );
 
     enum Type {

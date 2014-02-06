@@ -133,7 +133,7 @@ public:
         bool isDone( Message * ) const;
     };
 
-    Buffer * throttler;
+    Connection * throttler;
 };
 
 
@@ -154,16 +154,17 @@ public:
 
 
 /*! Constructs an empty Fetcher which will fetch \a messages and
-    notify \a e when it's done, taking care to keep \a buffer short. */
+    notify \a e when it's done, taking care to keep the write buffer
+    of \a connection short. */
 
 Fetcher::Fetcher( List<Message> * messages, EventHandler * e,
-                  Buffer * buffer )
+                  Connection * output )
     : EventHandler(), d( new FetcherData )
 {
     setLog( new Log );
     d->owner = e;
     d->f = this;
-    d->throttler = buffer;
+    d->throttler = output;
     addMessages( messages );
 }
 
@@ -355,7 +356,13 @@ void Fetcher::waitForEnd()
         if ( d->transaction )
             d->transaction->commit();
     }
-    else if ( d->throttler && d->throttler->size() > 1024*1024 ) {
+    else if ( d->throttler && !d->throttler->valid() ) {
+        d->messages.clear();
+        d->throttler = 0;
+    }
+    else if ( d->throttler &&
+              d->throttler->writeBuffer() &&
+              d->throttler->writeBuffer()->size() > 1024*1024 ) {
         (void)new Timer( this, 2 );
     }
     else {
