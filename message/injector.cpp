@@ -191,14 +191,6 @@ public:
                 return h->messageId();
             return "";
         }
-
-        void mergeThreads( uint to, uint from ) {
-            Query * q = new Query( "select merge_threads( $1, $2 )", 0 );
-            q->bind( 1, to );
-            q->bind( 1, from );
-            t->enqueue( q );
-        }
-
     };
 
     ThreadRootCreator * threads;

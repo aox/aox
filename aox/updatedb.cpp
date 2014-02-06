@@ -25,8 +25,6 @@ public:
     EStringList references() const { return ids; }
     EString messageId() const { return mid; }
 
-    void mergeThreads( uint, uint );
-
     EStringList ids;
     EString mid;
     UString s;
@@ -252,17 +250,4 @@ void UpdateDatabase::execute()
         d->t->enqueue( "drop table md" );
         d->t->commit();
     }
-}
-
-void DbMessage::mergeThreads( uint to, uint from )
-{
-    Query * q;
-    q = new Query( "update messages set thread_root=$1 "
-                   "where thread_root=$2", 0 );
-    q->bind( 1, to );
-    q->bind( 1, from );
-    t->enqueue( q );
-    q = new Query( "delete from thread_roots where id=$1", 0 );
-    q->bind( 1, from );
-    t->enqueue( q );
 }

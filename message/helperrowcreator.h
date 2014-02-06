@@ -31,6 +31,7 @@ private:
     virtual Query * makeSelect() = 0;
     virtual void processSelect( Query * );
     virtual Query * makeCopy() = 0;
+    virtual void postprocess( Transaction * );
 
 private:
     class HelperRowCreatorData * d;
@@ -129,8 +130,6 @@ public:
 
         virtual EStringList references() const = 0;
         virtual EString messageId() const = 0;
-
-        virtual void mergeThreads( uint, uint ) = 0;
     };
 
     ThreadRootCreator( List<class ThreadRootCreator::Message> *,
@@ -155,6 +154,7 @@ public:
 private:
     Query * makeSelect();
     Query * makeCopy();
+    void postprocess( Transaction * );
 
     void add( const EString &, uint );
 

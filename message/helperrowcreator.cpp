@@ -142,6 +142,8 @@ void HelperRowCreator::execute()
 
     if ( !d->t )
         return;
+    
+    postprocess( d->t );
 
     Transaction * t = d->t;
     d->t = 0;
@@ -217,6 +219,15 @@ uint HelperRowCreator::id( const EString & s )
 bool HelperRowCreator::inserted() const
 {
     return d->inserted;
+}
+
+
+/*! This virtual function is called just before \a t is committed.
+*/
+
+void HelperRowCreator::postprocess( Transaction * )
+{
+    
 }
 
 
@@ -728,7 +739,7 @@ ThreadRootCreator::ThreadRootCreator( List<ThreadRootCreator::Message> * l,
         l.append( m->messageId() );
         ++m;
         EStringList::Iterator s( l );
-        ThreadNode * parent = 0;
+        ThreadNode * root = 0;
         while ( s ) {
             if ( !s->isEmpty() ) {
                 ThreadNode * n = nodes->find( *s );
@@ -736,43 +747,17 @@ ThreadRootCreator::ThreadRootCreator( List<ThreadRootCreator::Message> * l,
                     n = new ThreadNode( *s );
                     nodes->insert( *s, n );
                 }
-                if ( parent ) {
-                    // if we have a parent, and the parent is a child
-                    // of the supposed child, then
-                    ThreadNode * p = parent;
-                    while ( p && p != n )
-                        p = p->parent;
-                    if ( p == n )
-                        parent = 0; // then don't use that parent
-                }
-                if ( n == parent ) {
-                    // evil case. let's not do anything
-                }
-                else if ( parent && n->parent == parent ) {
-                    // nice case, hopefully common. no need to act.
-                }
-                else if ( parent && n->parent ) {
-                    // the DAG disagrees with the references chain
-                    // we're processing. go up to both roots, and
-                    // merge them if they differ.
-                    ThreadNode * p = parent;
-                    while ( p->parent )
-                        p = p->parent;
-                    ThreadNode * f = n;
-                    while ( f->parent )
-                        f = f->parent;
-                    if ( p != f )
-                        p->parent = f;
-                }
-                else if ( parent ) {
-                    // we didn't know about a parent for this
-                    // message-id, now we do. record it.
-                    n->parent = parent;
-                }
-                parent = n;
+                while ( n->parent )
+                    n = n->parent;
+                if ( n == root )
+                    ;
+                else if ( root )
+                    n->parent = root;
+                else
+                    root = n;
             }
             ++s;
-        };
+        }
     }
 }
 
@@ -782,17 +767,12 @@ Query * ThreadRootCreator::makeSelect()
     Query * q = 0;
     EStringList l;
     Dict<ThreadNode>::Iterator i( nodes );
-    if ( first ) {
-        // the first time around we might find IDs
-        while ( i ) {
-            ThreadNode * n = i;
-            ThreadNode * p = n;
-            while ( p->parent )
-                p = p->parent;
-            if ( !p->trid )
-                l.append( n->id );
-            ++i;
-        }
+    while ( i ) {
+        if ( first || ( !i->parent && !i->trid ) )
+            l.append( i->id );
+        ++i;
+    }
+    if ( first ) // look for IDs in messages.thread_root - once
         q = new Query( "select id, messageid as name from thread_roots "
                        "where messageid=any($1::text[]) "
                        "union "
@@ -802,18 +782,11 @@ Query * ThreadRootCreator::makeSelect()
                        "where hf.value=any($1::text[]) "
                        "and m.thread_root is not null",
                        this );
-        first = false;
-    }
-    else {
-        while ( i ) {
-            if ( !i->parent && !i->trid )
-                l.append( i->id );
-            ++i;
-        }
+    else
         q = new Query( "select id, messageid as name from thread_roots "
                        "where messageid=any($1::text[])",
                        this );
-    }
+    first = false;
     if ( l.isEmpty() )
         return 0;
     q->bind( 1, l );
@@ -841,7 +814,7 @@ uint ThreadRootCreator::id( const EString & id )
 {
     ThreadNode * n = nodes->find( id );
     if ( !n )
-        return HelperRowCreator::id( id );
+        return 0;
     while ( n->parent )
         n = n->parent;
     return n->trid;
@@ -855,24 +828,36 @@ void ThreadRootCreator::add( const EString & id, uint i )
         n = new ThreadNode( id );
         nodes->insert( id, n );
     }
-    while ( n->parent ) {
-        if ( n->trid && n->trid != i ) {
-            uint old = n->trid;
-            if ( !merged.contains( old ) ) {
-                Dict<ThreadNode>::Iterator o( nodes );
-                while ( o ) {
-                    if ( o->trid == old )
-                        o->trid = i;
-                    ++o;
+    n->trid = i;
+}
+
+
+void ThreadRootCreator::postprocess( Transaction * t )
+{
+    Dict<ThreadNode>::Iterator i( nodes );
+    IntegerSet merged;
+    while ( i ) {
+        if ( i->parent && i->trid ) {
+            ThreadNode * p = i->parent;
+            while ( p->parent )
+                p = p->parent;
+            if ( i->trid != p->trid ) {
+                int big = i->trid;
+                int small = p->trid;
+                if ( big < small ) {
+                    big = p->trid;
+                    small = i->trid;
                 }
-                ThreadRootCreator::Message * hack = messages->first();
-                if ( hack )
-                    hack->mergeThreads( i, old );
-                merged.add( old );
+                p->trid = small;
+                if ( !merged.contains( big ) ) {
+                    Query * q = new Query( "select merge_threads( $1, $2 )", 0 );
+                    q->bind( 1, small );
+                    q->bind( 2, big );
+                    t->enqueue( q );
+                }
             }
         }
-        n = n->parent;
+        ++i;
     }
-    n->trid = i;
-    HelperRowCreator::add( n->id, i );
+    
 }
