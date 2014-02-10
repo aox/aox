@@ -241,9 +241,9 @@ void IMAP::react( Event e )
         case Authenticated:
         case Selected:
             if ( idle() )
-                setTimeoutAfter( 604800 ); // one-week timeout while IDLE
+                setTimeoutAfter( 3600 ); // one hour while IDLE
             else
-                setTimeoutAfter( 604800 ); // inactive client
+                setTimeoutAfter( 1860 ); // a half-hour without
             break;
         case Logout:
             break;
@@ -482,6 +482,7 @@ void IMAP::setUser( User * user, const EString & mechanism )
     }
     if ( possiblyOutlook )
         setClientBug( Nat );
+    setTimeoutAfter( 1860 );
 }
 
 
