@@ -178,7 +178,7 @@ public:
                 List<Address>::Iterator i( r->addresses() );
                 while ( i ) {
                     if ( !i->lpdomain().isEmpty() )
-                        result.append( i->lpdomain() );
+                        result.append( "<" + i->lpdomain() + ">" );
                     ++i;
                 }
             }
