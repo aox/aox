@@ -441,7 +441,7 @@ struct TunableIndex {
       "CREATE INDEX hf_subject ON header_fields "
       "USING gin (to_tsvector('simple'::regconfig, value)) "
       "WHERE (octet_length(value) < (640000) and field=20)",
-      false, true, true },
+      false, false, true },
     { 0, 0, 0, false, false, false }
 };
 

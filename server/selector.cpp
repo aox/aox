@@ -869,6 +869,41 @@ static EString q( const UString & orig )
 }
 
 
+static EString matchTsvector( const EString & col, uint n )
+{
+    EString s( "octet_length(" );
+    s.append( col );
+    s.append( ")<640000 and to_tsvector(" );
+    s.append( *tsconfig );
+    s.append( ", " );
+    s.append( col );
+    s.append( ") @@ plainto_tsquery($" );
+    s.appendNumber( n );
+    s.append( ")" );
+    return s;
+}
+
+
+static bool sensibleWords( const UString & s )
+{
+    uint l = 0;
+    uint i = 0;
+    while ( i < s.length() ) {
+        uint c = s[i];
+        if ( UString::isLetter( c ) )
+            l++;
+        else if ( UString::isDigit( c ) || UString::isSpace( c ) )
+            ; // no action, but ok
+        else
+            return false;
+        ++i;
+    }
+    if ( l > 0 )
+        return true;
+    return false;
+}
+
+
 /*! This implements searches on a single header field.
 */
 
@@ -894,6 +929,12 @@ EString Selector::whereHeaderField()
          d->s16.startsWith( "<" ) && d->s16.endsWith( ">" ) ) {
         uint like = placeHolder( q( d->s16 ) );
         j.append( " and hf" + jn + ".value=$" + fn( like ) );
+    }
+    else if ( t == HeaderField::Subject &&
+              ::tsearchAvailable && sensibleWords( d->s16 ) ) {
+        uint like = placeHolder( q( d->s16 ) );
+        j.append( " and (" + matchTsvector( "hf" + jn + ".value", like ) + " "
+                  "and hf" + jn + ".value ilike " + matchAny( like ) + ")" );
     }
     else if ( !d->s16.isEmpty() ) {
         uint like = placeHolder( q( d->s16 ) );
@@ -926,6 +967,9 @@ EString Selector::whereHeaderField()
 
 EString Selector::whereHeaders( List<Selector> * sl )
 {
+    if ( sl->count() == 1 )
+        return sl->first()->whereHeaderField();
+
     EStringList likes;
     EStringList fields;
     List<Selector>::Iterator si( sl );
@@ -1386,41 +1430,6 @@ EString Selector::whereHeader()
     dummy.append( this );
     return "(" + jn + ".field is not null or " +
         whereAddressFields( &dummy ) + ")";
-}
-
-
-static EString matchTsvector( const EString & col, uint n )
-{
-    EString s( "octet_length(" );
-    s.append( col );
-    s.append( ")<640000 and to_tsvector(" );
-    s.append( *tsconfig );
-    s.append( ", " );
-    s.append( col );
-    s.append( ") @@ plainto_tsquery($" );
-    s.appendNumber( n );
-    s.append( ")" );
-    return s;
-}
-
-
-static bool sensibleWords( const UString & s )
-{
-    uint l = 0;
-    uint i = 0;
-    while ( i < s.length() ) {
-        uint c = s[i];
-        if ( UString::isLetter( c ) )
-            l++;
-        else if ( UString::isDigit( c ) || UString::isSpace( c ) )
-            ; // no action, but ok
-        else
-            return false;
-        ++i;
-    }
-    if ( l > 0 )
-        return true;
-    return false;
 }
 
 
