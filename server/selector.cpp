@@ -94,7 +94,7 @@ public:
         : f( Selector::NoField ), a( Selector::None ),
           n( 0 ), m( 0 ), mc( 0 ),
           placeholder( 0 ), join( 0 ), query( 0 ), parent( 0 ),
-          children( new List< Selector > ), mm( 0 ),
+          children( new List< Selector > ), msg( 0 ), mm( 0 ),
           session( 0 ),
           needDateFields( false ),
           needAnnotations( false ),
@@ -137,6 +137,7 @@ public:
 
     Selector * parent;
     List< Selector > * children;
+    EString * msg;
     EString * mm;
     Session * session;
     User * user;
@@ -786,18 +787,18 @@ EString Selector::whereInternalDate()
         root()->d->query->bind( n1, d1.unixTime() );
         uint n2 = placeHolder();
         root()->d->query->bind( n2, d2.unixTime() );
-        return "(m.idate>=$" + fn( n1 ) +
-            " and m.idate<=$" + fn( n2 ) + ")";
+        return "(" + m() + ".idate>=$" + fn( n1 ) +
+            " and " + m() + ".idate<=$" + fn( n2 ) + ")";
     }
     else if ( d->a == SinceDate ) {
         uint n1 = placeHolder();
         root()->d->query->bind( n1, d1.unixTime() );
-        return "m.idate>=$" + fn( n1 );
+        return m() +".idate>=$" + fn( n1 );
     }
     else if ( d->a == BeforeDate ) {
         uint n2 = placeHolder();
         root()->d->query->bind( n2, d2.unixTime() );
-        return "m.idate<=$" + fn( n2 );
+        return m() + ".idate<=$" + fn( n2 );
     }
 
     setError( "Cannot search for: " + debugString() );
@@ -1471,9 +1472,9 @@ EString Selector::whereRfc822Size()
     uint s = placeHolder();
     root()->d->query->bind( s, d->n );
     if ( d->a == Smaller )
-        return "m.rfc822size<$" + fn( s );
+        return m() + ".rfc822size<$" + fn( s );
     else if ( d->a == Larger )
-        return "m.rfc822size>$" + fn( s );
+        return m() + ".rfc822size>$" + fn( s );
     setError( "Internal error: " + debugString() );
     return "";
 }
@@ -1646,8 +1647,8 @@ EString Selector::whereAge()
     uint i = placeHolder();
     root()->d->query->bind( i, (uint)::time( 0 ) - d->n );
     if ( d->a == Larger )
-        return "m.idate<=$" + fn( i );
-    return "m.idate>=$" + fn( i );
+        return m() + ".idate<=$" + fn( i );
+    return m() + ".idate>=$" + fn( i );
 }
 
 
@@ -1675,7 +1676,7 @@ EString Selector::whereThreadId()
 
     if (action() == Equals ) {
         root()->d->needMessages = true;
-        return "m.thread_root=$" + fn( i );
+        return m() + ".thread_root=$" + fn( i );
     }
 
     log( "Bad selector", Log::Error );
@@ -1831,20 +1832,19 @@ EString Selector::whereMailbox()
 
 EString Selector::whereInThread()
 {
-    d->mm = 0;
-    EString m = "m" + fn( ++root()->d->join );
+    root()->d->needMessages = true;
     EString join = fn( ++root()->d->join );
-    EString sm = "m" + join;
+    EString * sm = new EString( "m" + join );
+    EString * smm = new EString( "mm" + join );
     root()->d->extraJoins.append(
-        " join messages " + m +
-        " on (" + mm() + ".message=" + m + ".id) "
-        " join messages " + sm +
-        " on (" + m + ".thread_root=" + sm + ".thread_root)"
-        " join mailbox_messages mm" + join +
-        " on (mm" + join + ".message=" + sm + ".id"
+        " join messages " + *sm +
+        " on (" + m() + ".thread_root=" + *sm + ".thread_root)"
+        " join mailbox_messages " + *smm +
+        " on (" + *smm + ".message=" + *sm + ".id"
         " and " + mm() + ".mailbox=mm" + join + ".mailbox)"
         );
-    d->mm = new EString( "mm" + join );
+    d->children->first()->d->msg = sm;
+    d->children->first()->d->mm = smm;
     return d->children->first()->where();
 }
 
@@ -2640,6 +2640,22 @@ EString Selector::mm()
     if ( t->d->mm )
         return *t->d->mm;
     return "mm";
+}
+
+
+/*! Returns a string such as "m", referring to the messages
+    table. This may also be "m2", "m2", "m42" or worse, if the
+    search is really complex.
+*/
+
+EString Selector::m()
+{
+    Selector * t = this;
+    while ( t && !t->d->msg && t->d->parent )
+        t = t->d->parent;
+    if ( t->d->msg )
+        return *t->d->msg;
+    return "m";
 }
 
 

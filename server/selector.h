@@ -116,6 +116,7 @@ private:
     EString whereThreadId();
 
     EString mm();
+    EString m();
 
     EString whereSet( const IntegerSet & );
 };

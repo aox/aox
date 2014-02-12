@@ -52,6 +52,13 @@ public:
 
         class Node * parent;
         List<Node> children;
+
+        Node * root() {
+            Node * r = this;
+            while ( r->parent )
+                r = r->parent;
+            return r;
+        }
     };
 
     Dict<Node> nodes;
@@ -92,7 +99,7 @@ void Thread::parse()
     // charset = atom / quoted
 
     space();
-    EString threadAlg = atom();
+    EString threadAlg = atom().lower();
     if ( threadAlg == "orderedsubject" )
         d->threadAlg = ThreadData::OrderedSubject;
     else if ( threadAlg == "refs" )
@@ -101,6 +108,8 @@ void Thread::parse()
         d->threadAlg = ThreadData::References;
     else
         error( Bad, "Unsupported thread algorithm" );
+    space();
+    astring(); // charset, roundly ignored
     space();
     d->s = new Selector;
     d->s->add( parseKey() );
@@ -192,16 +201,16 @@ void Thread::execute()
 
     List<ThreadData::Node>::Iterator ri( d->result );
     if ( d->threadAlg == ThreadData::OrderedSubject ) {
-        ThreadData::Node * prev = 0;
+        UDict<ThreadData::Node> roots;
         while ( ri ) {
             ThreadData::Node * n = ri;
             ++ri;
 
-            if ( !prev || prev->subject != n->subject )
-                d->roots.append( n );
+            ThreadData::Node * root = roots.find( n->subject );
+            if ( root )
+                n->parent = root;
             else
-                prev->children.append( n );
-            prev = n;
+                roots.insert( n->subject, n );
         }
     }
     else {
@@ -210,11 +219,15 @@ void Thread::execute()
             ++ri;
 
             EStringList l;
-            AddressParser * ap = AddressParser::references( n->references );
-            List<Address>::Iterator a( ap->addresses() );
-            while ( a ) {
-                l.append( "<" + a->lpdomain() + ">" );
-                ++a;
+            int lt = 0;
+            while ( lt >= 0 ) {
+                lt = n->references.find( '<', lt );
+                if ( lt >= 0 ) {
+                    int gt = n->references.find( '>', lt );
+                    if ( gt > 0 )
+                        l.append( n->references.mid( lt, gt + 1 - lt ) );
+                    lt = gt;
+                }
             }
             l.append( n->messageId );
 
@@ -226,61 +239,47 @@ void Thread::execute()
                     if ( !n ) {
                         n = new ThreadData::Node;
                         n->messageId = *s;
+                        n->threadRoot = n->threadRoot;
                         d->nodes.insert( *s, n );
                     }
-                    if ( parent ) {
-                        // if we have a parent, and the parent is a child
-                        // of the supposed child, then
-                        ThreadData::Node * p = parent;
-                        while ( p && p != n )
-                            p = p->parent;
-                        if ( p == n )
-                            parent = 0; // then don't use that parent
-                    }
-                    if ( n == parent ) {
-                        // evil case. let's not do anything
-                    }
-                    else if ( parent && n->parent == parent ) {
-                        // nice case, hopefully common. no need to act.
-                    }
-                    else if ( parent && n->parent ) {
-                        // the DAG disagrees with the references chain
-                        // we're processing. go up to both roots, and
-                        // merge them if they differ.
-                        ThreadData::Node * p = parent;
-                        while ( p->parent )
-                            p = p->parent;
-                        ThreadData::Node * f = n;
-                        while ( f->parent )
-                            f = f->parent;
-                        if ( p != f )
-                            p->parent = f;
-                    }
-                    else if ( parent ) {
-                        // we didn't know about a parent for this
-                        // message-id, now we do. record it.
+                    if ( parent && !n->parent && parent->root() != n )
                         n->parent = parent;
-                    }
                     parent = n;
                 }
                 ++s;
             };
         }
-    }
 
-    // if thread=references is used, we need to jump through extra hoops
-    if ( d->threadAlg == ThreadData::References ) {
+        // merge big threads where the start has been deleted, or
+        // isn't part of the search expression.
         Dict<ThreadData::Node>::Iterator i( d->nodes );
-        UDict<ThreadData::Node> subjects;
+        Map<ThreadData::Node> roots;
         while ( i ) {
-            if ( !i->parent ) {
-                ThreadData::Node * potential = subjects.find( i->subject );
-                if ( potential )
-                    i->parent = potential;
-                else
-                    subjects.insert( i->subject, i );
-            }
+            ThreadData::Node * n = i;
             ++i;
+            if ( !n->parent ) {
+                ThreadData::Node * found = roots.find( n->threadRoot );
+                if ( !found )
+                    roots.insert( n->threadRoot, n );
+                else if ( found && n != found )
+                    n->parent = found;
+            }
+        }
+
+        // if thread=references is used, we need to jump through extra hoops
+        if ( d->threadAlg == ThreadData::References ) {
+            Dict<ThreadData::Node>::Iterator i( d->nodes );
+            UDict<ThreadData::Node> subjects;
+            while ( i ) {
+                if ( !i->parent ) {
+                    ThreadData::Node * potential = subjects.find( i->subject );
+                    if ( potential )
+                        i->parent = potential;
+                    else
+                        subjects.insert( i->subject, i );
+                }
+                ++i;
+            }
         }
     }
 
@@ -348,7 +347,7 @@ ThreadResponse::ThreadResponse( ThreadData * threadData )
 EString ThreadResponse::text() const
 {
     d->splice( &d->roots );
-    EString result = "THREAD ";
+    EString result = "THREAD";
     d->append( result, &d->roots, true );
     return result;
 }
@@ -374,10 +373,10 @@ void ThreadData::splice( List<ThreadData::Node> * l )
 
 void ThreadData::append( EString & r, List<ThreadData::Node> * l, bool t )
 {
-    if ( l->isEmpty() ) {
+    if ( l->isEmpty() )
+        return;
 
-    }
-    else if ( l->count() == 1 && !t ) {
+    if ( l->count() == 1 && !t ) {
         r.append( " " );
         r.appendNumber( l->first()->uid );
     }
