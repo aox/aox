@@ -212,7 +212,7 @@ void SmtpClient::parse()
                     log( "Sending body.", Log::Debug );
                     if ( d->dotted.isEmpty() )
                         d->dotted =
-                            dotted( d->dsn->message()->rfc822( false ) );
+                            dotted( d->dsn->message()->rfc822( !d->unicode ) );
                     enqueue( d->dotted );
                     d->dotted.truncate();
                     d->wbs = writeBuffer()->size();
@@ -277,11 +277,15 @@ void SmtpClient::sendCommand()
         if ( d->dsn->sender()->type() == Address::Normal )
             send.append( d->dsn->sender()->lpdomain() );
         send.append( ">" );
-        if ( d->dsn->message()->needsUnicode() )
+        if ( d->dsn->message()->needsUnicode() ) {
             send.append( " smtputf8" );
-        if ( d->size ) {
             if ( d->dotted.isEmpty() )
                 d->dotted = dotted( d->dsn->message()->rfc822( false ) );
+        }
+        else if ( d->dotted.isEmpty() ) {
+            d->dotted = dotted( d->dsn->message()->rfc822( true ) );
+        }
+        if ( d->size ) {
             send.append( " size=" );
             send.append( fn( d->dotted.length() ) );
         }
