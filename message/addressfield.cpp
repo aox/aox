@@ -188,7 +188,11 @@ EString AddressField::rfc822( bool avoidUTf8 ) const
             s = name() + ": ";
             s.append( value().ascii() );
             s = s.simplified().wrapped( 78, "", " ", false );
-            s = s.mid( name().length() + 2 );
+            uint p = name().length() + 1;
+            while ( p < s.length() && 
+                    ( s[p] == ' ' || s[p] == '\r' || s[p] == '\n' ) )
+                p++;
+            s = s.mid( p );
         }
     }
     else if ( t <= HeaderField::LastAddressField ||
