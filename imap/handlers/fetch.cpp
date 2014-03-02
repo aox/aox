@@ -1177,7 +1177,7 @@ static EString hf( Header * f, HeaderField::Type t, bool unicodable )
                     it->type() == Address::Normal ) {
             UString u = it->uname();
             EString eu;
-            if ( u.isAscii() )
+            if ( u.isAscii() || unicodable )
                 eu = u.simplified().utf8();
             else
                 eu = HeaderField::encodePhrase( u );
