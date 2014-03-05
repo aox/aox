@@ -445,4 +445,5 @@ void TlsThread::close()
     ::close( d->encfd );
     ::close( d->ctfd );
     pthread_cancel( d->thread );
+    pthread_join( d->thread, 0 );
 }
