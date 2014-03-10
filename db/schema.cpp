@@ -6,6 +6,7 @@
 #include "transaction.h"
 #include "estringlist.h"
 #include "allocator.h"
+#include "postgres.h"
 #include "address.h"
 #include "ustring.h"
 #include "granter.h"
@@ -141,15 +142,24 @@ EString Schema::serverVersion() const
 void Schema::execute()
 {
     if ( d->state == 0 ) {
-        d->lockSanity = new Query(
+        EString q(
             "select relname::text,pid::int,mode,granted,current_query,"
             "extract(epoch from current_timestamp-a.query_start)::int "
             "as lock_age "
             "from pg_locks l "
             "join pg_database d on (d.oid=l.database) "
             "join pg_class c on (l.relation=c.oid) "
-            "join pg_stat_activity a on (l.pid=a.procpid) "
-            "where d.datname=$1 and not relname like 'pg_%'", this );
+            "join pg_stat_activity a on (l.pid="
+        );
+        if (Postgres::version() < 90300)
+            q.append( "a.procpid" );
+        else
+            q.append( "a.pid" );
+        q.append(
+            ") where d.datname=$1 and not relname like 'pg_%'"
+        );
+
+        d->lockSanity = new Query( q, this );
         d->lockSanity->bind( 1, Configuration::text( Configuration::DbName ) );
         d->lockSanity->execute();
 

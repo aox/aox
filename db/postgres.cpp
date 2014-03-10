@@ -75,7 +75,7 @@ public:
         LockSpotter( uint p, Transaction * t ): EventHandler(), q( 0 ) {
             setLog( new Log( t->owner()->log() ) );
             Scope x( log() );
-            q = new Query(
+            EString s(
                 "select h.pid::int, a.xact_start::text,"
                 " coalesce(a.client_addr::text,''::text) as client_addr, "
                 " a.current_query::text, "
@@ -83,13 +83,21 @@ public:
                 " a.current_query,"
                 " w.locktype::text "
                 "from pg_locks h join pg_locks w using (locktype) "
-                "join pg_stat_activity a on (h.pid=a.procpid) "
+                "join pg_stat_activity a on (h.pid="
+            );
+            if (Postgres::version() < 90300)
+                s.append( "a.procpid" );
+            else
+                s.append( "a.pid" );
+            s.append(
+                ") "
                 "where h.granted and not w.granted and w.pid=$1 and "
                 "coalesce(h.relation::text, h.page::text, h.tuple::text, "
                 " h.transactionid::text, h.virtualxid)="
                 "coalesce(w.relation::text, w.page::text, w.tuple::text, "
-                " w.transactionid::text, w.virtualxid)",
-                this );
+                " w.transactionid::text, w.virtualxid)"
+            );
+            q = new Query( s, this );
             q->bind( 1, p );
             q->execute();
         }
