@@ -1643,12 +1643,26 @@ EString Selector::whereModseq()
 
 EString Selector::whereAge()
 {
-    root()->d->needMessages = true;
     uint i = placeHolder();
-    root()->d->query->bind( i, (uint)::time( 0 ) - d->n );
-    if ( d->a == Larger )
-        return m() + ".idate<=$" + fn( i );
-    return m() + ".idate>=$" + fn( i );
+    EString r;
+    if ( mm().startsWith( "d" ) ) {
+        root()->d->query->bind( i, d->n );
+        r = mm() + ".deleted_at";
+        if ( d->a == Larger )
+            r += "<=";
+        else
+            r += ">=";
+        r += "(current_timestamp - interval '1 second' * $" + fn( i ) + ")";
+    }
+    else {
+        root()->d->needMessages = true;
+        root()->d->query->bind( i, (uint)::time( 0 ) - d->n );
+        if ( d->a == Larger )
+            r = m() + ".idate<=$" + fn( i );
+        else
+            r = m() + ".idate>=$" + fn( i );
+    }
+    return r;
 }
 
 
