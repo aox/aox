@@ -1427,7 +1427,7 @@ void Header::repair( Multipart * p, const EString & body )
         }
     }
 
-    // If Sender contains more than one address, that may be due do
+    // If Sender contains more than one address, that may be due to
     // inappropriate fixups. For example, javamail+postfix will create
     // Sender: System@postfix, Administrator@postfix, root@origin
     //
