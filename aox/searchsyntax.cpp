@@ -200,11 +200,13 @@ static Selector * parseSelector( EStringList * arguments,
                 e = "Message age must be given as a number of days";
             }
             else if ( a == "younger" ) {
-                c = new Selector( Selector::Age, Selector::Smaller, limit );
+                c = new Selector( Selector::Age, Selector::Smaller,
+                                  86400 * limit );
                 arguments->shift();
             }
             else {
-                c = new Selector( Selector::Age, Selector::Larger, limit );
+                c = new Selector( Selector::Age, Selector::Larger,
+                                  86400 * limit );
                 arguments->shift();
             }
         }

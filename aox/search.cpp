@@ -82,10 +82,10 @@ void dumpSelector( Selector * s, uint l )
     case Selector::Age:
         if ( s->action() == Selector::Smaller )
             a = "Message is younger than " +
-                fn( s->integerArgument() ) + " days";
+                fn( s->integerArgument() / 86400 ) + " days";
         else
             a = "Message is older than " +
-                fn( s->integerArgument() ) + " days";
+                fn( s->integerArgument() / 86400 ) + " days";
         break;
     case Selector::NoField:
         children = true;
