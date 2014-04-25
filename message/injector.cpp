@@ -849,6 +849,20 @@ void Injector::convertInReplyTo()
     if ( d->findReferences && !d->findReferences->done() )
         return;
 
+    // and then the messages that reply to messages without References
+    // (ie. to messages that start a new thread).
+    Map<EString>::Iterator id( d->outlookParentIds );
+    while ( id ) {
+        EString msgid = *id;
+        ++id;
+        List<Message>::Iterator m( d->outlooks.find( msgid ) );
+        while ( m ) {
+            if ( !m->header()->field( HeaderField::References ) )
+                m->header()->add( "References", msgid );
+            ++m;
+        }
+    }
+
     next();
 }
 
