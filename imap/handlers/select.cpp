@@ -22,10 +22,11 @@ class SelectData
 public:
     SelectData()
         : readOnly( false ), annotate( false ), condstore( false ),
-          needFirstUnseen( false ), unicode( false ),
-          firstUnseen( 0 ), allFlags( 0 ),
+          needFirstUnseen( false ), unicode( false ), qresync( false ),
+          firstUnseen( 0 ), vanishedMessages( 0 ), allFlags( 0 ),
           mailbox( 0 ), session( 0 ), permissions( 0 ),
-          cacheFirstUnseen( 0 ), sessionPreloader( 0 )
+          cacheFirstUnseen( 0 ), sessionPreloader( 0 ),
+          lastUidValidity( 0 ), lastModSeq( 0 )
     {}
 
     bool readOnly;
@@ -33,13 +34,18 @@ public:
     bool condstore;
     bool needFirstUnseen;
     bool unicode;
+    bool qresync;
     Query * firstUnseen;
+    Query * vanishedMessages;
     Query * allFlags;
     Mailbox * mailbox;
     ImapSession * session;
     Permissions * permissions;
     Query * cacheFirstUnseen;
     SessionPreloader * sessionPreloader;
+    uint lastUidValidity;
+    uint lastModSeq;
+    IntegerSet knownUids;
 
     class FirstUnseenCache
         : public Cache
@@ -130,6 +136,8 @@ void Select::parse()
                 d->condstore = true;
             else if ( param == "utf8" )
                 d->unicode = true;
+            else if ( param == "qresync" )
+                parseQResyncParams();
             else
                 error( Bad, "Unknown select-param: " + param );
             more = present( " " );
@@ -137,6 +145,36 @@ void Select::parse()
         require( ")" );
     }
     end();
+}
+
+
+/*! This parses the RFC5162 additional Select parameters. If this
+    seems overly complex, that's because the RFC is just that.
+*/
+
+void Select::parseQResyncParams()
+{
+    d->qresync = true;
+    space();
+    require( "(" ); // alexey loves parens
+    d->lastUidValidity = number();
+    space();
+    d->lastModSeq = number();
+    if ( nextChar() == ' ' ) {
+        space();
+        d->knownUids = set( false );
+        if ( nextChar() == ' ' ) {
+            space();
+            require( "(" ); // alexey loves parens
+            // we ignore the MSNs: clients that cache a lot don't use
+            // MSNs much anyway.
+            set( false );
+            space();
+            set( false );
+            require( ")" );
+        }
+    }
+    require( ")" );
 }
 
 
@@ -240,6 +278,16 @@ void Select::execute()
         d->needFirstUnseen = false;
     else
         d->needFirstUnseen = true;
+    
+    if ( d->lastModSeq && !d->vanishedMessages ) {
+        d->vanishedMessages
+            = new Query( "select uid from deleted_messages "
+                         "where mailbox=$1 and modseq>=$2",
+                         this );
+        d->vanishedMessages->bind( 1, d->mailbox->id() );
+        d->vanishedMessages->bind( 1, d->lastModSeq );
+        d->vanishedMessages->execute();
+    }
 
     if ( d->needFirstUnseen && !d->firstUnseen ) {
         d->firstUnseen
@@ -251,6 +299,8 @@ void Select::execute()
     }
 
     if ( d->firstUnseen && !d->firstUnseen->done() )
+        return;
+    if ( d->vanishedMessages && !d->vanishedMessages->done() )
         return;
 
     d->session->emitUpdates( 0 );

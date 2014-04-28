@@ -14,6 +14,9 @@ public:
 
     void parse();
     void execute();
+    
+private:
+    void parseQResyncParams();
 
 private:
     class SelectData *d;

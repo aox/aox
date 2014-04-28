@@ -8,6 +8,7 @@
 #include "session.h"
 #include "list.h"
 
+class IntegerSet;
 class Mailbox;
 class Message;
 class IMAP;
@@ -53,6 +54,20 @@ public:
 
 private:
     uint u;
+};
+
+
+class ImapVanishedResponse
+    : public ImapResponse
+{
+public:
+    ImapVanishedResponse( const IntegerSet &, ImapSession * );
+
+    EString text() const;
+    void setSent();
+
+private:
+    IntegerSet * s;
 };
 
 

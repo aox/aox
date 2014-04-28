@@ -14,7 +14,8 @@
 
 
 Enable::Enable()
-    : Command(), condstore( false ), annotate( false ), utf8( false )
+    : Command(),
+      condstore( false ), annotate( false ), utf8( false ), qresync( false )
 {
 }
 
@@ -34,6 +35,9 @@ void Enable::parse()
         }
         else if ( capability == "UTF8=ACCEPT" ) {
             utf8 = true;
+        }
+        else if ( capability == "QRESYNC" ) {
+            qresync = true;
         }
         else {
             EString all = Capability::capabilities( imap(), true ).upper();
@@ -62,6 +66,10 @@ void Enable::execute()
     if ( utf8 ) {
         imap()->setClientSupports( IMAP::Unicode );
         r.append( " UTF8=ACCEPT" );
+    }
+    if ( qresync ) {
+        imap()->setClientSupports( IMAP::QResync );
+        r.append( " QRESYNC" );
     }
     respond( r );
     finish();

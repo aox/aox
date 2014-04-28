@@ -221,10 +221,16 @@ void ImapSession::emitUpdates( Transaction * t )
     e.remove( d->expungesReported );
     if ( !e.isEmpty() ) {
         d->expungesReported.add( e );
-        while ( !e.isEmpty() ) {
-            (void)new ImapExpungeResponse( e.smallest(), this );
+        if ( imap()->clientSupports( IMAP::QResync ) ) {
+            (void)new ImapVanishedResponse( e, this );
             work = true;
-            e.remove( e.smallest() );
+        }
+        else {
+            while ( !e.isEmpty() ) {
+                (void)new ImapExpungeResponse( e.smallest(), this );
+                work = true;
+                e.remove( e.smallest() );
+            }
         }
     }
 
@@ -340,6 +346,42 @@ void ImapSession::ignoreModSeq( int64 ms )
     int64 * x = (int64*)Allocator::alloc( sizeof( int64 ), 0 );
     *x = ms;
     d->ignorable.append( x );
+}
+
+
+/*! \class ImapVanishedResponse imapsession.h
+
+    The ImapVanishedResponse provides a single Vanished response. It can
+    formulate the right text and modify the session to account for the
+    response's having been sent.
+*/
+
+/*! Constructs an ImapVanishedResponse for \a uids in \a session. */
+
+ImapVanishedResponse::ImapVanishedResponse( const IntegerSet & uids,
+                                            ImapSession * session )
+    : ImapResponse( session), s( new IntegerSet( uids ) )
+{
+    setChangesMsn();
+}
+
+
+EString ImapVanishedResponse::text() const
+{
+    EString r( "VANISHED " );
+    r.append( s->set() );
+    return r;
+}
+
+
+void ImapVanishedResponse::setSent()
+{
+    while ( !s->isEmpty() ) {
+        int i = s->smallest();
+        session()->clearExpunged( i );
+        s->remove( i );
+    }
+    ImapResponse::setSent();
 }
 
 
