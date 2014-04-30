@@ -1387,10 +1387,13 @@ void Injector::selectMessageIds()
         copy->bind( 2, m->rfc822Size() );
         copy->bind( 3, internalDate( m ) );
         uint tr = d->threads->id( m->header()->messageId() );
-        if ( tr )
+        if ( tr ) {
             copy->bind( 4, tr );
-        else
+            m->setThreadId( tr );
+        }
+        else {
             copy->bindNull( 4 );
+        }
         copy->submitLine();
         ++m;
     }
