@@ -91,7 +91,6 @@ void Flag::execute()
                 s->sendFlagUpdate();
             ++i;
         }
-        ++i;
     }
 }
 
