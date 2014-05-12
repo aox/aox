@@ -85,7 +85,7 @@ public:
                 "from pg_locks h join pg_locks w using (locktype) "
                 "join pg_stat_activity a on (h.pid="
             );
-            if (Postgres::version() < 90300)
+            if (Postgres::version() < 90200)
                 s.append( "a.procpid" );
             else
                 s.append( "a.pid" );
