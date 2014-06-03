@@ -4,6 +4,7 @@
 
 #include "field.h"
 #include "estringlist.h"
+#include "ustringlist.h"
 #include "endpoint.h"
 #include "ustring.h"
 #include "parser.h"
@@ -267,21 +268,24 @@ EString Address::name( bool avoidUtf8 ) const
         {
             // still an atom
         }
+        else if ( c >= 128 ) {
+            ascii = false;
+            if ( avoidUtf8 )
+                atom = false;
+            
+        }
         else {
             atom = false;
         }
-
-        if ( c == '\0' || c > 127 )
-            ascii = false;
 
         i++;
     }
 
     if ( atom || i == 0 )
-        return d->name.ascii();
+        return d->name.utf8();
 
     if ( ascii || !avoidUtf8 )
-        return d->name.ascii().quoted( '"', '\\' );
+        return d->name.utf8().quoted( '"', '\\' );
 
     return HeaderField::encodePhrase( d->name );
 }
@@ -738,15 +742,15 @@ void AddressParser::assertSingleAddress()
 */
 
 void AddressParser::add( UString name,
-                         const EString & localpart,
-                         const EString & domain )
+                         const UString & localpart,
+                         const UString & domain )
 {
     // if the localpart is too long, reject the add()
     if ( localpart.length() > 256 ) {
         d->recentError = "Localpart too long (" +
                          fn( localpart.length() ) +
                          " characters, RFC 2821's maximum is 64): " +
-                         localpart + "@" + domain;
+                         localpart.utf8() + "@" + domain.utf8();
         if ( d->firstError.isEmpty() )
             d->firstError = d->recentError;
         return;
@@ -769,10 +773,10 @@ void AddressParser::add( UString name,
 
     // anti-outlook, step 2: if the name is the same as the address,
     // just kill it.
-    EString an = name.ascii().lower();
-    if ( an == localpart.lower() ||
+    UString an = name.titlecased();
+    if ( an == localpart.titlecased() ||
          ( an.length() == localpart.length()+1+domain.length() &&
-           an == localpart.lower()+"@"+domain.lower() ) )
+           an == localpart.titlecased()+"@"+domain.titlecased() ) )
         name.truncate();
 
     Address * a = new Address( name, localpart, domain );
@@ -783,8 +787,8 @@ void AddressParser::add( UString name,
 
 /*! This version of add() uses only \a localpart and \a domain. */
 
-void AddressParser::add( const EString & localpart,
-                         const EString & domain )
+void AddressParser::add( const UString & localpart,
+                         const UString & domain )
 {
     UString n;
     add( n, localpart, domain );
@@ -810,8 +814,8 @@ AddressParser * AddressParser::references( const EString & r )
     while ( i > 0 ) {
         int l = i;
         bool ok = true;
-        EString dom;
-        EString lp;
+        UString dom;
+        UString lp;
         if ( r[i] != '>' ) {
             ok = false;
         }
@@ -872,7 +876,7 @@ void AddressParser::address( int & i )
     }
     else if ( i > 0 && s[i-1] == '<' && s[i] == '>' ) {
         // the address is <>. whether that's legal is another matter.
-        add( "", "" );
+        add( UString(), UString() );
         i = i - 2;
         if ( i >= 0 && s[i] == '<' )
             i--;
@@ -882,7 +886,7 @@ void AddressParser::address( int & i )
         // it's a microsoft-broken '<Unknown-Recipient:;>'
         i = i - 3;
         UString name = phrase( i );
-        add( name, 0, 0 );
+        add( name, UString(), UString() );
         if ( s[i] == '<' )
             i--;
     }
@@ -895,7 +899,7 @@ void AddressParser::address( int & i )
         if ( i > 1 && s[i] == '@' && s[i-1] == ':' ) {
             i = i - 2;
             UString name = phrase( i );
-            add( name, 0, 0 );
+            add( name, UString(), UString() );
             if ( i >= 0 && s[i] == '<' )
                 i--;
         }
@@ -906,12 +910,12 @@ void AddressParser::address( int & i )
     else if ( s[i] == '>' ) {
         // name-addr
         i--;
-        EString dom = domain( i );
-        EString lp;
+        UString dom = domain( i );
+        UString lp;
         UString name;
         if ( s[i] == '<' ) {
             lp = dom;
-            dom = "";
+            dom.truncate();
         }
         else {
             if ( s[i] == '@' ) {
@@ -930,8 +934,8 @@ void AddressParser::address( int & i )
                         j --;
                         UString n = phrase( j );
                         if ( !n.isEmpty() ) {
-                            lp = "";
-                            dom = "";
+                            lp.truncate();
+                            dom.truncate();
                             name = n;
                             i = j;
                         }
@@ -940,8 +944,8 @@ void AddressParser::address( int & i )
                 else if ( aftercomment > i && i < 0 ) {
                     // To: <(Recipient list suppressed)@localhost>
                     EString n = d->lastComment.simplified();
-                    lp = "";
-                    dom = "";
+                    lp.truncate();
+                    dom.truncate();
                     name.truncate();
                     uint j = 0;
                     while ( j < n.length() ) {
@@ -958,10 +962,7 @@ void AddressParser::address( int & i )
                 }
                 else {
                     lp = localpart( i );
-                    if ( lp.isEmpty() && i >= 0 && s[i] > 127 ) {
-                        error( "localpart contains 8-bit character", i );
-                    }
-                    else if ( s[i] != '<' ) {
+                    if ( s[i] != '<' ) {
                         int j = i;
                         while ( j >= 0 &&
                                 ( ( s[j] >= 'a' && s[j] <= 'z' ) ||
@@ -969,7 +970,8 @@ void AddressParser::address( int & i )
                                   s[j] == ' ' ) )
                             j--;
                         if ( j >= 0 && s[j] == '<' ) {
-                            EString tmp = s.mid( j + 1, i - j );
+                            Utf8Codec c;
+                            UString tmp = c.toUnicode( s.mid( j + 1, i - j ) );
                             if ( s[i+1] == ' ' )
                                 tmp.append( ' ' );
                             tmp.append( lp );
@@ -986,7 +988,7 @@ void AddressParser::address( int & i )
             while ( i >= 0 && s[i] == '<' )
                 i--;
             UString n = phrase( i );
-            while ( i >= 0 && ( s[i] > 127 || s[i] == '@' || s[i] == '<' ) ) {
+            while ( i >= 0 && ( s[i] == '@' || s[i] == '<' ) ) {
                 // we're looking at an unencoded 8-bit name, or at
                 // 'lp@domain<lp@domain>', or at 'x<y<z@domain>'. we
                 // react to that by ignoring the display-name.
@@ -1013,12 +1015,12 @@ void AddressParser::address( int & i )
     else if ( i > 1 && s[i] == '=' && s[i-1] == '?' && s[i-2] == '>' ) {
         // we're looking at "=?charset?q?safdsafsdfs<a@b>?=". how ugly.
         i = i - 3;
-        EString dom = domain( i );
+        UString dom = domain( i );
         if ( s[i] == '@' ) {
             i--;
             while ( i > 0 && s[i] == '@' )
                 i--;
-            EString lp = localpart( i );
+            UString lp = localpart( i );
             if ( s[i] == '<' ) {
                 i--;
                 (void)atom( i ); // discard the "supplied" display-name
@@ -1062,17 +1064,17 @@ void AddressParser::address( int & i )
             i--;
             UString name = phrase( i );
             if ( empty )
-                add( name, 0, 0 );
+                add( name, UString(), UString() );
         }
     }
     else if ( s[i] == '"' && s.mid( 0, i ).contains( "%\"" ) ) {
         // quite likely we're looking at x%"y@z", as once used on vms
         int x = i;
         x--;
-        EString dom = domain( x );
+        UString dom = domain( x );
         if ( x > 0 && s[x] == '@' ) {
             x--;
-            EString lp = localpart( x );
+            UString lp = localpart( x );
             if ( x > 2 && s[x] == '"' && s[x-1] == '%' ) {
                 x = x - 2;
                 (void)domain( x );
@@ -1095,11 +1097,11 @@ void AddressParser::address( int & i )
                 name.truncate();
             name.truncate(); // do it anyway: we don't want name <localpart>.
         }
-        EString lp = atom( i );
+        UString lp = atom( i );
         if ( i > 2 && s[i] == ':' && s[i-1] == ':' ) {
             i = i - 2;
             lp = atom( i ) + "::" + lp;
-            add( name, lp, "" );
+            add( name, lp, UString() );
         }
         else {
             error( "Expected NODE::USER while parsing VMS address", i );
@@ -1141,8 +1143,8 @@ void AddressParser::address( int & i )
         UString name = a.toUnicode( d->lastComment );
         if ( !a.wellformed() || d->lastComment.contains( "=?" ) )
             name.truncate();
-        EString dom = domain( i );
-        EString lp;
+        UString dom = domain( i );
+        UString lp;
         if ( s[i] == '@' ) {
             i--;
             while ( i > 0 && s[i] == '@' )
@@ -1158,8 +1160,8 @@ void AddressParser::address( int & i )
                     j --;
                     UString n = phrase( j );
                     if ( !n.isEmpty() ) {
-                        lp = "";
-                        dom = "";
+                        lp.truncate();
+                        dom.truncate();
                         name = n;
                         i = j;
                     }
@@ -1168,8 +1170,8 @@ void AddressParser::address( int & i )
             else if ( aftercomment > i && i < 0 ) {
                 // To: (Recipient list suppressed)@localhost
                 EString n = d->lastComment.simplified();
-                lp = "";
-                dom = "";
+                lp.truncate();
+                dom.truncate();
                 name.truncate();
                 uint j = 0;
                 while ( j < n.length() ) {
@@ -1190,13 +1192,11 @@ void AddressParser::address( int & i )
         }
         else {
             lp = dom;
-            dom = "";
+            dom.truncate();
         }
         route( i );
         comment( i );
-        if ( lp.isEmpty() && i >= 0 && s[i] > 127 )
-            error( "localpart contains 8-bit character", i );
-        else if ( !lp.isEmpty() || !dom.isEmpty() || !name.isEmpty() )
+        if ( !lp.isEmpty() || !dom.isEmpty() || !name.isEmpty() )
             add( name, lp, dom );
     }
     comment( i );
@@ -1313,7 +1313,7 @@ EString AddressParser::unqp( const EString & s )
     syntactical validity.
 */
 
-EString AddressParser::domain( int & i )
+UString AddressParser::domain( int & i )
 {
     comment( i );
 
@@ -1325,9 +1325,11 @@ EString AddressParser::domain( int & i )
     //                 %d94-126        ;  characters not including "[",
     //                                 ;  "]", or "\"
 
-    EString dom;
+    UString dom;
     if ( i < 0 )
         return dom;
+
+    Utf8Codec c;
 
     if ( d->s[i] >= '0' && d->s[i] <= '9' ) {
         // scan for an unquoted IPv4 address and turn that into an
@@ -1337,7 +1339,7 @@ EString AddressParser::domain( int & i )
             i--;
         Endpoint test( d->s.mid( i+1, j-i ), 1 );
         if ( test.valid() )
-            return "[" + test.address() + "]";
+            return c.toUnicode( "[" + test.address() + "]" );
         i = j;
     }
 
@@ -1349,9 +1351,9 @@ EString AddressParser::domain( int & i )
         if ( i > 0 ) {
             i--;
             // copy the string we fetched, turn FWS into a single
-            // space and unquote quoted-pair. we parse forwards here
+            // space and unquote quoted-pair. we parse forward here
             // because of quoted-pair.
-            dom = unqp( d->s.mid( i+1, j-i+1 ) );
+            dom = c.toUnicode( unqp( d->s.mid( i+1, j-i+1 ) ) );
         }
         else {
             error( "literal domain missing [", i );
@@ -1360,15 +1362,15 @@ EString AddressParser::domain( int & i )
     else {
         // atoms, separated by '.' and (obsoletely) spaces. the spaces
         // are stripped.
-        EStringList atoms;
+        UStringList atoms;
 
         atoms.append( atom( i ) );
         comment( i );
         while( i >= 0 && d->s[i] == '.' ) {
             i--;
-            EString a = atom( i );
+            UString a = atom( i );
             if ( !a.isEmpty() )
-                atoms.prepend( new EString( a ) );
+                atoms.prepend( new UString( a ) );
         }
         dom = atoms.join( "." );
         if ( dom.isEmpty() )
@@ -1381,7 +1383,7 @@ EString AddressParser::domain( int & i )
 
 /*! This private function parses and returns the atom ending at \a i. */
 
-EString AddressParser::atom( int & i )
+UString AddressParser::atom( int & i )
 {
     comment( i );
     int j = i;
@@ -1399,9 +1401,11 @@ EString AddressParser::atom( int & i )
               s[i] == '^' || s[i] == '_' ||
               s[i] == '`' || s[i] == '{' ||
               s[i] == '|' || s[i] == '}' ||
-              s[i] == '~' ) )
+              s[i] == '~' ||
+              s[i] >= 128 ) )
         i--;
-    EString r = s.mid( i+1, j-i );
+    Utf8Codec c;
+    UString r = c.toUnicode( s.mid( i+1, j-i ) );
     comment( i );
     return r;
 }
@@ -1421,7 +1425,7 @@ UString AddressParser::phrase( int & i )
     bool enc = false;
     while ( !done && i >= 0 ) {
         UString word;
-        AsciiCodec ac;
+        Utf8Codec ac;
         bool encw = false;
         if ( i > 0 && d->s[i] == '"' ) {
             // quoted phrase
@@ -1472,26 +1476,26 @@ UString AddressParser::phrase( int & i )
             // we allow atom "." as an alternative, too, to handle
             // initials.
             i--;
-            word = ac.toUnicode( atom( i ) );
+            word = atom( i );
             word.append( '.' );
         }
         else {
             // single word
-            EString a = atom( i );
+            UString a = atom( i );
             // outlook or something close to it seems to occasionally
             // put backslashes into otherwise unquoted names. work
             // around that:
             uint l = a.length();
             while ( l > 0 && i >= 0 && d->s[i] == '\\' ) {
                 i--;
-                EString w = atom( i );
+                UString w = atom( i );
                 l = w.length();
                 a = w + a;
             }
             if ( a.isEmpty() )
                 done = true;
             if ( a.startsWith( "=?" ) ) {
-                EmailParser p( a );
+                EmailParser p( a.utf8() );
                 UString tmp = p.phrase().simplified();
                 if ( tmp.startsWith( "=?" ) ||
                      tmp.contains( " =?" ) )
@@ -1501,11 +1505,11 @@ UString AddressParser::phrase( int & i )
                     encw = true;
                 }
                 else {
-                    word = ac.toUnicode( a );
+                    word = a;
                 }
             }
             else {
-                word = ac.toUnicode( a );
+                word = a;
             }
         }
         if ( r.isEmpty() ) {
@@ -1537,29 +1541,26 @@ UString AddressParser::phrase( int & i )
     returns it as a string.
 */
 
-EString AddressParser::localpart( int & i )
+UString AddressParser::localpart( int & i )
 {
-    EString r;
+    AsciiCodec a;
+    UString r;
     EString s;
     bool more = true;
     if ( i < 0 )
         more = false;
     bool atomOnly = true;
     while ( more ) {
-        EString w;
+        UString w;
         if ( d->s[i] == '"' ) {
             atomOnly = false;
-            UString u = phrase( i );
-            if ( u.isAscii() )
-                w = u.ascii();
-            else
-                error( "Only ASCII allowed in localparts", i );
+            w = phrase( i );
         }
         else {
             w = atom( i );
         }
-        EString t = w;
-        t.append( s );
+        UString t = w;
+        t.append( a.toUnicode( s ) );
         t.append( r );
         r = t;
         if ( i >= 0 && d->s[i] == '.' ) {
@@ -1710,7 +1711,7 @@ void AddressParser::route( int & i )
         return;
 
     i--;
-    EString rdom = domain( i );
+    UString rdom = domain( i );
     if ( rdom == "mailto" )
         return;
     while ( i >= 0 && !rdom.isEmpty() &&

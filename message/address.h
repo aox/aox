@@ -75,18 +75,18 @@ private:
     void space( int & );
     void comment( int & );
     void ccontent( int & );
-    EString domain( int & );
+    UString domain( int & );
     UString phrase( int & );
-    EString localpart( int & );
-    EString atom( int & );
+    UString localpart( int & );
+    UString atom( int & );
     static EString unqp( const EString & );
     void route( int & );
     int findBorder( int, int );
 
     void error( const char *, int );
 
-    void add( UString, const EString &, const EString & );
-    void add( const EString &, const EString & );
+    void add( UString, const UString &, const UString & );
+    void add( const UString &, const UString & );
 
     class AddressParserData * d;
 };
