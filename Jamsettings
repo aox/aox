@@ -71,7 +71,7 @@ AOXGROUP ?= aox ;
 
 # How to compile
 
-C++FLAGS = -g -Werror -funsigned-char ;
+C++FLAGS = -g -funsigned-char ;
 LINKFLAGS = -g ;
 
 # Mode for installed binaries
