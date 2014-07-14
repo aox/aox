@@ -257,8 +257,9 @@ void DeliveryAgent::createDSN()
     d->dsn->setMessage( d->message );
 
     Row * r = d->qs->nextRow();
-    Address * a = new Address( "", r->getEString( "localpart" ),
-                               r->getEString( "domain" ) );
+    Address * a = new Address( UString(),
+                               r->getUString( "localpart" ),
+                               r->getUString( "domain" ) );
     d->dsn->setSender( a );
 
     if ( Configuration::hostname().endsWith( ".test.oryx.com" ) ) {
@@ -273,8 +274,9 @@ void DeliveryAgent::createDSN()
 
         Recipient * recipient = new Recipient;
 
-        Address * a = new Address( "", r->getEString( "localpart" ),
-                                   r->getEString( "domain" ) );
+        Address * a = new Address( UString(),
+                                   r->getUString( "localpart" ),
+                                   r->getUString( "domain" ) );
         a->setId( r->getInt( "recipient" ) );
         recipient->setFinalRecipient( a );
 
