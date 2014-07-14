@@ -52,7 +52,7 @@ SmtpMailFrom::SmtpMailFrom( SMTP * s, SmtpParser * p )
     p->require( ":" );
     p->whitespace();
     if ( p->present( "<>" ) )
-        d->address = new Address( "", "", "" );
+        d->address = new Address();
     else
         d->address = p->address();
     p->whitespace();
@@ -70,7 +70,7 @@ SmtpMailFrom::SmtpMailFrom( SMTP * s, SmtpParser * p )
             respond( 501, "Parameter repeated: " + name );
         paramsSeen.append( name.lower() );
         EString value;
-        if ( p->require( "=" ) )
+        if ( p->present( "=" ) )
             value = p->esmtpValue();
         p->whitespace();
         if ( p->ok() )

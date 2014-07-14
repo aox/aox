@@ -316,7 +316,7 @@ void Sieve::execute()
             if ( Configuration::toggle( Configuration::SubmitCopyToSender ) )
                 remote->append( i->senderAddress() );
             d->injector->addDelivery( i->message(),
-                                      new Address( "", "", "" ),
+                                      new Address(),
                                       remote );
             ++i;
         }

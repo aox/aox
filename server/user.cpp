@@ -8,8 +8,7 @@
 #include "address.h"
 #include "mailbox.h"
 #include "query.h"
-
-
+#include "codec.h"
 class UserData
     : public Garbage
 {
@@ -184,7 +183,8 @@ Address * User::address()
         uint i = dom.find( '.' );
         if ( i > 0 )
             dom = dom.mid( i+1 );
-        d->address = new Address( "", d->login.utf8(), dom );
+        AsciiCodec a;
+        d->address = new Address( UString(), d->login, a.toUnicode( dom ) );
     }
     return d->address;
 }
@@ -344,12 +344,12 @@ void User::refreshHelper()
         d->home = Mailbox::obtain( tmp, true );
         d->home->setOwner( d->id );
         if ( r->isNull( "localpart" ) ) {
-            d->address = new Address( "", "", "" );
+            d->address = new Address();
         }
         else {
             UString n = r->getUString( "name" );
-            EString l = r->getEString( "localpart" );
-            EString h = r->getEString( "domain" );
+            UString l = r->getUString( "localpart" );
+            UString h = r->getUString( "domain" );
             d->address = new Address( n, l, h );
         }
         d->quota = r->getBigint( "quota" );

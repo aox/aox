@@ -3,6 +3,8 @@
 #include "dsn.h"
 
 #include "date.h"
+#include "codec.h"
+#include "ustring.h"
 #include "address.h"
 #include "injector.h"
 #include "bodypart.h"
@@ -213,9 +215,10 @@ Injectee * DSN::result() const
     }
 
     // the from field has to contain... what? let's try this for now.
-    Address * from = new Address( Configuration::hostname(),
-                                  "postmaster",
-                                  Configuration::hostname() );
+    AsciiCodec a;
+    Address * from = new Address( a.toUnicode( Configuration::hostname() ),
+                                  a.toUnicode( "postmaster" ),
+                                  a.toUnicode( Configuration::hostname() ) );
     // set up the top-level header
     Header * h = r->header();
     if ( resultDate() ) {

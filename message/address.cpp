@@ -101,21 +101,6 @@ Address::Address( const UString &n, const EString &l, const EString &o )
 }
 
 
-/*! Constructs an address whose display-name is \a n (which must be
-    in ASCII), whose localpart is \a l and whose domain is \a o.
-*/
-
-Address::Address( const EString &n, const EString &l, const EString &o )
-    : d( 0 )
-{
-    AsciiCodec a;
-    UString un( a.toUnicode( n ) );
-    if ( !a.valid() )
-        un.truncate();
-    init( un, a.toUnicode( l ), a.toUnicode( o ) );
-}
-
-
 /*! Constructs an address whose display-name is \a n, whose localpart
  *  is \a l and whose domain is \a o.
 
@@ -125,22 +110,6 @@ Address::Address( const UString & n, const UString & l, const UString & o )
     : d( 0 )
 {
     init( n, l, o );
-}
-
-
-/*! Constructs an address whose display-name is \a n (which must be
-    in ASCII), whose localpart is \a l and whose domain is \a o.
-*/
-
-Address::Address( const char * n, const EString & l, const EString & o )
-    : d( 0 )
-{
-    UString u;
-    u.append( n );
-    if ( !u.isAscii() )
-        u.truncate();
-    AsciiCodec a;
-    init( u, a.toUnicode( l ), a.toUnicode( o ) );
 }
 
 
@@ -543,8 +512,12 @@ AddressParser::AddressParser( EString s )
             start--;
         EString lp = s.mid( start, atsign - start ).simplified();
         EString dom = s.mid( atsign+1, end - atsign - 1 ).simplified();
-        if ( !lp.isEmpty() && !dom.isEmpty() )
-            d->a.append( new Address( "", lp, dom ) );
+        if ( !lp.isEmpty() && !dom.isEmpty() ) {
+            AsciiCodec a;
+            d->a.append( new Address( UString(),
+                                      a.toUnicode( lp ),
+                                      a.toUnicode( dom ) ) );
+        }
         atsign = nextAtsign;
         leftBorder = rightBorder;
     }
@@ -576,7 +549,9 @@ AddressParser::AddressParser( EString s )
         if ( !bad ) {
             d->firstError.truncate();
             d->recentError.truncate();
-            Address * a = new Address( n, "", "" );
+            AsciiCodec ac;
+            Address * a = new Address( ac.toUnicode( n ),
+                                       UString(), UString() );
             d->a.clear();
             d->a.append( a );
         }

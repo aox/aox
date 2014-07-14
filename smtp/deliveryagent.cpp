@@ -359,7 +359,7 @@ Injector * DeliveryAgent::injectBounce( DSN * dsn )
 
     Injector * i = new Injector( this );
     i->setTransaction( d->t );
-    i->addDelivery( dsn->result(), new Address( "", "", "" ), l );
+    i->addDelivery( dsn->result(), new Address(), l );
     return i;
 }
 

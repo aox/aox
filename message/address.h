@@ -15,10 +15,8 @@ class Address
 {
 public:
     Address();
-    Address( const char *, const EString &, const EString & );
     Address( const UString &, const EString &, const EString & );
     Address( const UString &, const UString &, const UString & );
-    Address( const EString &, const EString &, const EString & );
     Address( const Address & );
 
     Address &operator=( const Address & );

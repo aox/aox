@@ -340,9 +340,9 @@ void SMTPData::AddressFinder::execute()
 {
     Row * r = q->nextRow();
     while ( r ) {
-        a->append( new Address( "",
-                                r->getEString( "localpart" ),
-                                r->getEString( "domain" ) ) );
+        a->append( new Address( UString(),
+                                r->getUString( "localpart" ),
+                                r->getUString( "domain" ) ) );
         r = q->nextRow();
     }
 }
