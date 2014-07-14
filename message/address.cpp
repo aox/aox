@@ -272,7 +272,7 @@ EString Address::name( bool avoidUtf8 ) const
             ascii = false;
             if ( avoidUtf8 )
                 atom = false;
-            
+
         }
         else {
             atom = false;
@@ -1691,7 +1691,7 @@ bool Address::localpartIsSensible() const
                       c == '^' || c == '_' ||
                       c == '`' || c == '{' ||
                       c == '|' || c == '}' ||
-                      c == '~' ) )
+                      c == '~' || c >= 161 ) )
         {
             return false;
         }
