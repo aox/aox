@@ -5,6 +5,8 @@
 
 #include "abnfparser.h"
 
+#include "ustring.h"
+
 
 class SmtpParser
     : public AbnfParser
@@ -16,14 +18,14 @@ public:
 
     void whitespace();
 
-    EString domain();
-    EString subDomain();
+    UString domain();
+    UString subDomain();
 
     class Address * address();
 
-    EString dotString();
-    EString quotedString();
-    EString atom();
+    UString dotString();
+    UString quotedString();
+    UString atom();
 
     EString esmtpKeyword();
     EString esmtpValue();

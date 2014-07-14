@@ -4,6 +4,8 @@
 
 #include "address.h"
 
+#include "utf.h"
+
 
 /*! \class SmtpParser smtpparser.h
     SMTP-specific ABNF parsing functions.
@@ -64,15 +66,16 @@ void SmtpParser::whitespace()
     ">", as in "rcpt to: <user@example.org.>".
 */
 
-EString SmtpParser::domain()
+UString SmtpParser::domain()
 {
-    EString r;
+    UString r;
     if ( nextChar() == '[' ) {
         uint start = pos();
         while ( !atEnd() && nextChar() != ']' )
             step();
         require( "]" );
-        r = input().mid( start, pos() - start );
+        AsciiCodec a;
+        r = a.toUnicode( input().mid( start, pos() - start ) );
     }
     else {
         r = subDomain();
@@ -92,28 +95,36 @@ EString SmtpParser::domain()
     [Ldh-str]
 */
 
-EString SmtpParser::subDomain()
+UString SmtpParser::subDomain()
 {
-    EString r;
+    EString e;
     char c = nextChar();
     if ( ( c >= 'a' && c <= 'z' ) ||
          ( c >= 'A' && c <= 'Z' ) ||
-         ( c >= '0' && c <= '9' ) ) {
+         ( c >= '0' && c <= '9' ) ||
+         ( c >= 128 ) ) {
         do {
-            r.append( c );
+            e.append( c );
             step();
             c = nextChar();
         } while ( ( ( c >= 'a' && c <= 'z' ) ||
                     ( c >= 'A' && c <= 'Z' ) ||
                     ( c >= '0' && c <= '9' ) ||
-                    ( c == '-' ) ) );
+                    ( c == '-' || c >= 128 ) ) );
     }
-    if ( r.isEmpty() && c == '.' )
+    if ( e.isEmpty() && c == '.' )
         setError( "Consecutive dots aren't permitted" );
-    else if ( r.isEmpty() )
+    else if ( e.isEmpty() )
         setError( "Domain cannot end with a dot" );
-    else if ( r[r.length()-1] == '-' )
-        setError( "subdomain cannot end with hyphen (" + r + ")" );
+    else if ( e[e.length()-1] == '-' )
+        setError( "subdomain cannot end with hyphen (" + e + ")" );
+    else if ( e.startsWith( "xn--" ) )
+        setError( "subdomain cannot be an a-label (" + e + ")" );
+    
+    Utf8Codec u;
+    UString r = u.toUnicode( e );
+    if ( !u.valid() )
+        setError( "Subdomain (" + e + ") is not valid UTF8: " + u.error() );
     return r;
 }
 
@@ -135,14 +146,14 @@ class Address * SmtpParser::address()
         }
     }
 
-    EString lp;
+    UString lp;
     if ( nextChar() == '"' )
         lp = quotedString();
     else
         lp = dotString();
     if ( !present( "@" ) )
         setError( "Address must have both localpart and domain" );
-    Address * a = new Address( "", lp, domain() );
+    Address * a = new Address( UString(), lp, domain() );
     if ( lt )
         require( ">" );
     return a;
@@ -151,9 +162,9 @@ class Address * SmtpParser::address()
 
 /*! Returns an RFC 2821 dot-string. */
 
-EString SmtpParser::dotString()
+UString SmtpParser::dotString()
 {
-    EString r( atom() );
+    UString r( atom() );
     while ( nextChar() == '.' ) {
         r.append( "." );
         step();
@@ -167,7 +178,7 @@ EString SmtpParser::dotString()
     2821). Does not enforce the ASCII-only rule.
 */
 
-EString SmtpParser::quotedString()
+UString SmtpParser::quotedString()
 {
     require( "\"" );
     EString r;
@@ -178,7 +189,11 @@ EString SmtpParser::quotedString()
         step();
     }
     require( "\"" );
-    return r;
+    Utf8Codec c;
+    UString u = c.toUnicode( r );
+    if ( !c.valid() )
+        setError( "Unicode error in string (" + c.error() + "): " + r );
+    return u;
 }
 
 
@@ -186,7 +201,7 @@ EString SmtpParser::quotedString()
     from 2822, atom from 2821.)
 */
 
-EString SmtpParser::atom()
+UString SmtpParser::atom()
 {
     char c = nextChar();
     EString r;
@@ -202,14 +217,18 @@ EString SmtpParser::atom()
             c == '^' || c == '_' ||
             c == '`' || c == '{' ||
             c == '|' || c == '}' ||
-            c == '~' ) {
+            c == '~' || c >= 128 ) {
         r.append( c );
         step();
         c = nextChar();
     }
     if ( r.isEmpty() )
         setError( "Expected atom, saw: " + following() );
-    return r;
+    Utf8Codec uc;
+    UString u = uc.toUnicode( r );
+    if ( !uc.valid() )
+        setError( "Unicode error in atom (" + uc.error() + "): " + r );
+    return u;
 }
 
 

@@ -69,8 +69,9 @@ SmtpMailFrom::SmtpMailFrom( SMTP * s, SmtpParser * p )
         if ( paramsSeen.contains( name.lower() ) )
             respond( 501, "Parameter repeated: " + name );
         paramsSeen.append( name.lower() );
-        p->require( "=" );
-        EString value = p->esmtpValue();
+        EString value;
+        if ( p->require( "=" ) )
+            value = p->esmtpValue();
         p->whitespace();
         if ( p->ok() )
             addParam( name, value );

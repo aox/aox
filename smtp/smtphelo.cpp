@@ -34,7 +34,7 @@ SmtpHelo::SmtpHelo( SMTP * s, SmtpParser * p, Type t )
     else if ( s->dialect() == SMTP::Lmtp && t != Lhlo )
         respond( 500, "Need LHLO in LMTP", "5.5.0" );
     p->whitespace();
-    s->setHeloName( p->domain() );
+    s->setHeloName( p->domain().utf8() );
     p->whitespace();
     p->end();
     if ( !p->ok() )
