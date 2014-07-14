@@ -291,13 +291,17 @@ UString AoxCommand::sqlPattern( const UString & s )
 
 bool AoxCommand::validUsername( const UString & s )
 {
+    if ( s != s.simplified() )
+        return false;
+
     uint i = 0;
     while ( i < s.length() &&
             ( ( s[i] >= '0' && s[i] <= '9' ) ||
               ( s[i] >= 'a' && s[i] <= 'z' ) ||
               ( s[i] >= 'A' && s[i] <= 'Z' ) ||
               ( s[i] == '@' || s[i] == '.' ||
-                s[i] == '-' || s[i] == '_' ) ) )
+                s[i] == '-' || s[i] == '_' ||
+                s[i] >= 161 ) ) )
         i++;
     if ( i < s.length() ||
          s == "anyone" ||
