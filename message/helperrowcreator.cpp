@@ -142,7 +142,7 @@ void HelperRowCreator::execute()
 
     if ( !d->t )
         return;
-    
+
     postprocess( d->t );
 
     Transaction * t = d->t;
@@ -227,7 +227,7 @@ bool HelperRowCreator::inserted() const
 
 void HelperRowCreator::postprocess( Transaction * )
 {
-    
+
 }
 
 
@@ -564,8 +564,8 @@ void AddressCreator::processSelect( Query * q )
         Row * r = q->nextRow();
         Address * c =
             new Address( r->getUString( "name" ),
-                         r->getEString( "localpart" ),
-                         r->getEString( "domain" ) );
+                         r->getUString( "localpart" ),
+                         r->getUString( "domain" ) );
         Address * our = a->find( key( c ) );
         if ( our )
             our->setId( r->getInt( "id" ) );
@@ -859,5 +859,5 @@ void ThreadRootCreator::postprocess( Transaction * t )
         }
         ++i;
     }
-    
+
 }
