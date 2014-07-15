@@ -716,8 +716,8 @@ void FetcherData::AddressDecoder::decode( Message * m, List<Row> * rows )
         // fetch. hm.
         Utf8Codec u;
         Address * a = new Address( r->getUString( "name" ),
-                                   r->getEString( "localpart" ),
-                                   r->getEString( "domain" ) );
+                                   r->getUString( "localpart" ),
+                                   r->getUString( "domain" ) );
         f->addresses()->append( a );
     }
 }
