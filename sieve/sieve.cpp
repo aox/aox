@@ -382,7 +382,10 @@ void Sieve::execute()
             q->bind( 2, d->injector->addressId( i->recipientAddress() ) );
             Date e;
             e.setCurrentTime();
-            e.setUnixTime( e.unixTime() + 86400 * i->expiry() );
+            if( i->expiry() )
+                e.setUnixTime( e.unixTime() + 86400 * i->expiry() );
+            else
+                e.setUnixTime( e.unixTime() + 180 );
             q->bind( 3, e.isoDateTime() );
             q->bind( 4, i->handle() );
             d->transaction->enqueue( q );
