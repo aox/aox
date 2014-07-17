@@ -1325,8 +1325,13 @@ EString Command::imapQuoted( Mailbox * m, Mailbox * r )
     UString n = m->name();
     if ( rel && base != Mailbox::root() )
         n = n.mid( base->name().length() + 1 );
-    MUtf7Codec c;
-    return imapQuoted( c.fromUnicode( n ), AString );
+    // pick the right way to encode the string
+    Codec * c = 0;
+    if ( imap()->clientSupports( IMAP::Unicode ) )
+        c = new Utf8Codec();
+    else
+        c = new MUtf7Codec;
+    return imapQuoted( c->fromUnicode( n ), AString );
 }
 
 
