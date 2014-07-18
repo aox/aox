@@ -161,7 +161,7 @@ void AddressField::parse( const EString &s )
     rather than include any UTF-8.
 */
 
-EString AddressField::rfc822( bool avoidUTf8 ) const
+EString AddressField::rfc822( bool avoidUtf8 ) const
 {
     EString s;
     s.reserve( 30 * addresses()->count() );
@@ -173,6 +173,9 @@ EString AddressField::rfc822( bool avoidUTf8 ) const
             ;
         else if ( it->type() == Address::Bounce )
             s = "<>";
+        else if ( it->type() == Address::Normal &&
+                  avoidUtf8 && it->needsUnicode() )
+            s = "<this-address@needs-unicode.invalid>";
         else if ( it->type() == Address::Normal )
             s = "<" + it->lpdomain() + ">";
     }
@@ -189,7 +192,7 @@ EString AddressField::rfc822( bool avoidUTf8 ) const
             s.append( value().ascii() );
             s = s.simplified().wrapped( 78, "", " ", false );
             uint p = name().length() + 1;
-            while ( p < s.length() && 
+            while ( p < s.length() &&
                     ( s[p] == ' ' || s[p] == '\r' || s[p] == '\n' ) )
                 p++;
             s = s.mid( p );
@@ -215,7 +218,7 @@ EString AddressField::rfc822( bool avoidUTf8 ) const
         }
 
         while ( it ) {
-            EString a = it->toString( avoidUTf8 );
+            EString a = it->toString( avoidUtf8 );
             ++it;
 
             if ( t == HeaderField::References )
