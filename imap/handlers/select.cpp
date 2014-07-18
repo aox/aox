@@ -7,12 +7,14 @@
 #include "flag.h"
 #include "user.h"
 #include "cache.h"
+#include "fetch.h"
 #include "timer.h"
 #include "query.h"
 #include "message.h"
 #include "mailbox.h"
 #include "imapsession.h"
 #include "permissions.h"
+#include "transaction.h"
 #include "mailboxgroup.h"
 
 
@@ -23,10 +25,11 @@ public:
     SelectData()
         : readOnly( false ), annotate( false ), condstore( false ),
           needFirstUnseen( false ), unicode( false ), qresync( false ),
-          firstUnseen( 0 ), vanishedMessages( 0 ), allFlags( 0 ),
+          firstUnseen( 0 ), allFlags( 0 ), vanished( 0 ),
           mailbox( 0 ), session( 0 ), permissions( 0 ),
           cacheFirstUnseen( 0 ), sessionPreloader( 0 ),
-          lastUidValidity( 0 ), lastModSeq( 0 )
+          lastUidValidity( 0 ), lastModSeq( 0 ),
+          firstFetch( 0 )
     {}
 
     bool readOnly;
@@ -36,8 +39,8 @@ public:
     bool unicode;
     bool qresync;
     Query * firstUnseen;
-    Query * vanishedMessages;
     Query * allFlags;
+    Query * vanished;
     Mailbox * mailbox;
     ImapSession * session;
     Permissions * permissions;
@@ -46,6 +49,7 @@ public:
     uint lastUidValidity;
     uint lastModSeq;
     IntegerSet knownUids;
+    Fetch * firstFetch;
 
     class FirstUnseenCache
         : public Cache
@@ -221,6 +225,9 @@ void Select::execute()
             d->readOnly = true;
     }
 
+    if ( !transaction() )
+        setTransaction( new Transaction( this ) );
+
     if ( !::firstUnseenCache )
         ::firstUnseenCache = new SelectData::FirstUnseenCache;
 
@@ -244,7 +251,7 @@ void Select::execute()
                              "where mailbox=any($1) and not seen "
                              "group by mailbox", this );
             d->cacheFirstUnseen->bind( 1, s );
-            d->cacheFirstUnseen->execute();
+            transaction()->enqueue( d->cacheFirstUnseen );
         }
     }
     if ( d->sessionPreloader ) {
@@ -271,6 +278,11 @@ void Select::execute()
     if ( !d->session->initialised() )
         return;
 
+    if ( !d->firstFetch && !d->knownUids.isEmpty() )
+        d->firstFetch = new Fetch( true, false,
+                                   d->knownUids, d->lastModSeq,
+                                   imap(), transaction() );
+
     if ( d->session->isEmpty() )
         d->needFirstUnseen = false;
     else if ( ::firstUnseenCache &&
@@ -278,15 +290,23 @@ void Select::execute()
         d->needFirstUnseen = false;
     else
         d->needFirstUnseen = true;
-    
-    if ( d->lastModSeq && !d->vanishedMessages ) {
-        d->vanishedMessages
-            = new Query( "select uid from deleted_messages "
-                         "where mailbox=$1 and modseq>=$2",
-                         this );
-        d->vanishedMessages->bind( 1, d->mailbox->id() );
-        d->vanishedMessages->bind( 1, d->lastModSeq );
-        d->vanishedMessages->execute();
+
+    if ( d->lastModSeq > 0 && !d->vanished ) {
+        if ( d->knownUids.isEmpty() ) {
+            d->vanished = new Query( "select uid from deleted_messages "
+                                     "where mailbox=$1 and modseq >= $2",
+                                     this );
+        }
+        else {
+            d->vanished = new Query( "select uid from deleted_messages "
+                                     "where mailbox=$1 and modseq >= $2 "
+                                     "and uid=any($3)",
+                                     this );
+            d->vanished->bind( 3, d->knownUids );
+        }
+        d->vanished->bind( 1, d->mailbox->id() );
+        d->vanished->bind( 2, d->lastModSeq );
+        transaction()->enqueue( d->vanished );
     }
 
     if ( d->needFirstUnseen && !d->firstUnseen ) {
@@ -295,20 +315,26 @@ void Select::execute()
                          "where mailbox=$1 and not seen "
                          "order by uid limit 1", this );
         d->firstUnseen->bind( 1, d->mailbox->id() );
-        d->firstUnseen->execute();
+        transaction()->enqueue( d->firstUnseen );
     }
+
+    transaction()->execute();
 
     if ( d->firstUnseen && !d->firstUnseen->done() )
         return;
-    if ( d->vanishedMessages && !d->vanishedMessages->done() )
+
+    if ( d->vanished && !d->vanished->done() )
         return;
 
-    d->session->emitUpdates( 0 );
     // emitUpdates often calls Imap::runCommands, which calls this
     // function, which will then change its state to Finished. so
     // check that and don't repeat the last few responses.
     if ( state() != Executing )
         return;
+
+    d->session->emitUpdates( transaction() );
+
+    transaction()->commit();
 
     respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]"
              " uid validity" );
@@ -344,6 +370,17 @@ void Select::execute()
             respond( "OK [ANNOTATIONS 262144] Arbitrary limit" );
         else
             respond( "OK [ANNOTATIONS READ-ONLY] Missing 'n' right" );
+    }
+
+    if ( d->vanished ) {
+        IntegerSet vanished;
+        while ( d->vanished->hasResults() ) {
+            Row * r = d->vanished->nextRow();
+            uint uid = r->getInt( "uid" );
+            vanished.add( uid );
+        }
+        if ( !vanished.isEmpty() )
+            respond( "VANISHED (EARLIER) " + vanished.set() );
     }
 
     if ( d->session->readOnly() )

@@ -43,7 +43,8 @@
     RFC 5257: ANNOTATE-EXPERIMENT-1,
     RFC 5258: LISTEXT,
     RFC 5465: NOTIFY,
-    RFC 6855: UTF=ACCEPT.
+    RFC 6855: UTF=ACCEPT,
+    RFC 7162: QRESYNC.
 */
 
 void Capability::execute()
@@ -109,6 +110,7 @@ EString Capability::capabilities( IMAP * i, bool all )
     if ( all || login ) {
         if ( Configuration::toggle( Configuration::UseImapQuota ) )
             c.append( "QUOTA" );
+        c.append( "QRESYNC" );
         c.append( "RIGHTS=ekntx" );
     }
     if ( all || !login )

@@ -51,13 +51,13 @@ public:
     FetchData()
         : state( 0 ), peek( true ), processed( 0 ),
           changedSince( 0 ), those( 0 ), findIds( 0 ),
-          store( 0 ),
+          deleted( 0 ), store( 0 ),
           uid( false ),
           flags( false ), envelope( false ),
           body( false ), bodystructure( false ),
           internaldate( false ), rfc822size( false ),
           annotation( false ), modseq( false ),
-          databaseId( false ), threadId( false ),
+          databaseId( false ), threadId( false ), vanished( false ),
           needsHeader( false ), needsAddresses( false ),
           needsBody( false ), needsPartNumbers( false ),
           seenDeletedFetcher( 0 ), flagFetcher( 0 ),
@@ -74,6 +74,7 @@ public:
     int64 changedSince;
     Query * those;
     Query * findIds;
+    Query * deleted;
     Store * store;
 
     // we want to ask for...
@@ -88,6 +89,7 @@ public:
     bool modseq;
     bool databaseId;
     bool threadId;
+    bool vanished;
     List<Section> sections;
 
     // and the sections imply that we...
@@ -214,7 +216,7 @@ Fetch::Fetch( bool f, bool a, const IntegerSet & set,
 void Fetch::parse()
 {
     space();
-    d->set = set( !d->uid ).intersection( session()->messages() );
+    d->set = set( !d->uid );
     space();
     if ( nextChar() == '(' ) {
         // "(" fetch-att *(SP fetch-att) ")")
@@ -672,15 +674,30 @@ void Fetch::execute()
     if ( d->state == 0 ) {
         if ( !transaction() &&
              ( !d->peek ||
-               ( d->modseq && ( d->flags || d->annotation ) ) ) )
+               ( d->modseq && ( d->flags || d->annotation || d->vanished ) ) ) )
             setTransaction( new Transaction( this ) );
+        
+        if ( d->vanished && d->changedSince > 0 && !d->deleted ) {
+            d->deleted = new Query( "select uid from deleted_messages "
+                                     "where mailbox=$1 and modseq >= $2 "
+                                     "and uid=any($3)",
+                                     this );
+            d->deleted->bind( 1, s->mailbox()->id() );
+            d->deleted->bind( 2, d->changedSince );
+            IntegerSet s( d->set );
+            s.remove( session()->messages() );
+            d->deleted->bind( 3, s );
+            transaction()->enqueue( d->deleted );
+        }
+
         Mailbox * mb = s->mailbox();
         if ( !d->those ) {
+            d->set = d->set.intersection( session()->messages() );
             if ( d->changedSince ) {
                 d->those = new Query( "select uid, message "
                                       "from mailbox_messages "
                                       "where mailbox=$1 and uid=any($2) "
-                                      "and modseq>$3",
+                                      "and modseq>=$3",
                                       this );
                 d->those->bind( 1, s->mailbox()->id() );
                 d->those->bind( 2, d->set );
@@ -730,14 +747,12 @@ void Fetch::execute()
                     d->those->setString( s );
                 }
                 enqueue( d->those );
+                d->set.clear();
                 if ( transaction() )
                     transaction()->execute();
             }
         }
-        if ( d->those && !d->those->done() )
-            return;
         if ( d->those ) {
-            d->set.clear();
             Row * r;
             while ( d->those->hasResults() ) {
                 r = d->those->nextRow();
@@ -754,6 +769,8 @@ void Fetch::execute()
                     d->dynamics.insert( uid, dd );
                 }
             }
+            if ( !d->those->done() )
+                return;
         }
         else {
             IntegerSet r( d->set );
@@ -764,6 +781,18 @@ void Fetch::execute()
             }
         }
         d->state = 1;
+    }
+
+    if ( d->deleted && d->deleted->done() ) {
+        IntegerSet vanished;
+        while ( d->deleted->hasResults() ) {
+            Row * r = d->deleted->nextRow();
+            uint uid = r->getInt( "uid" );
+            vanished.add( uid );
+        }
+        if ( !vanished.isEmpty() )
+            respond( "VANISHED (EARLIER) " + vanished.set() );
+        d->deleted = 0;
     }
 
     if ( d->state == 1 ) {
@@ -822,7 +851,7 @@ void Fetch::execute()
 
     if ( d->processed < d->set.largest() )
         return;
-
+    
     if ( !d->expunged.isEmpty() ) {
         s->recordExpungedFetch( d->expunged );
         error( No, "UID(s) " + d->expunged.set() + " has/have been expunged" );
@@ -1553,8 +1582,8 @@ EString Fetch::annotation( User * u, uint uid,
 }
 
 
-/*! Parses a single RFC 4466 fetch-modifier. At the moment only RFC
-    4551 is supported.
+/*! Parses a single RFC 4466 fetch-modifier. At the moment RFC 4551
+    and RFC 7162 are supported.
 */
 
 void Fetch::parseFetchModifier()
@@ -1564,6 +1593,9 @@ void Fetch::parseFetchModifier()
         space();
         d->changedSince = number();
         d->modseq = true;
+    }
+    else if ( name == "vanished" ) {
+        d->vanished = true;
     }
     else {
         error( Bad, "Unknown fetch modifier: " + name );

@@ -749,6 +749,8 @@ bool IMAP::clientSupports( ClientCapability capability ) const
 void IMAP::setClientSupports( ClientCapability capability )
 {
     d->clientCapabilities[capability] = true;
+    if ( capability == QResync )
+        d->clientCapabilities[Condstore] = true;
 }
 
 
