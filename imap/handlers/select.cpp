@@ -166,9 +166,12 @@ void Select::parseQResyncParams()
     d->lastModSeq = number();
     if ( nextChar() == ' ' ) {
         space();
-        d->knownUids = set( false );
-        if ( nextChar() == ' ' ) {
-            space();
+        if(nextChar() >= '1' && nextChar() <= '9') {
+            d->knownUids = set( false );
+            if ( nextChar() == ' ' )
+                space();
+        }
+        if ( nextChar() == '(' ) {
             require( "(" ); // alexey loves parens
             // we ignore the MSNs: clients that cache a lot don't use
             // MSNs much anyway.
