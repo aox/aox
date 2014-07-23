@@ -477,8 +477,12 @@ void SessionInitialiser::findSessions()
 }
 
 
-/*! Grabs enough locks on the database that we can update what we need
-    to update: Only one session must get the "\recent" flag.
+/*! This no longer actually grabs any locks. RFC 3501 declares that
+    only one session must get the "\recent" flag, but that's not
+    important enough to justify a lock, even one that usually lasts
+    only a short time. So instead of locking we update "safely",
+    ie. without actually losing data but we might issue "\recent" to
+    more than one session.
 */
 
 void SessionInitialiser::grabLock()
@@ -506,21 +510,13 @@ void SessionInitialiser::grabLock()
          fn( d->newModSeq ) + ">, UID [" + fn( d->oldUidnext ) + "," +
          fn( d->newUidnext ) + ">" );
 
-    if ( !d->t && d->changeRecent )
-        d->t = new Transaction( this );
-
-    if ( d->changeRecent )
-        d->recent = new Query( "select first_recent from mailboxes "
-                               "where id=$1 for update", this );
-    else if ( highestRecent < d->newUidnext - 1 )
+    if ( highestRecent < d->newUidnext - 1 )
         d->recent = new Query( "select first_recent from mailboxes "
                                "where id=$1", this );
     if ( d->recent ) {
         d->recent->bind( 1, d->mailbox->id() );
         submit( d->recent );
     }
-
-    return;
 }
 
 
@@ -576,7 +572,7 @@ void SessionInitialiser::findRecent()
     if ( !d->changeRecent )
         return;
     Query * q = new Query( "update mailboxes set first_recent=$2 "
-                           "where id=$1", 0 );
+                           "where id=$1 and first_recent<$2", 0 );
     q->bind( 1, d->mailbox->id() );
     q->bind( 2, recent );
     submit( q );
