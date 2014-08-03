@@ -17,6 +17,6 @@ rule ReadmeFile {
 
 ReadmeFile README ;
 ReadmeFile COPYING ;
-ReadmeFile bsd.txt ;
+ReadmeFile license.txt ;
 
 
