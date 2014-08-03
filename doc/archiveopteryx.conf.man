@@ -470,6 +470,12 @@ is the port where
 accepts SSL-wrapped connections,
 .I 993
 by default.
+.IP use-imap-quota
+must be enabled for
+.BR archiveopteryx (8)
+to support the IMAP QUOTA extension. This quota is not enforced and is
+recommended to be disabled on large mailboxes. The default is
+.IR true .
 .SS POP
 .IP use-pop
 must be enabled for
