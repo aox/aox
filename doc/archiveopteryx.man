@@ -150,7 +150,6 @@ harmless before reaching the MUA. A movie clip sent to a hundred
 recipients is not a problem, because it's stored just once.
 .SH LICENSING
 Archiveopteryx is available under the PostgreSQL License.
-.PP
 .SH DEFAULTS
 The configurable file and directory names in this build are as follows:
 .IP SBINDIR
