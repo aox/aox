@@ -426,6 +426,7 @@ void EventLoop::dispatch( Connection * c, bool r, bool w, uint now )
     dummy2 = sizeof(dummy1);
     if ( ::getsockopt( c->fd(), SOL_SOCKET, SO_RCVBUF,
                        &dummy1, &dummy2 ) < 0 ) {
+        c->close();
         removeConnection( c );
         return;
     }
