@@ -52,6 +52,7 @@ void ListUsers::execute()
                   "join addresses a on (al.address=a.id)" );
         if ( !pattern.isEmpty() )
             s.append( " where login like $1" );
+        s.append( " order by login" );
         q = new Query( s, this );
         if ( !pattern.isEmpty() )
             q->bind( 1, sqlPattern( pattern ) );
