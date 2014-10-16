@@ -103,7 +103,8 @@ void Append::parse()
     // append-ext-name = tagged-ext-label
     // append-ext-value= tagged-ext-val
     // append-data     = literal / literal8 / append-data-ext /
-    //                   "CATENATE" SP "(" cat-part *(SP cat-part) ")"
+    //                   "CATENATE" SP "(" cat-part *(SP cat-part) ")" /
+    //                   "UTF8" SP "(" literal8 ")"
     // append-data-ext = tagged-ext / att-annotate
     // append-opts     = [SP flag-list] [SP date-time] *(SP append-ext)
 
@@ -260,6 +261,9 @@ void Append::parse()
             while ( !done );
 
             require( ")" );
+        }
+        else if ( present( "UTF8 " ) ) {
+            h->text = literal();
         }
         else {
             h->text = literal();
