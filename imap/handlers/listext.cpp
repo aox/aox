@@ -110,9 +110,11 @@ void Listext::parse()
         //                    *(SP list-select-option)] ")"
         // list-select-option = "SUBSCRIBED" / "REMOTE" / "MATCHPARENT" /
         //                      option-extension
-        addSelectOption( atom().lower() );
-        while ( present( " " ) )
+        if ( nextChar() != ')' ) {
             addSelectOption( atom().lower() );
+            while ( present( " " ) )
+                addSelectOption( atom().lower() );
+        }
         require( ")" );
         space();
     }
