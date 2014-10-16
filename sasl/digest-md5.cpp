@@ -162,7 +162,7 @@ void DigestMD5::parseResponse( const EString &r )
         s = "nc not unique in DIGEST-MD5 response";
         setState( Failed );
     }
-    else if ( nc->value().length() != 8 ) {
+    else if ( nc->value().length() < 8 ) {
         s = "nc <<" + nc->value() + ">> has length " +
             fn( nc->value().length() ) + " (not 8) in DIGEST-MD5 response";
         setState( Failed );
@@ -175,7 +175,7 @@ void DigestMD5::parseResponse( const EString &r )
         s = "resp not unique in DIGEST-MD5 response";
         setState( Failed );
     }
-    else if ( resp->value().length() != 32 ) {
+    else if ( resp->value().length() < 32 ) {
         s = "resp <<" + resp->value() + ">> has length " +
             fn( resp->value().length() ) + " (not 32) in DIGEST-MD5 response";
         setState( Failed );
