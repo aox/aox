@@ -263,7 +263,9 @@ void Append::parse()
             require( ")" );
         }
         else if ( present( "UTF8 " ) ) {
+            require( "(" );
             h->text = literal();
+            require( ")" );
         }
         else {
             h->text = literal();
