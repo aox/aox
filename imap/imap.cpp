@@ -698,7 +698,7 @@ void IMAP::setSession( Session * s )
         return;
 
     if ( session() ) {
-        (void)new ImapResponse( this, "OK [CLOSED] Ita, missa est" );
+        (void)new ImapResponse( this, "OK [CLOSED] I, missa est" );
     }
     Connection::setSession( s );
     if ( s ) {
