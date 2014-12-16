@@ -1666,7 +1666,7 @@ EString Selector::whereAge()
 }
 
 
-/*! This implements the x-gm-msgid search-key. */
+/*! This implements the msgid search-key. */
 
 EString Selector::whereDatabaseId()
 {
@@ -1681,7 +1681,7 @@ EString Selector::whereDatabaseId()
 }
 
 
-/*! This implements the x-gm-msgid search-key. */
+/*! This implements the thrid search-key. */
 
 EString Selector::whereThreadId()
 {

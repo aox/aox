@@ -283,15 +283,6 @@ void Fetch::parse()
 
 void Fetch::parseAttribute( bool alsoMacro )
 {
-    if ( present( "x-gm-msgid" ) ) {
-        d->databaseId = true;
-        return;
-    }
-    else if ( present( "x-gm-thrid" ) ) {
-        d->threadId = true;
-        return;
-    }
-
     EString keyword = dotLetters( 3, 13 ).lower(); // UID/ALL, RFC822.HEADER
     if ( alsoMacro && keyword == "all" ) {
         // equivalent to: (FLAGS INTERNALDATE RFC822.SIZE ENVELOPE)
@@ -398,6 +389,12 @@ void Fetch::parseAttribute( bool alsoMacro )
     }
     else if ( keyword == "modseq" ) {
         d->modseq = true;
+    }
+    else if ( keyword == "msgid" ) {
+        d->databaseId = true;
+    }
+    else if ( keyword == "thrid" ) {
+        d->threadId = true;
     }
     else {
         error( Bad, "expected fetch attribute, saw word " + keyword );
@@ -1111,9 +1108,9 @@ EString Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
     if ( d->uid )
         l.append( "UID " + fn( uid ) );
     if ( d->databaseId )
-        l.append( "X-GM-MSGID " + fn( m->databaseId() ) );
+        l.append( "MSGID " + fn( m->databaseId() ) );
     if ( d->threadId )
-        l.append( "X-GM-THRID " + fn( m->threadId() ) );
+        l.append( "THRID " + fn( m->threadId() ) );
     if ( d->rfc822size )
         l.append( "RFC822.SIZE " + fn( m->rfc822Size() ) );
     if ( d->flags )

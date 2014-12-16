@@ -125,12 +125,12 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "THREAD=ORDEREDSUBJECT" );
         c.append( "THREAD=REFS" );
         c.append( "THREAD=REFERENCES" );
+        c.append( "THRID" );
         c.append( "UIDPLUS" );
         c.append( "UNSELECT" );
         c.append( "URLAUTH" );
         c.append( "UTF8=ACCEPT" );
         c.append( "WITHIN" );
-        c.append( "X-AOX-GM-1" );
     }
 
     return c.join( " " );
