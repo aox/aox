@@ -5,6 +5,7 @@
 #include "scope.h"
 #include "configuration.h"
 #include "imap.h"
+#include "buffer.h"
 #include "estringlist.h"
 #include "log.h"
 #include "mechanism.h"
@@ -83,8 +84,8 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "CATENATE" );
         c.append( "CHILDREN" );
     }
-    // should we advertise COMPRESS only if not compressed?
-    //c.append( "COMPRESS=DEFLATE" );
+    if ( i->readBuffer()->compression() == Buffer::None )
+        c.append( "COMPRESS=DEFLATE" );
     if ( all || login )
         c.append( "CONDSTORE" );
     c.append( "ENABLE" );

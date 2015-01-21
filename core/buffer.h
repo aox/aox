@@ -43,6 +43,8 @@ public:
         return at( i );
     }
 
+    void close();
+
 private:
     char at( uint ) const;
 

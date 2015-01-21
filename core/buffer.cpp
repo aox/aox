@@ -371,15 +371,6 @@ EString * Buffer::removeLine( uint s )
 }
 
 
-static void * allocwrapper( void *, uint i, uint s ) {
-    return Allocator::alloc( i*s );
-}
-
-static void deallocwrapper( void *, void * x ) {
-    Allocator::dealloc( x );
-}
-
-
 /*! Instructs this Buffer to compress any data added if \a c is
     Compressing, and to decompress if \a c is Decompressing.
 
@@ -390,8 +381,8 @@ static void deallocwrapper( void *, void * x ) {
 void Buffer::setCompression( Compression c )
 {
     zs = (z_stream *)Allocator::alloc( sizeof( z_stream ) );
-    zs->zalloc = &allocwrapper;
-    zs->zfree = &deallocwrapper;
+    zs->zalloc = 0;
+    zs->zfree = 0;
     zs->opaque = 0;
     if ( c == Compressing )
         ::deflateInit2( zs, 9, Z_DEFLATED,
@@ -409,4 +400,22 @@ void Buffer::setCompression( Compression c )
 Buffer::Compression Buffer::compression() const
 {
     return filter;
+}
+
+
+/*! Zlib needs to be closed down properly; it will not fit properly
+    into garbage collections.
+*/
+
+void Buffer::close()
+{
+    if ( !zs )
+        return;
+    
+    if ( filter == Compressing )
+        ::deflateEnd( zs );
+    else if ( filter == Decompressing )
+        ::inflateEnd( zs );
+    zs = 0;
+    filter = None;
 }

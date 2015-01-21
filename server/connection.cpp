@@ -37,7 +37,7 @@ public:
     ConnectionData()
         : r( 0 ), w( 0 ),
           tls( 0 ), l( 0 ), session( 0 ),
-          fd( -1 ), timeout( 0 ), 
+          fd( -1 ), timeout( 0 ),
           wbt( 0 ), wbs( 0 ),
           state( Connection::Invalid ),
           type( Connection::Client ),
@@ -522,6 +522,8 @@ void Connection::close()
         ::close( d->fd );
     if ( d->tls )
         d->tls->close();
+    d->r->close();
+    d->w->close();
     setState( Invalid );
     d->session = 0;
     EventLoop::global()->removeConnection( this );
