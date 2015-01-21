@@ -739,6 +739,8 @@ void Server::maintainChildren()
             }
             if ( time( 0 ) >= now + 5 ) {
                 // not a failure, or the first in a long while
+                log( "Child process failed; no problem yet",
+                     Log::Info );
                 failures = 0;
             }
             else if ( failures > 5 ) {
