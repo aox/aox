@@ -199,6 +199,8 @@ void Select::execute()
     }
 
     if ( !d->permissions ) {
+        if ( d->qresync )
+            imap()->setClientSupports( IMAP::QResync );
         if ( d->condstore )
             imap()->setClientSupports( IMAP::Condstore );
         if ( d->annotate )
@@ -281,11 +283,6 @@ void Select::execute()
     if ( !d->session->initialised() )
         return;
 
-    if ( !d->firstFetch && !d->knownUids.isEmpty() )
-        d->firstFetch = new Fetch( true, false,
-                                   d->knownUids, d->lastModSeq,
-                                   imap(), transaction() );
-
     if ( d->session->isEmpty() )
         d->needFirstUnseen = false;
     else if ( ::firstUnseenCache &&
@@ -323,12 +320,6 @@ void Select::execute()
 
     transaction()->execute();
 
-    if ( d->firstUnseen && !d->firstUnseen->done() )
-        return;
-
-    if ( d->vanished && !d->vanished->done() )
-        return;
-
     // emitUpdates often calls Imap::runCommands, which calls this
     // function, which will then change its state to Finished. so
     // check that and don't repeat the last few responses.
@@ -336,8 +327,10 @@ void Select::execute()
         return;
 
     d->session->emitUpdates( transaction() );
-
     transaction()->commit();
+    if ( transaction()->state() == Transaction::Inactive ||
+         transaction()->state() == Transaction::Executing )
+        return;
 
     respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]"
              " uid validity" );
@@ -357,14 +350,6 @@ void Select::execute()
         if ( unseen )
             respond( "OK [UNSEEN " + fn( d->session->msn( unseen ) ) +
                      "] first unseen" );
-    }
-
-    if ( imap()->clientSupports( IMAP::Condstore ) &&
-         !d->session->isEmpty() ) {
-        uint nms = d->session->nextModSeq();
-        if ( nms < 2 )
-            nms = 2;
-        respond( "OK [HIGHESTMODSEQ " + fn( nms-1 ) + "] highest modseq" );
     }
 
     if ( imap()->clientSupports( IMAP::Annotate ) ) {

@@ -22,7 +22,7 @@ public:
                        uidnext( 0 ), nms( 0 ), cms( 0 ),
                        emitting( false ), unicode( false ),
                        existsResponse( 0 ), recentResponse( 0 ),
-                       uidnextResponse( 0 ),
+                       uidnextResponse( 0 ), highestModseqResponse( 0 ),
                        flagUpdate( 0 ), permaFlagUpdate( 0 ) {}
 
     class IMAP * i;
@@ -107,9 +107,32 @@ public:
         ImapSessionData * d;
     };
 
+    class HighestModseqResponse
+        : public ImapResponse
+    {
+    public:
+        HighestModseqResponse( ImapSession * s, ImapSessionData * data )
+            : ImapResponse( s ), d( data ) {
+        }
+        EString text() const {
+            uint x = session()->nextModSeq();
+            if ( x <= d->nms || x < 2 )
+                return "";
+            d->nms = x;
+            return "OK [HIGHESTMODSEQ " + fn( x - 1 ) + "] next modseq - 1";
+        }
+        void setSent() {
+            d->highestModseqResponse = 0;
+            ImapResponse::setSent();
+        }
+
+        ImapSessionData * d;
+    };
+
     ExistsResponse * existsResponse;
     RecentResponse * recentResponse;
     UidnextResponse * uidnextResponse;
+    HighestModseqResponse * highestModseqResponse;
 
     uint flagUpdate;
     uint permaFlagUpdate;
@@ -254,8 +277,14 @@ void ImapSession::emitUpdates( Transaction * t )
         }
     }
 
-    if ( d->nms < nextModSeq() )
-        d->nms = nextModSeq();
+    if ( imap()->clientSupports( IMAP::Condstore ) &&
+         d->nms < nextModSeq() &&
+         !d->highestModseqResponse ) {
+        d->highestModseqResponse =
+            new ImapSessionData::HighestModseqResponse( this, d );
+        work = true;
+    }
+
     if ( d->changed.isEmpty() )
         d->cms = d->nms;
 
