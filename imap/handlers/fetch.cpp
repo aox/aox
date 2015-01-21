@@ -673,10 +673,10 @@ void Fetch::execute()
              ( !d->peek ||
                ( d->modseq && ( d->flags || d->annotation || d->vanished ) ) ) )
             setTransaction( new Transaction( this ) );
-        
+
         if ( d->vanished && d->changedSince > 0 && !d->deleted ) {
             d->deleted = new Query( "select uid from deleted_messages "
-                                     "where mailbox=$1 and modseq >= $2 "
+                                     "where mailbox=$1 and modseq>$2 "
                                      "and uid=any($3)",
                                      this );
             d->deleted->bind( 1, s->mailbox()->id() );
@@ -694,7 +694,7 @@ void Fetch::execute()
                 d->those = new Query( "select uid, message "
                                       "from mailbox_messages "
                                       "where mailbox=$1 and uid=any($2) "
-                                      "and modseq>=$3",
+                                      "and modseq>$3",
                                       this );
                 d->those->bind( 1, s->mailbox()->id() );
                 d->those->bind( 2, d->set );
@@ -848,7 +848,7 @@ void Fetch::execute()
 
     if ( d->processed < d->set.largest() )
         return;
-    
+
     if ( !d->expunged.isEmpty() ) {
         s->recordExpungedFetch( d->expunged );
         error( No, "UID(s) " + d->expunged.set() + " has/have been expunged" );
