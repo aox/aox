@@ -128,7 +128,11 @@ void MailboxReader::execute() {
         else
             m->setType( Mailbox::Ordinary );
 
-        m->d->uidvalidity = r->getInt( "uidvalidity" );
+        uint uidvalidity = r->getInt( "uidvalidity" );
+        if ( m->d->uidvalidity != uidvalidity ) {
+            m->d->uidvalidity = uidvalidity;
+            m->abortSessions();
+        }
         if ( !r->isNull( "owner" ) )
             m->setOwner( r->getInt( "owner" ) );
 
@@ -684,7 +688,7 @@ void Mailbox::refreshMailboxes( class Transaction * t )
 List<Session> * Mailbox::sessions() const
 {
     List<Session> * r = 0;
-    
+
     List<Connection> * connections = EventLoop::global()->connections();
     List<Connection>::Iterator i( connections );
     while ( i ) {
