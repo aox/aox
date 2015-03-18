@@ -404,7 +404,9 @@ Selector * Search::parseKey()
                              number() );
     }
     else if ( present( "inthread" ) ) {
-        space();
+        space(); //ARNT
+        if(present("refs") || present("references"))
+            space();
         Selector * s = new Selector( Selector::InThread );
         s->add( parseKey() );
         return s;
