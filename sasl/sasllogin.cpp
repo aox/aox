@@ -22,6 +22,7 @@
 SaslLogin::SaslLogin( EventHandler * c )
     : SaslMechanism( c, SaslMechanism::Login )
 {
+    setState( AwaitingInitialResponse );
 }
 
 
