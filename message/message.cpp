@@ -15,6 +15,7 @@
 #include "dict.h"
 #include "flag.h"
 #include "md5.h"
+#include "log.h"
 
 
 static const char * crlf = "\015\012";
@@ -82,28 +83,34 @@ Message::Message()
 
 void Message::parse( const EString & rfc2822 )
 {
+    ::log( "Message::parse - " + rfc2822, Log::Debug );
     uint i = 0;
 
     children()->clear();
 
+    ::log( "Message::parse - parseHeader and setHeader", Log::Debug );
     setHeader( parseHeader( i, rfc2822.length(), rfc2822, Header::Rfc2822 ) );
+    ::log( "Message::parse - will repair header", Log::Debug );
     header()->repair();
     header()->repair( this, rfc2822.mid( i ) );
 
     ContentType * ct = header()->contentType();
     if ( ct && ct->type() == "multipart" ) {
+        ::log( "Message::parse - will parseMultipart", Log::Debug );
         Bodypart::parseMultipart( i, rfc2822.length(), rfc2822,
                                   ct->parameter( "boundary" ),
                                   ct->subtype() == "digest",
                                   children(), this );
     }
     else {
+        ::log( "Message::parse - will parseBodypart", Log::Debug );
         Bodypart * bp = Bodypart::parseBodypart( i, rfc2822.length(), rfc2822,
                                                  header(), this );
         children()->append( bp );
     }
 
     fix8BitHeaderFields();
+    ::log( "Message::parse - will simplify header", Log::Debug );
     header()->simplify();
 
     EString e = d->error;
@@ -126,6 +133,7 @@ void Message::parse( const EString & rfc2822 )
 
 void Message::recomputeError()
 {
+    ::log( "Message::recomputeError", Log::Debug );
     d->error.truncate();
     if ( !header()->valid() ) {
         d->error = header()->error();
@@ -191,6 +199,7 @@ Header * Message::parseHeader( uint & i, uint end,
                                const EString & rfc2822,
                                Header::Mode m )
 {
+    ::log( "Message::parseHeader - " + rfc2822, Log::Debug );
     Header * h = new Header( m );
     bool done = false;
     while ( !done ) {
@@ -289,6 +298,7 @@ EString Message::rfc822( bool avoidUtf8 ) const
     r.append( crlf );
     r.append( body( avoidUtf8 ) );
 
+    ::log( "Message::rfc822 - text:" + r, Log::Debug );
     return r;
 }
 
@@ -297,10 +307,12 @@ EString Message::rfc822( bool avoidUtf8 ) const
 
 EString Message::body( bool avoidUtf8 ) const
 {
+    ::log( "Message::body", Log::Debug );
     EString r;
 
     ContentType *ct = header()->contentType();
     if ( ct && ct->type() == "multipart" ) {
+        ::log( "Message::body - will appendMultipart", Log::Debug );
         appendMultipart( r, avoidUtf8 );
     }
     else {
@@ -308,6 +320,7 @@ EString Message::body( bool avoidUtf8 ) const
         Bodypart * firstChild = children()->first();
         if ( firstChild ) {
             firstChild->setHeader( header() );
+            ::log( "Message::body - will appendAnyPart", Log::Debug );
             appendAnyPart( r, firstChild, ct, avoidUtf8 );
         }
     }
@@ -335,6 +348,7 @@ static void appendChildren(List<Bodypart> *l, Bodypart *bp )
 
 List<Bodypart> *Message::allBodyparts() const
 {
+    ::log( "Message::allBodyparts", Log::Debug );
     List< Bodypart > * l = new List< Bodypart >;
     List<Bodypart>::Iterator it( children() );
     while ( it ) {
@@ -353,6 +367,7 @@ List<Bodypart> *Message::allBodyparts() const
 
 class Bodypart * Message::bodypart( const EString & s, bool create )
 {
+    ::log( "Message::bodypart - text:" + s, Log::Debug );
     uint b = 0;
     Bodypart * bp = 0;
     while ( b < s.length() ) {
@@ -409,6 +424,7 @@ class Bodypart * Message::bodypart( const EString & s, bool create )
 
 EString Message::partNumber( Bodypart * bp ) const
 {
+    ::log( "Message::partNumber", Log::Debug );
     Multipart * m = bp;
 
     EString r;
@@ -545,6 +561,7 @@ void Message::setTriviaFetched( bool ok )
 
 UString Message::baseSubject( const UString & subject )
 {
+    ::log( "Message::baseSubject", Log::Debug );
     // Comments and syntax mostly quoted on RFC 5256.
 
     // The basic algorithm here is: Loop for (only) as long as the
@@ -726,6 +743,7 @@ static EString badFields( Header * h )
 
 void Message::fix8BitHeaderFields()
 {
+    ::log( "Message::fix8BitHeaderFields", Log::Debug );
     EString charset;
     EString fallback = "us-ascii";
     bool conflict = false;
@@ -781,6 +799,7 @@ void Message::fix8BitHeaderFields()
 
 EString Message::acceptableBoundary( const EString & parts )
 {
+    ::log( "Message::acceptableBoundary", Log::Debug );
     uint i = 0;
     uint boundaries = 0;
     static char boundaryChars[33] = "0123456789abcdefghijklmnopqrstuv";

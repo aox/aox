@@ -13,7 +13,7 @@
 #include "estringlist.h"
 #include "parser.h"
 #include "utf.h"
-
+#include "log.h"
 
 static struct {
     const char * name;
@@ -88,6 +88,7 @@ public:
 
 HeaderField *HeaderField::fieldNamed( const EString &name )
 {
+    ::log( "HeaderField::fieldNamed: " + name, Log::Debug );
     int i = 0;
     EString n = name.headerCased();
     while ( fieldNames[i].name && n != fieldNames[i].name )
@@ -171,6 +172,7 @@ HeaderField *HeaderField::fieldNamed( const EString &name )
 HeaderField *HeaderField::create( const EString &name,
                                   const EString &value )
 {
+    ::log( "HeaderField::create:" + name + "=" + value, Log::Debug );
     HeaderField *hf = fieldNamed( name );
     hf->parse( value );
     if ( hf->valid() )
@@ -199,6 +201,7 @@ HeaderField *HeaderField::create( const EString &name,
 HeaderField *HeaderField::assemble( const EString &name,
                                     const UString &data )
 {
+    ::log( "HeaderField::assemble:" + name, Log::Debug );
     HeaderField *hf = fieldNamed( name );
     // XXX HACK HACK HACK XXX
     // in the case of the mime fields, we store the RFC822 form, and
@@ -206,10 +209,14 @@ HeaderField *HeaderField::assemble( const EString &name,
     if ( hf->type() == ContentType ||
          hf->type() == ContentTransferEncoding ||
          hf->type() == ContentLanguage ||
-         hf->type() == ContentDisposition )
+         hf->type() == ContentDisposition ) {
+        ::log( "HeaderField::assemble - will parse data(1):" + data.utf8(), Log::Debug );
         hf->parse( data.utf8() );
-    else
+    }
+    else {
         hf->setValue( data );
+        ::log( "HeaderField::assemble - will parse data(2):" + data.utf8(), Log::Debug );
+    }
     return hf;
 }
 
@@ -268,24 +275,34 @@ void HeaderField::setName( const EString &n )
 
 EString HeaderField::rfc822( bool avoidUtf8 ) const
 {
+    ::log( "HeaderField::rfc822", Log::Debug );
     if ( d->type == Subject ||
          d->type == Comments ||
          d->type == ContentDescription ) {
-        if ( avoidUtf8 )
+        if ( avoidUtf8 ) {
+            ::log( "HeaderField::rfc822 - text(1) will wrap", Log::Debug );
             return wrap( encodeText( d->value ) );
-        else
+        }
+        else {
+            ::log( "HeaderField::rfc822 - text(2) will wrap", Log::Debug );
             return wrap( d->value.utf8() );
+        }
     }
 
     if ( d->type == Other ) {
-        if ( avoidUtf8 )
+        if ( avoidUtf8 ) {
+            ::log( "HeaderField::rfc822 - text(3) will encodeText", Log::Debug );
             return encodeText( d->value );
-        else
+        }
+        else {
+            ::log( "HeaderField::rfc822 - text(4):" + d->value.utf8(), Log::Debug );
             return d->value.utf8();
+        }
     }
 
     // We assume that, for most fields, we can use the database
     // representation in an RFC 822 message.
+    ::log( "HeaderField::rfc822 - text(5):" + d->value.utf8(), Log::Debug );
     return d->value.utf8();
 }
 
@@ -356,6 +373,7 @@ void HeaderField::setError( const EString &s )
 
 void HeaderField::parse( const EString &s )
 {
+    ::log( "HeaderField::parse:" + s, Log::Debug );
     switch ( d->type ) {
     case From:
     case ResentFrom:
@@ -489,6 +507,7 @@ void HeaderField::parseText( const EString &s )
 
 void HeaderField::parseOther( const EString &s )
 {
+    ::log( "HeaderField::parseOther", Log::Debug );
     AsciiCodec a;
     setValue( a.toUnicode( s ) );
     if ( a.valid() )
@@ -509,6 +528,7 @@ void HeaderField::parseOther( const EString &s )
 
 void HeaderField::parseMimeVersion( const EString &s )
 {
+    ::log( "HeaderField::parseMimeVersion", Log::Debug );
     EmailParser p( s );
     p.comment();
     EString v = p.dotAtom();
@@ -537,6 +557,7 @@ void HeaderField::parseMimeVersion( const EString &s )
 
 void HeaderField::parseContentLocation( const EString &s )
 {
+    ::log( "HeaderField::parseContentLocation", Log::Debug );
     EmailParser p( s.trimmed().unquoted() );
 
     p.whitespace();
@@ -615,6 +636,7 @@ void HeaderField::parseContentLocation( const EString &s )
 
 void HeaderField::parseContentBase( const EString & s )
 {
+    ::log( "HeaderField::parseContentBase", Log::Debug );
     parseContentLocation( s );
     if ( !valid() )
         return;
@@ -684,6 +706,7 @@ uint HeaderField::fieldType( const EString & n )
 
 EString HeaderField::wrap( const EString &s ) const
 {
+    ::log( "HeaderField::wrap - text:" + s.wrapped( 78, d->name + ": ", " ", false ).mid( d->name.length() + 2 ), Log::Debug );
     return s.wrapped( 78, d->name + ": ", " ", false )
         .mid( d->name.length() + 2 );
 }
@@ -695,6 +718,7 @@ EString HeaderField::wrap( const EString &s ) const
 
 EString HeaderField::encodeWord( const UString &w )
 {
+    ::log( "HeaderField::encodeWord", Log::Debug );
     if ( w.isEmpty() )
         return "";
 
@@ -756,6 +780,7 @@ EString HeaderField::encodeText( const UString &s )
             ++w;
         }
     }
+    ::log( "HeaderField::encodeText - text:" + r.join( " " ), Log::Debug );
     return r.join( " " );
 }
 

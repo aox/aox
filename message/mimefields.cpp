@@ -10,6 +10,7 @@
 #include "list.h"
 #include "map.h"
 #include "utf.h"
+#include "log.h"
 
 
 class MimeFieldData
@@ -50,6 +51,7 @@ MimeField::MimeField( HeaderField::Type t )
 
 EStringList *MimeField::parameters() const
 {
+    ::log( "MimeField::parameters", Log::Debug );
     EStringList *l = new EStringList;
     List< MimeFieldData::Parameter >::Iterator it( d->parameters );
     while ( it ) {
@@ -67,6 +69,7 @@ EStringList *MimeField::parameters() const
 
 EString MimeField::parameterString() const
 {
+    ::log( "MimeField::parameterString", Log::Debug );
     EString s;
     List< MimeFieldData::Parameter >::Iterator it( d->parameters );
     while ( it ) {
@@ -94,6 +97,7 @@ EString MimeField::parameterString() const
 EString MimeField::parameter( const EString &n ) const
 {
     EString s = n.lower();
+    ::log( "MimeField::parameter: " + s, Log::Debug );
     List< MimeFieldData::Parameter >::Iterator it( d->parameters );
     while ( it && s != it->name )
         ++it;
@@ -109,6 +113,7 @@ EString MimeField::parameter( const EString &n ) const
 
 void MimeField::addParameter( const EString &n, const EString &v )
 {
+    ::log( "MimeField::addParameter: " + n + "=" + v, Log::Debug );
     EString s = n.lower();
     List< MimeFieldData::Parameter >::Iterator it( d->parameters );
     while ( it && s != it->name )
@@ -131,6 +136,7 @@ void MimeField::addParameter( const EString &n, const EString &v )
 
 void MimeField::removeParameter( const EString &n )
 {
+    ::log( "MimeField::removeParameter: " + n, Log::Debug );
     EString s = n.lower();
     List< MimeFieldData::Parameter >::Iterator it( d->parameters );
     while ( it && s != it->name )
@@ -146,6 +152,7 @@ void MimeField::removeParameter( const EString &n )
 
 void MimeField::parseParameters( EmailParser *p )
 {
+    ::log( "MimeField::parseParameters", Log::Debug );
     bool done = false;
     bool first = true;
     while ( valid() && !done ) {
@@ -270,6 +277,7 @@ void MimeField::parseParameters( EmailParser *p )
 
 EString MimeField::rfc822( bool ) const
 {
+    ::log( "MimeField::rfc822", Log::Debug );
     EString s = baseValue();
     uint lineLength = name().length() + 2 + s.length();
 
@@ -300,6 +308,7 @@ EString MimeField::rfc822( bool ) const
         lineLength += i->length();
         words.take( i );
     }
+    ::log( "MimeField::rfc822 - returning:" + s, Log::Debug );
     return s;
 }
 
@@ -354,6 +363,7 @@ ContentType::~ContentType()
 
 void ContentType::parse( const EString &s )
 {
+    ::log( "ContentType::parse", Log::Debug );
     EmailParser p( s );
     p.whitespace();
     while ( p.present( ":" ) )
@@ -578,25 +588,34 @@ ContentTransferEncoding::ContentTransferEncoding()
 
 void ContentTransferEncoding::parse( const EString &s )
 {
+    ::log( "ContentTransferEncoding::parse", Log::Debug );
     EmailParser p( s );
 
     EString t = p.mimeValue().lower();
     p.comment();
     // XXX shouldn't we do p.end() here and record parse errors?
 
+    ::log( "ContentTransferEncoding::parse - type=" + t, Log::Debug );
     if ( t == "7bit" || t == "8bit" || t == "8bits" || t == "binary" ||
-         t == "unknown" )
+         t == "unknown" ) {
+        ::log( "ContentTransferEncoding::parse - set binary", Log::Debug );
         setEncoding( EString::Binary );
-    else if ( t == "quoted-printable" )
+    }
+    else if ( t == "quoted-printable" ) {
         setEncoding( EString::QP );
-    else if ( t == "base64" )
+    }
+    else if ( t == "base64" ) {
         setEncoding( EString::Base64 );
-    else if ( t == "x-uuencode" || t == "uuencode" )
+    }
+    else if ( t == "x-uuencode" || t == "uuencode" ) {
         setEncoding( EString::Uuencode );
-    else if ( t.contains( "bit" ) && t[0] >= '0' && t[0] <= '9' )
+    }
+    else if ( t.contains( "bit" ) && t[0] >= '0' && t[0] <= '9' ) {
         setEncoding( EString::Binary );
-    else
+    }
+    else {
         setError( "Invalid c-t-e value: " + t.quoted() );
+    }
 }
 
 
@@ -608,6 +627,7 @@ void ContentTransferEncoding::parse( const EString &s )
 void ContentTransferEncoding::setEncoding( EString::Encoding en )
 {
     e = en;
+    ::log( "ContentTransferEncoding::setEncoding=" + baseValue(), Log::Debug );
 }
 
 
@@ -621,6 +641,7 @@ EString::Encoding ContentTransferEncoding::encoding() const
 
 EString ContentTransferEncoding::baseValue() const
 {
+    ::log( "ContentTransferEncoding::baseValue", Log::Debug );
     EString s;
     switch ( e ) {
     case EString::Binary:
@@ -636,6 +657,7 @@ EString ContentTransferEncoding::baseValue() const
         s = "x-uuencode";
         break;
     }
+    ::log( "ContentTransferEncoding::baseValue - returning:" + s, Log::Debug );
     return s;
 }
 
@@ -661,6 +683,7 @@ ContentDisposition::ContentDisposition()
 
 void ContentDisposition::parse( const EString &s )
 {
+    ::log( "ContentDisposition::parse", Log::Debug );
     EmailParser p( s );
 
     uint m = p.mark();
@@ -733,6 +756,7 @@ ContentLanguage::~ContentLanguage()
 
 void ContentLanguage::parse( const EString &s )
 {
+    ::log( "ContentLanaguage::parse", Log::Debug );
     EmailParser p( s );
 
     do {
