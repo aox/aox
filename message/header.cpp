@@ -190,7 +190,7 @@ void Header::removeField( HeaderField::Type t )
 void Header::removeField( const char * n )
 {
     ::log( "Header::removeField - name:", Log::Debug );
-    ::log( n, Log::Debug );
+    // ::log( n, Log::Debug );
     List<HeaderField>::Iterator it( d->fields );
     while ( it ) {
         if ( it->name() == n )

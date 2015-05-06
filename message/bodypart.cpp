@@ -296,8 +296,9 @@ EString Bodypart::asText( bool avoidUtf8 ) const
         appendMultipart( r, avoidUtf8 );
     }
     else if ( !header()->contentType() ||
-              header()->contentType()->type() == "text" ||
-              header()->contentType()->baseValue() == "application/pgp-signature" ) {  //hgu - fix for signatures
+              header()->contentType()->type() == "text" ) {
+              // ||
+              // header()->contentType()->baseValue() == "application/pgp-signature" ) {  //hgu - fix for signatures
         if ( !header()->contentType() ) {
             ::log( "Bodypart::asText - contentType empty, using text", Log::Debug );
         } else {
@@ -778,8 +779,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             // there may be exceptions. cases where some format really
             // needs another content-transfer-encoding:
             if ( ct->type() == "application" &&
-                 ct->subtype().startsWith( "pgp-" ) ) {
-                // hgu: temporary:  &&  !body.needsQP() ) {
+                 ct->subtype().startsWith( "pgp-" ) ) { // hgu: removed:  &&  !body.needsQP() ) {
                 ::log( "Bodypart::parseBodypart - 'pgp-' encountered", Log::Debug );
                 // seems some PGP things need "Version: 1" unencoded
                 e = EString::Binary;

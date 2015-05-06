@@ -627,7 +627,7 @@ void ContentTransferEncoding::parse( const EString &s )
 void ContentTransferEncoding::setEncoding( EString::Encoding en )
 {
     e = en;
-    ::log( "ContentTransferEncoding::setEncoding=" + baseValue(), Log::Debug );
+    // hgu-temporary commented   ::log( "ContentTransferEncoding::setEncoding=" + baseValue(), Log::Debug );
 }
 
 

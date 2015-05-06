@@ -183,7 +183,7 @@ void Multipart::appendTextPart( EString & r, const Bodypart * bp,
 
     EString body = c->fromUnicode( bp->text() );
 
-    ::log( "Multipart::appendTextPart - encoding" + cte->baseValue() + "text:" + body, Log::Debug );
+    // hgu rework call to baseValue    ::log( "Multipart::appendTextPart - encoding" + cte->baseValue() + "text:" + body, Log::Debug );
     r.append( body.encoded( e, 72 ) );
 }
 
