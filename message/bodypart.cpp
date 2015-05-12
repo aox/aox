@@ -333,7 +333,7 @@ void Bodypart::parseMultipart( uint i, uint end,
                                List< Bodypart > * children,
                                Multipart * parent )
 {
-    ::log( "Bodypart::parseMultipart", Log::Debug );
+    ::log( "Bodypart::parseMultipart - text:" + rfc2822, Log::Debug );
     uint start = 0;
     bool last = false;
     uint pn = 1;

@@ -277,8 +277,8 @@ void MimeField::parseParameters( EmailParser *p )
 
 EString MimeField::rfc822( bool ) const
 {
-    ::log( "MimeField::rfc822", Log::Debug );
     EString s = baseValue();
+    ::log( "MimeField::rfc822 :" + s, Log::Debug );
     uint lineLength = name().length() + 2 + s.length();
 
     EStringList words;
@@ -363,7 +363,7 @@ ContentType::~ContentType()
 
 void ContentType::parse( const EString &s )
 {
-    ::log( "ContentType::parse", Log::Debug );
+    ::log( "ContentType::parse - text:" + s, Log::Debug );
     EmailParser p( s );
     p.whitespace();
     while ( p.present( ":" ) )
