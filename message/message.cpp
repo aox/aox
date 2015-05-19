@@ -97,6 +97,10 @@ void Message::parse( const EString & rfc2822 )
     ContentType * ct = header()->contentType();
     if ( ct && ct->type() == "multipart" ) {
         ::log( "Message::parse - will parseMultipart", Log::Debug );
+        if ( ct->subtype() == "signed" ) {
+            ::log( "   Message::parse - have multipart/signed", Log::Debug );
+            ::log( "   ***** hgu: possible place to store part number 0 *****", Log::Debug );
+        }
         Bodypart::parseMultipart( i, rfc2822.length(), rfc2822,
                                   ct->parameter( "boundary" ),
                                   ct->subtype() == "digest",
