@@ -37,6 +37,7 @@ public:
     EString data;
     UString text;
     bool hasText;
+    bool isPgpSigned;
     EString error;
 };
 
@@ -62,6 +63,7 @@ Bodypart::Bodypart()
     : d ( new BodypartData )
 {
     setHeader( new Header( Header::Mime ) );
+    setPgpSigned( false );
 }
 
 
@@ -73,6 +75,7 @@ Bodypart::Bodypart( uint n, Multipart * p )
     setHeader( new Header( Header::Mime ) );
     d->number = n;
     setParent( p );
+    setPgpSigned( false );
 }
 
 
@@ -331,9 +334,14 @@ void Bodypart::parseMultipart( uint i, uint end,
                                const EString & divider,
                                bool digest,
                                List< Bodypart > * children,
-                               Multipart * parent )
+                               Multipart * parent,
+                               bool isPgpSigned )
 {
-    ::log( "Bodypart::parseMultipart - text:" + rfc2822, Log::Debug );
+    ::log( "Bodypart::parseMultipart - text:" + rfc2822.mid(i, end - i), Log::Debug );
+    if ( isPgpSigned ) 
+        ::log( "Bodypart::parseMultipart - signed-flag:true", Log::Debug );
+    else
+        ::log( "Bodypart::parseMultipart - signed-flag:false", Log::Debug );
     uint start = 0;
     bool last = false;
     uint pn = 1;
@@ -385,7 +393,7 @@ void Bodypart::parseMultipart( uint i, uint end,
 
                     ::log( "Bodypart::parseMultipart - will parseBodypart", Log::Debug );
                     Bodypart * bp =
-                        parseBodypart( start, i, rfc2822, h, parent );
+                        parseBodypart( start, i, rfc2822, h, parent, isPgpSigned );
                     bp->d->number = pn;
                     children->append( bp );
                     pn++;
@@ -545,10 +553,14 @@ static Codec * guessHtmlCodec( const EString & body )
 
 Bodypart * Bodypart::parseBodypart( uint start, uint end,
                                     const EString & rfc2822,
-                                    Header * h, Multipart * parent )
+                                    Header * h, Multipart * parent, bool isPgpSigned )
 {
-    ::log( "Bodypart::parseBodypart - text:" + rfc2822, Log::Debug );
+    ::log( "Bodypart::parseBodypart - text:" + rfc2822.mid(start, end - start), Log::Debug );
     ::log( "Bodypart::parseBodypart - header:" + h->asText(false), Log::Debug );
+    if ( isPgpSigned ) 
+        ::log( "Bodypart::parseBodypart - signed-flag:true", Log::Debug );
+    else
+        ::log( "Bodypart::parseBodypart - signed-flag:false", Log::Debug );
     if ( rfc2822[start] == 13 )
         start++;
     if ( rfc2822[start] == 10 )
@@ -815,7 +827,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         parseMultipart( start, end, rfc2822,
                         ct->parameter( "boundary" ),
                         ct->subtype() == "digest",
-                        bp->children(), bp );
+                        bp->children(), bp , isPgpSigned);
     }
     else if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
         // There are sometimes blank lines before the message.
@@ -897,4 +909,14 @@ bool Bodypart::isBodypart() const
 EString Bodypart::error() const
 {
     return d->error;
+}
+
+bool Bodypart::isPgpSigned()
+{
+    return d->isPgpSigned;
+}
+
+void Bodypart::setPgpSigned( bool isSigned )
+{
+    d->isPgpSigned = isSigned;
 }
