@@ -205,7 +205,7 @@ Header * Message::parseHeader( uint & i, uint end,
                                const EString & rfc2822,
                                Header::Mode m )
 {
-    ::log( "Message::parseHeader - " + rfc2822, Log::Debug );
+    ::log( "Message::parseHeader - " + rfc2822.mid(i, end - i), Log::Debug );
     Header * h = new Header( m );
     bool done = false;
     while ( !done ) {

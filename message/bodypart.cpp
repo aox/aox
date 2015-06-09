@@ -374,32 +374,47 @@ void Bodypart::parseMultipart( uint i, uint end,
                 if ( rfc2822[j] == 10 )
                     j++;
                 if ( start > 0 ) {
-                    ::log( "Bodypart::parseMultipart - will parseHeader", Log::Debug );
-                    Header * h = Message::parseHeader( start, j,
-                                                       rfc2822,
-                                                       Header::Mime );
-                    if ( digest )
-                        h->setDefaultType( Header::MessageRfc822 );
-
-                    ::log( "Bodypart::parseMultipart - will repair header:" + h->asText(false), Log::Debug );
-                    h->repair();
-
-                    // Strip the [CR]LF that belongs to the boundary.
-                    if ( rfc2822[i-1] == 10 ) {
-                        i--;
-                        if ( rfc2822[i-1] == 13 )
+                    if ( isPgpSigned ) {
+                        ::log( "**** hgu **** adding signed bodypart, end:%ld" + j, Log::Debug );
+                        ::log( "sgn:" + rfc2822.mid(start, j - start),Log::Debug );
+                        Bodypart * bp = new Bodypart;
+                        bp->setParent( parent );
+                        Header * h = new Header( Header::Mime );
+                        bp->setHeader( h );
+                        bp->d->data = rfc2822.mid(start, j - start);
+                        bp->d->numBytes = j - start;
+                        bp->d->number = pn;
+                        children->append( bp );
+                        pn++;
+                        ::log( "**** hgu **** adding signed bodypart completed", Log::Debug );
+                    } else {
+                        ::log( "Bodypart::parseMultipart - will parseHeader", Log::Debug );
+                        Header * h = Message::parseHeader( start, j,
+                                                           rfc2822,
+                                                           Header::Mime );
+                        if ( digest )
+                            h->setDefaultType( Header::MessageRfc822 );
+    
+                        ::log( "Bodypart::parseMultipart - will repair header:" + h->asText(false), Log::Debug );
+                        h->repair();
+    
+                        // Strip the [CR]LF that belongs to the boundary.
+                        if ( rfc2822[i-1] == 10 ) {
                             i--;
+                            if ( rfc2822[i-1] == 13 )
+                                i--;
+                        }
+    
+                        ::log( "Bodypart::parseMultipart - will parseBodypart", Log::Debug );
+                        Bodypart * bp =
+                            parseBodypart( start, i, rfc2822, h, parent, isPgpSigned );
+                        bp->d->number = pn;
+                        children->append( bp );
+                        pn++;
+    
+                        ::log( "Bodypart::parseMultipart - will repair header:" + bp->asText(false), Log::Debug );
+                        h->repair( bp, "" );
                     }
-
-                    ::log( "Bodypart::parseMultipart - will parseBodypart", Log::Debug );
-                    Bodypart * bp =
-                        parseBodypart( start, i, rfc2822, h, parent, isPgpSigned );
-                    bp->d->number = pn;
-                    children->append( bp );
-                    pn++;
-
-                    ::log( "Bodypart::parseMultipart - will repair header:" + bp->asText(false), Log::Debug );
-                    h->repair( bp, "" );
                 }
                 last = l;
                 start = j;
