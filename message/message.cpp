@@ -111,7 +111,7 @@ void Message::parse( const EString & rfc2822 )
     else {
         ::log( "Message::parse - will parseBodypart", Log::Debug );
         Bodypart * bp = Bodypart::parseBodypart( i, rfc2822.length(), rfc2822,
-                                                 header(), this, false );
+                                                 header(), this );
         children()->append( bp );
     }
 

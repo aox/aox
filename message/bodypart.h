@@ -52,7 +52,7 @@ public:
     EString error() const;
 
     static Bodypart *parseBodypart( uint, uint, const EString &,
-                                    Header *, Multipart *, bool );
+                                    Header *, Multipart * );
 
     static void parseMultipart( uint, uint, const EString &,
                                 const EString &, bool,
