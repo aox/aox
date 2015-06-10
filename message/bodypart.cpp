@@ -20,7 +20,7 @@ class BodypartData
 {
 public:
     BodypartData()
-        : id( 0 ), number( 1 ), message( 0 ),
+        : id( 0 ), number( 0 ), message( 0 ),
           numBytes( 0 ), numEncodedBytes(), numEncodedLines( 0 ),
           hasText( false )
     {}
