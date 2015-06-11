@@ -335,8 +335,9 @@ void Bodypart::parseMultipart( uint i, uint end,
                                bool digest,
                                List< Bodypart > * children,
                                Multipart * parent,
-                               bool isPgpSigned )
+                               bool pgpSigned )
 {
+    bool isPgpSigned = pgpSigned;
     ::log( "Bodypart::parseMultipart - text:" + rfc2822.mid(i, end - i), Log::Debug );
     if ( isPgpSigned ) 
         ::log( "Bodypart::parseMultipart - signed-flag:true", Log::Debug );
@@ -374,19 +375,6 @@ void Bodypart::parseMultipart( uint i, uint end,
                 if ( rfc2822[j] == 10 )
                     j++;
                 if ( start > 0 ) {
-                    if ( isPgpSigned ) {
-                        ::log( "**** hgu **** adding signed bodypart, end:%ld" + j, Log::Debug );
-                        ::log( "sgn:" + rfc2822.mid(start, j - start),Log::Debug );
-                        Bodypart * bp = new Bodypart;
-                        bp->setParent( parent );
-                        Header * h = new Header( Header::Mime );
-                        bp->setHeader( h );
-                        bp->d->data = rfc2822.mid(start, j - start);
-                        bp->d->numBytes = j - start;
-                        bp->d->number = 0;
-                        children->append( bp );
-                        ::log( "**** hgu **** adding signed bodypart #0 completed", Log::Debug );
-                    }
                     ::log( "Bodypart::parseMultipart - will parseHeader", Log::Debug );
                     Header * h = Message::parseHeader( start, j,
                                                        rfc2822,
@@ -394,6 +382,16 @@ void Bodypart::parseMultipart( uint i, uint end,
                     if ( digest )
                         h->setDefaultType( Header::MessageRfc822 );
     
+                    if ( isPgpSigned ) {
+                        ::log( "**** hgu **** adding signed bodypart:" + rfc2822.mid(start, j - start),Log::Debug );
+                        Bodypart * bpt = new Bodypart( 0, parent );
+                        bpt->setHeader( h );
+                        bpt->setData( rfc2822.mid(start, j - start) );
+                        bpt->setNumBytes( j - start );
+                        children->append( bpt );
+                        ::log( "**** hgu **** adding signed bodypart #0 completed", Log::Debug );
+                        isPgpSigned = false;
+                    }
                     ::log( "Bodypart::parseMultipart - will repair header:" + h->asText(false), Log::Debug );
                     h->repair();
     

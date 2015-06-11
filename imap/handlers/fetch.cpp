@@ -1347,6 +1347,9 @@ EString Fetch::bodyStructure( Multipart * m, bool extended )
     ContentType * ct = hdr->contentType();
 
     if ( ct && ct->type() == "multipart" ) {
+        if ( ct->subtype() == "signed" ) {
+            log( "Fetch::bodyStructure - have multipart/signed", Log::Debug );
+        }
         EStringList children;
         List< Bodypart >::Iterator it( m->children() );
         while ( it ) {
