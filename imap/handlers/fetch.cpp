@@ -1379,6 +1379,7 @@ EString Fetch::bodyStructure( Multipart * m, bool extended )
         r = singlePartStructure( (Bodypart*)m, extended );
     }
 
+    log( "Fetch::bodyStructure - returned structure:" + r, Log::Debug );
     return r;
 }
 

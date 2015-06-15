@@ -375,26 +375,23 @@ void Bodypart::parseMultipart( uint i, uint end,
                 if ( rfc2822[j] == 10 )
                     j++;
                 if ( start > 0 ) {
+                    if ( isPgpSigned ) {
+                        ::log( "**** hgu **** signed mail, adding complete body:" + rfc2822.mid(i, end - i),Log::Debug );
+                        Bodypart * bpt = new Bodypart( 0, parent );
+                        bpt->setPgpSigned( true );  // really needed ?
+                        bpt->setData( rfc2822.mid(i, end - i) );
+                        bpt->setNumBytes( end - i );
+                        children->append( bpt );
+                        ::log( "**** hgu **** adding signed mail body completed", Log::Debug );
+                        isPgpSigned = false;
+                    }
                     ::log( "Bodypart::parseMultipart - will parseHeader", Log::Debug );
-                    // hgu - remember start as parseHeader will destroy it
-                    uint sigstart = start;
                     Header * h = Message::parseHeader( start, j,
                                                        rfc2822,
                                                        Header::Mime );
                     if ( digest )
                         h->setDefaultType( Header::MessageRfc822 );
     
-                    if ( isPgpSigned ) {
-                        ::log( "**** hgu **** adding signed bodypart:" + rfc2822.mid(sigstart, j - sigstart),Log::Debug );
-                        Bodypart * bpt = new Bodypart( 0, parent );
-                        bpt->setPgpSigned( true );
-                        bpt->setHeader( h );    // hgu - we try to skip this header in injector
-                        bpt->setData( rfc2822.mid(sigstart, j - sigstart) );
-                        bpt->setNumBytes( j - sigstart );
-                        children->append( bpt );
-                        ::log( "**** hgu **** adding signed bodypart #0 completed", Log::Debug );
-                        isPgpSigned = false;
-                    }
                     ::log( "Bodypart::parseMultipart - will repair header:" + h->asText(false), Log::Debug );
                     h->repair();
     

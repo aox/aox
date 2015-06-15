@@ -387,6 +387,7 @@ class Bodypart * Message::bodypart( const EString & s, bool create )
         b = e + 1;
         if ( !inrange || n == 0 ) {
             // TBD hgu - do we need to support part number 0 ?
+            // TDB hgu - n=0 is also returned in error case, but inrange is false in that case anyway
             return 0;
         }
         List<Bodypart> * c = children();
