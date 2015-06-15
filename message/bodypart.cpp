@@ -385,7 +385,8 @@ void Bodypart::parseMultipart( uint i, uint end,
                     if ( isPgpSigned ) {
                         ::log( "**** hgu **** adding signed bodypart:" + rfc2822.mid(start, j - start),Log::Debug );
                         Bodypart * bpt = new Bodypart( 0, parent );
-                        bpt->setHeader( h );
+                        bpt->setPgpSigned( true );
+                        // hgu - setting Header here doubles header in db -  bpt->setHeader( h );
                         bpt->setData( rfc2822.mid(start, j - start) );
                         bpt->setNumBytes( j - start );
                         children->append( bpt );

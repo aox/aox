@@ -385,8 +385,10 @@ class Bodypart * Message::bodypart( const EString & s, bool create )
         bool inrange = false;
         uint n = s.mid( b, e-b ).number( &inrange );
         b = e + 1;
-        if ( !inrange || n == 0 )
+        if ( !inrange || n == 0 ) {
+            // TBD hgu - do we need to support part number 0 ?
             return 0;
+        }
         List<Bodypart> * c = children();
         if ( bp )
             c = bp->children();
@@ -430,7 +432,6 @@ class Bodypart * Message::bodypart( const EString & s, bool create )
 
 EString Message::partNumber( Bodypart * bp ) const
 {
-    ::log( "Message::partNumber", Log::Debug );
     Multipart * m = bp;
 
     EString r;
@@ -448,11 +449,12 @@ EString Message::partNumber( Bodypart * bp ) const
             ++i;
             ++n;
         }
-        if ( !i )
+        if ( !i )        
             return "";
         r = fn( n ) + r;
         m = parent;
     }
+    ::log( "Message::partNumber - returned:" + r, Log::Debug );
     return r;
 }
 

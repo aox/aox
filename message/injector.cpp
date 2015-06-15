@@ -1591,8 +1591,10 @@ void Injector::insertMessages()
 
         bool skip = false;
         ContentType *ct = m->header()->contentType();
-        if ( !ct || ct->type() != "multipart" )
+        if ( !ct || ct->type() != "multipart" ) {
+            // TBD - hgu - possible skip for first header when multipart/signed ?
             skip = true;
+        }
 
         // Now we insert the headers and bodies of every MIME bodypart.
 
@@ -1601,6 +1603,7 @@ void Injector::insertMessages()
             Bodypart * b = bi;
             EString pn( m->partNumber( b ) );
 
+            ::log( "Injector::insertMessages - adding partnumber: " + pn, Log::Debug );
             addPartNumber( qp, mid, pn, b );
             if ( !skip )
                 addHeader( qh, qa, qd, mid, pn, b->header() );
@@ -1611,6 +1614,7 @@ void Injector::insertMessages()
 
             if ( b->message() ) {
                 EString rpn( pn + ".rfc822" );
+                ::log( "Injector::insertMessages - adding partnumber " + rpn, Log::Debug );
                 addPartNumber( qp, mid, rpn, b );
                 addHeader( qh, qa, qd, mid, rpn, b->message()->header() );
             }
