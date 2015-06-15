@@ -1591,8 +1591,9 @@ void Injector::insertMessages()
 
         bool skip = false;
         ContentType *ct = m->header()->contentType();
-        if ( !ct || ct->type() != "multipart" ) {
-            // TBD - hgu - possible skip for first header when multipart/signed ?
+        // if ( !ct || ct->type() != "multipart" ) {
+        if ( !ct || ct->type() != "multipart" || ( ct->type() == "multipart" && ct->subtype() == "signed" ) ) {
+            // hgu - skip header when multipart/signed
             skip = true;
         }
 
