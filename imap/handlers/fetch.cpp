@@ -1345,15 +1345,21 @@ EString Fetch::bodyStructure( Multipart * m, bool extended )
 
     Header * hdr = m->header();
     ContentType * ct = hdr->contentType();
+    bool inMultipartSigned = false;
 
     if ( ct && ct->type() == "multipart" ) {
         if ( ct->subtype() == "signed" ) {
             log( "Fetch::bodyStructure - have multipart/signed", Log::Debug );
+            inMultipartSigned = true;
         }
         EStringList children;
         List< Bodypart >::Iterator it( m->children() );
         while ( it ) {
             children.append( bodyStructure( it, extended ) );
+            if ( inMultipartSigned ) {
+                ++it; // skip next child-structure, as we appended it already raw
+                inMultipartSigned = false;
+            }
             ++it;
         }
 

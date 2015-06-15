@@ -375,7 +375,7 @@ void Bodypart::parseMultipart( uint i, uint end,
                 if ( rfc2822[j] == 10 )
                     j++;
                 if ( start > 0 ) {
-                    uint sigstart = start;  // hgu - remember were we started
+                    uint sigstart = start;  // remember original start
                     ::log( "Bodypart::parseMultipart - will parseHeader", Log::Debug );
                     Header * h = Message::parseHeader( start, j,
                                                        rfc2822,
@@ -394,6 +394,7 @@ void Bodypart::parseMultipart( uint i, uint end,
                     }
     
                     if ( isPgpSigned ) {
+                        // store the complete to-be-signed part, incl. header(s), to keep the unchanged version
                         ::log( "**** hgu **** signed mail, adding complete body:" + rfc2822.mid(sigstart, i - start),Log::Debug );
                         Bodypart * bpt = new Bodypart( 0, parent );
                         bpt->setPgpSigned( true );  // really needed ?
