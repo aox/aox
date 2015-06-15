@@ -376,11 +376,11 @@ void Bodypart::parseMultipart( uint i, uint end,
                     j++;
                 if ( start > 0 ) {
                     if ( isPgpSigned ) {
-                        ::log( "**** hgu **** signed mail, adding complete body:" + rfc2822.mid(i, end - i),Log::Debug );
+                        ::log( "**** hgu **** signed mail, adding complete body:" + rfc2822.mid(start, end - start),Log::Debug );
                         Bodypart * bpt = new Bodypart( 0, parent );
                         bpt->setPgpSigned( true );  // really needed ?
-                        bpt->setData( rfc2822.mid(i, end - i) );
-                        bpt->setNumBytes( end - i );
+                        bpt->setData( rfc2822.mid(start, end - start) );
+                        bpt->setNumBytes( end - start );
                         children->append( bpt );
                         ::log( "**** hgu **** adding signed mail body completed", Log::Debug );
                         isPgpSigned = false;
