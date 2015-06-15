@@ -375,16 +375,7 @@ void Bodypart::parseMultipart( uint i, uint end,
                 if ( rfc2822[j] == 10 )
                     j++;
                 if ( start > 0 ) {
-                    if ( isPgpSigned ) {
-                        ::log( "**** hgu **** signed mail, adding complete body:" + rfc2822.mid(start, end - start),Log::Debug );
-                        Bodypart * bpt = new Bodypart( 0, parent );
-                        bpt->setPgpSigned( true );  // really needed ?
-                        bpt->setData( rfc2822.mid(start, end - start) );
-                        bpt->setNumBytes( end - start );
-                        children->append( bpt );
-                        ::log( "**** hgu **** adding signed mail body completed", Log::Debug );
-                        isPgpSigned = false;
-                    }
+                    uint sigstart = start;  // hgu - remember were we started
                     ::log( "Bodypart::parseMultipart - will parseHeader", Log::Debug );
                     Header * h = Message::parseHeader( start, j,
                                                        rfc2822,
@@ -402,6 +393,17 @@ void Bodypart::parseMultipart( uint i, uint end,
                             i--;
                     }
     
+                    if ( isPgpSigned ) {
+                        ::log( "**** hgu **** signed mail, adding complete body:" + rfc2822.mid(sigstart, i - start),Log::Debug );
+                        Bodypart * bpt = new Bodypart( 0, parent );
+                        bpt->setPgpSigned( true );  // really needed ?
+                        bpt->setData( rfc2822.mid(sigstart, i - sigstart) );
+                        bpt->setNumBytes( i - sigstart );
+                        children->append( bpt );
+                        ::log( "**** hgu **** adding signed mail body completed", Log::Debug );
+                        isPgpSigned = false;
+                    }
+  
                     ::log( "Bodypart::parseMultipart - will parseBodypart", Log::Debug );
                     Bodypart * bp =
                         parseBodypart( start, i, rfc2822, h, parent );
