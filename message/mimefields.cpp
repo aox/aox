@@ -97,12 +97,13 @@ EString MimeField::parameterString() const
 EString MimeField::parameter( const EString &n ) const
 {
     EString s = n.lower();
-    ::log( "MimeField::parameter: " + s, Log::Debug );
     List< MimeFieldData::Parameter >::Iterator it( d->parameters );
     while ( it && s != it->name )
         ++it;
-    if ( it )
+    if ( it ) {
+        ::log( "MimeField::parameter: " + s + " returns:" + it->value, Log::Debug );
         return it->value;
+    }
     return "";
 }
 

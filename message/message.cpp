@@ -318,7 +318,11 @@ EString Message::body( bool avoidUtf8 ) const
 
     ContentType *ct = header()->contentType();
     if ( ct && ct->type() == "multipart" ) {
-        ::log( "Message::body - will appendMultipart", Log::Debug );
+        if ( ct->subtype() == "signed" ) {
+            ::log( "Message::body - will appendMultipart signed", Log::Debug );
+        } else {
+            ::log( "Message::body - will appendMultipart", Log::Debug );
+        }
         appendMultipart( r, avoidUtf8 );
     }
     else {

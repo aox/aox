@@ -1346,7 +1346,11 @@ EString Fetch::bodyStructure( Multipart * m, bool extended )
     Header * hdr = m->header();
     ContentType * ct = hdr->contentType();
     bool inMultipartSigned = false;
-
+    if ( extended ) {
+        log( "Fetch::bodyStructure - extended", Log::Debug );
+    } else {
+        log( "Fetch::bodyStructure - plain", Log::Debug );
+    }
     if ( ct && ct->type() == "multipart" ) {
         if ( ct->subtype() == "signed" ) {
             log( "Fetch::bodyStructure - have multipart/signed", Log::Debug );
@@ -1355,11 +1359,22 @@ EString Fetch::bodyStructure( Multipart * m, bool extended )
         EStringList children;
         List< Bodypart >::Iterator it( m->children() );
         while ( it ) {
-            children.append( bodyStructure( it, extended ) );
             if ( inMultipartSigned ) {
+                log( "Fetch::bodyStructure - multipart/signed, skipping part 1", Log::Debug );
                 ++it; // skip next child-structure, as we appended it already raw
                 inMultipartSigned = false;
             }
+            Header * h = it->header();
+            if ( h ) {
+                ContentType * cty = h->contentType();
+                if ( cty ) {
+                    log( "Fetch::bodyStructure - append child, ct:" + cty->type() +
+                             "/" + cty->subtype(),  Log::Debug );
+                } else {
+                    log( "Fetch::bodyStructure - append child", Log::Debug );
+                }
+            }
+            children.append( bodyStructure( it, extended ) );
             ++it;
         }
 
@@ -1382,6 +1397,8 @@ EString Fetch::bodyStructure( Multipart * m, bool extended )
         r.append( ")" );
     }
     else {
+        log( "Fetch::bodyStructure - calling singlePartStructure", Log::Debug );
+
         r = singlePartStructure( (Bodypart*)m, extended );
     }
 
@@ -1452,6 +1469,7 @@ EString Fetch::singlePartStructure( Multipart * mp, bool extended )
             // body-type-msg   = media-message SP body-fields SP envelope
             //                   SP body SP body-fld-lines
             l.append( envelope( bp->message() ) );
+            log( "Fetch::singlePartStructure - calling bodyStructure", Log::Debug );
             l.append( bodyStructure( bp->message(), extended ) );
             l.append( fn ( bp->numEncodedLines() ) );
         }
