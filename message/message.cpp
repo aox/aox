@@ -91,11 +91,14 @@ void Message::parse( const EString & rfc2822 )
     header()->repair( this, rfc2822.mid( i ) );
 
     ContentType * ct = header()->contentType();
+    bool isPgpSigned = false;
     if ( ct && ct->type() == "multipart" ) {
+        if ( ct->subtype() == "signed" )
+            isPgpSigned = true;
         Bodypart::parseMultipart( i, rfc2822.length(), rfc2822,
                                   ct->parameter( "boundary" ),
                                   ct->subtype() == "digest",
-                                  children(), this );
+                                  children(), this, isPgpSigned );
     }
     else {
         Bodypart * bp = Bodypart::parseBodypart( i, rfc2822.length(), rfc2822,
