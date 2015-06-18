@@ -19,7 +19,7 @@
 #include "codec.h"
 #include "date.h"
 #include "utf.h"
-#include "log.h"
+
 
 
 static const char *crlf = "\015\012";
@@ -115,7 +115,6 @@ EString Header::error() const
 
 void Header::add( HeaderField * hf )
 {
-    ::log( "Header::add - name:" + hf->name(), Log::Debug );
     HeaderField::Type t = hf->type();
 
     if ( t == HeaderField::To || t == HeaderField::Cc ||
@@ -157,7 +156,6 @@ void Header::add( HeaderField * hf )
 
 void Header::add( const EString &name, const EString &value )
 {
-    ::log( "Header::add - create name:" + name + "=" + value, Log::Debug );
     add( HeaderField::create( name, value ) );
 }
 
@@ -169,12 +167,8 @@ void Header::removeField( HeaderField::Type t )
 {
     List<HeaderField>::Iterator it( d->fields );
     while ( it ) {
-        if ( it->type() == t ) {
-            ::log( "Header::removeField - type:", Log::Debug );
-            ::log( HeaderField::fieldName(t), Log::Debug );
-            ::log( "Header::removeField - name:" + it->name(), Log::Debug );
+        if ( it->type() == t )
             d->fields.take( it );
-        }
         else
             ++it;
     }
@@ -189,8 +183,6 @@ void Header::removeField( HeaderField::Type t )
 
 void Header::removeField( const char * n )
 {
-    ::log( "Header::removeField - name:", Log::Debug );
-    // ::log( n, Log::Debug );
     List<HeaderField>::Iterator it( d->fields );
     while ( it ) {
         if ( it->name() == n )
@@ -573,7 +565,6 @@ static bool sameAddresses( AddressField *a, AddressField *b )
 
 void Header::simplify()
 {
-    ::log( "Header::simplify", Log::Debug );
     if ( !valid() )
         return;
 
@@ -587,15 +578,13 @@ void Header::simplify()
 
     HeaderField *cde = field( HeaderField::ContentDescription );
     if ( cde && cde->rfc822( false ).isEmpty() ) {
-        ::log( "Header::simplify - removeField Content-Description", Log::Debug );
         removeField( HeaderField::ContentDescription );
         cde = 0;
     }
 
     ContentTransferEncoding *cte = contentTransferEncoding();
-    if ( cte && cte->encoding() == EString::Binary ) {
+    if ( cte && cte->encoding() == EString::Binary )
         removeField( HeaderField::ContentTransferEncoding );
-    }
 
     ContentDisposition *cdi = contentDisposition();
     if ( cdi ) {
@@ -605,7 +594,6 @@ void Header::simplify()
              cdi->disposition() == ContentDisposition::Inline &&
              cdi->parameters()->isEmpty() )
         {
-            ::log( "Header::simplify - removeField ContentDisposition", Log::Debug );
             removeField( HeaderField::ContentDisposition );
             cdi = 0;
         }
@@ -616,40 +604,32 @@ void Header::simplify()
         if ( ct->parameters()->isEmpty() && cte == 0 && cdi == 0 && cde == 0 &&
              d->defaultType == TextPlain &&
              ct->type() == "text" && ct->subtype() == "plain" ) {
-            ::log( "Header::simplify - removeField ContentType", Log::Debug );
             removeField( HeaderField::ContentType );
             ct = 0;
         }
     }
     else if ( d->defaultType == MessageRfc822 ) {
-        ::log( "Header::simplify - add Content-Type=message/rfc822", Log::Debug );
         add( "Content-Type", "message/rfc822" );
         ct = contentType();
     }
 
     if ( mode() == Mime ) {
-        ::log( "Header::simplify - removeField MimeVersion (1)", Log::Debug );
         removeField( HeaderField::MimeVersion );
     }
     else if ( ct == 0 && cte == 0 && cde == 0 && cdi == 0 &&
          !field( HeaderField::ContentLocation ) &&
          !field( "Content-Base" ) ) {
-        ::log( "Header::simplify - removeField MimeVersion (2)", Log::Debug );
         removeField( HeaderField::MimeVersion );
     }
     else {
-        if ( mode() == Rfc2822 && !field( HeaderField::MimeVersion ) ) {
-            ::log( "Header::simplify - add MimeVersion", Log::Debug );
+        if ( mode() == Rfc2822 && !field( HeaderField::MimeVersion ) )
             add( "Mime-Version", "1.0" );
-        }
     }
     if ( ct &&
          ( ct->type() == "multipart" || ct->type() == "message" ||
            ct->type() == "image" || ct->type() == "audio" ||
-           ct->type() == "video" ) ) {
-        ::log( "Header::simplify - removeParameter charset", Log::Debug );
+           ct->type() == "video" ) )
         ct->removeParameter( "charset" );
-    }
 
     if ( field( "Errors-To" ) ) {
         EString et = field( "Errors-To" )->value().ascii();
@@ -693,15 +673,12 @@ void Header::simplify()
 
 void Header::repair()
 {
-    if ( valid() ) {
-        ::log( "Header::repair plain - nothing to repair", Log::Debug );
+    if ( valid() )
         return;
-    }
 
     // We remove duplicates of any field that may occur only once.
     // (Duplication has been observed for Date/Subject/M-V/C-T-E/C-T/M-I.)
 
-    ::log( "Header::repair plain - repair things", Log::Debug );
     uint occurrences[ (int)HeaderField::Other ];
     int i = 0;
     while ( i < HeaderField::Other )
@@ -888,12 +865,9 @@ void Header::repair()
 
 void Header::repair( Multipart * p, const EString & body )
 {
-    if ( valid() ) {
-        ::log( "Header::repair multipart - nothing to repair", Log::Debug );
+    if ( valid() )
         return;
-    }
 
-    ::log( "Header::repair multipart - repair things", Log::Debug );
     // Duplicated from above.
     uint occurrences[ (int)HeaderField::Other ];
     int i = 0;
@@ -1494,7 +1468,7 @@ void Header::repair( Multipart * p, const EString & body )
         Bodypart::parseMultipart( 0, body.length(), body,
                                   ct->parameter( "boundary" ),
                                   false,
-                                  tmp->children(), tmp, false ); // hgu: TDB: temporary, RETHINK !!
+                                  tmp->children(), tmp, false );
         List<Bodypart>::Iterator i( tmp->children() );
         Address * postmaster = 0;
         while ( i && !postmaster ) {
@@ -1856,7 +1830,6 @@ static int msgidness( const Address * a )
 
 void Header::fix8BitFields( class Codec * c )
 {
-    ::log( "Header::fix8BitFields", Log::Debug );
     d->verified = false;
 
     Utf8Codec utf8;

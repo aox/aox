@@ -58,9 +58,6 @@ public:
                                 const EString &, bool,
                                 List< Bodypart > *, Multipart *, bool );
 
-    bool isPgpSigned();
-    void setPgpSigned( bool );
-
 private:
     class BodypartData * d;
     friend class Message;
