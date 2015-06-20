@@ -19,7 +19,7 @@ class BodypartData
 {
 public:
     BodypartData()
-        : id( 0 ), number( 0 ), message( 0 ),
+        : id( 0 ), number( 1 ), message( 0 ),
           numBytes( 0 ), numEncodedBytes(), numEncodedLines( 0 ),
           hasText( false )
     {}
@@ -36,7 +36,6 @@ public:
     EString data;
     UString text;
     bool hasText;
-    bool isPgpSigned;
     EString error;
 };
 
@@ -62,7 +61,6 @@ Bodypart::Bodypart()
     : d ( new BodypartData )
 {
     setHeader( new Header( Header::Mime ) );
-    setPgpSigned( false );
 }
 
 
@@ -74,7 +72,6 @@ Bodypart::Bodypart( uint n, Multipart * p )
     setHeader( new Header( Header::Mime ) );
     d->number = n;
     setParent( p );
-    setPgpSigned( false );
 }
 
 
@@ -372,7 +369,6 @@ void Bodypart::parseMultipart( uint i, uint end,
                     if ( isPgpSigned ) {
                         // store the complete to-be-signed part, incl. header(s), to keep the unchanged version
                         Bodypart * bpt = new Bodypart( 0, parent );
-                        bpt->setPgpSigned( true );  // really needed ?
                         bpt->setData( rfc2822.mid(sigstart, i - sigstart) );
                         bpt->setNumBytes( i - sigstart );
                         children->append( bpt );
@@ -750,7 +746,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             // there may be exceptions. cases where some format really
             // needs another content-transfer-encoding:
             if ( ct->type() == "application" &&
-                 ct->subtype().startsWith( "pgp-" ) ) { // hgu: removed:  &&  !body.needsQP() ) {
+                 ct->subtype().startsWith( "pgp-" ) &&
+                 !body.needsQP() ) {
                 // seems some PGP things need "Version: 1" unencoded
                 e = EString::Binary;
             }
@@ -859,14 +856,4 @@ bool Bodypart::isBodypart() const
 EString Bodypart::error() const
 {
     return d->error;
-}
-
-bool Bodypart::isPgpSigned()
-{
-    return d->isPgpSigned;
-}
-
-void Bodypart::setPgpSigned( bool isSigned )
-{
-    d->isPgpSigned = isSigned;
 }

@@ -104,9 +104,9 @@ void Multipart::appendMultipart( EString &r, bool avoidUtf8 ) const
         ++it;
         
         if ( isSigned ) {
-            ++it;
+            ++it;       // skip next part, we append it raw
             isSigned = false;
-            // we do not want our simple header, just append our raw text
+            // just append our raw text, header is contained
             appendAnyPart( r, bp, ct, avoidUtf8 );
         } else {
             r.append( bp->header()->asText( avoidUtf8 ) );
@@ -147,12 +147,15 @@ void Multipart::appendAnyPart( EString &r, const Bodypart * bp,
         else
             r.append( bp->message()->rfc822( avoidUtf8 ) );
     }
-    else if ( !childct || childct->type().lower() == "text" )
+    else if ( !childct || childct->type().lower() == "text" ) {
         appendTextPart( r, bp, childct );
-    else if ( childct->type() == "multipart" )
+    }
+    else if ( childct->type() == "multipart" ) {
         bp->appendMultipart( r, avoidUtf8 );
-    else
+    }
+    else {
         r.append( bp->data().encoded( e, 72 ) );
+    }
 }
 
 
