@@ -91,6 +91,10 @@ void Multipart::appendMultipart( EString &r, bool avoidUtf8 ) const
 {
     ContentType * ct = header()->contentType();
     EString delim = ct->parameter( "boundary" );
+    bool isSigned = false;
+    if ( ct->subtype() == "signed" ) {
+        isSigned = true;
+    }
     List<Bodypart>::Iterator it( children() );
     r.append( "--" + delim );
     while ( it ) {
@@ -98,11 +102,17 @@ void Multipart::appendMultipart( EString &r, bool avoidUtf8 ) const
 
         Bodypart * bp = it;
         ++it;
-
-        r.append( bp->header()->asText( avoidUtf8 ) );
-        r.append( crlf );
-        appendAnyPart( r, bp, ct, avoidUtf8 );
-
+        
+        if ( isSigned ) {
+            ++it;
+            isSigned = false;
+            // we do not want our simple header, just append our raw text
+            appendAnyPart( r, bp, ct, avoidUtf8 );
+        } else {
+            r.append( bp->header()->asText( avoidUtf8 ) );
+            r.append( crlf );
+            appendAnyPart( r, bp, ct, avoidUtf8 );
+        }
         r.append( crlf );
         r.append( "--" );
         r.append( delim );
@@ -137,15 +147,12 @@ void Multipart::appendAnyPart( EString &r, const Bodypart * bp,
         else
             r.append( bp->message()->rfc822( avoidUtf8 ) );
     }
-    else if ( !childct || childct->type().lower() == "text" ) {
+    else if ( !childct || childct->type().lower() == "text" )
         appendTextPart( r, bp, childct );
-    }
-    else if ( childct->type() == "multipart" ) {
+    else if ( childct->type() == "multipart" )
         bp->appendMultipart( r, avoidUtf8 );
-    }
-    else {
+    else
         r.append( bp->data().encoded( e, 72 ) );
-    }
 }
 
 
