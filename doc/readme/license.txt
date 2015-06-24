@@ -1,5 +1,4 @@
-Copyright (c) 2003-2009, Oryx Mail Systems GmbH ("Oryx") and its
-contributors.
+Copyright (c) 2003-2014, Archiveopteryx and its contributors.
 
 Permission to use, copy, modify, and distribute this software and its
 documentation for any purpose, without fee, and without a written
