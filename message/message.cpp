@@ -100,11 +100,9 @@ void Message::parse( const EString & rfc2822 )
                                   ct->subtype() == "digest",
                                   children(), this, isPgpSigned );
     }
-    else {
-        Bodypart * bp = Bodypart::parseBodypart( i, rfc2822.length(), rfc2822,
+    Bodypart * bp = Bodypart::parseBodypart( i, rfc2822.length(), rfc2822,
                                                  header(), this );
-        children()->append( bp );
-    }
+    children()->append( bp );
 
     fix8BitHeaderFields();
     header()->simplify();
