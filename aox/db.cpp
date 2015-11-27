@@ -14,6 +14,7 @@
 
 #include <stdio.h>
 
+#define MSGBLOCKCOUNT	"1000"
 
 static const char * versions[] = {
     "", "", "0.91", "0.92", "0.92", "0.92 to 0.93", // 0-5
@@ -161,49 +162,74 @@ Vacuum::Vacuum( EStringList * args )
 
 void Vacuum::execute()
 {
-    if ( !t ) {
-        parseOptions();
-        end();
-
-        database( true );
-        Mailbox::setup( this );
-        t = new Transaction( this );
+    if (!t) {
         uint days = Configuration::scalar( Configuration::UndeleteTime );
 
-        Query * q;
+        switch (qstate) {
+            case 0:
+                parseOptions();
+                end();
+                database( true );
+                qstate = 1;
+                log( "vacuum: delete from deliveries", Log::Significant );
+                do {
+                    q = new Query( "delete from deliveries "
+                                   "where injected_at<current_timestamp-'" +
+                                   fn( days ) + " days'::interval "
+                                   "and id in "
+                                   "(select delivery from delivery_recipients "
+                                   " where action not in ($1,$2) "
+                                   " limit "MSGBLOCKCOUNT") "
+                                   "and id not in "
+                                   "(select delivery from delivery_recipients "
+                                   " where action in ($1,$2))", this );
+                    q->bind( 1, Recipient::Unknown );
+                    q->bind( 2, Recipient::Delayed );
+                    q->execute();
+            case 1:
+                    if (!q->done())
+                        return;
+                } while (q->rows());
+                qstate = 2;
+                log( "vacuum: delete from deleted_messages", Log::Significant );
+                q = new Query( "delete from deleted_messages "
+                               "where deleted_at<current_timestamp-'" + fn( days ) +
+                               " days'::interval", this );
+                q->execute();
+            case 2:
+                if (!q->done())
+                    return;
+                qstate = 3;
+                log( "vacuum: delete from messages", Log::Significant );
+                do {
+                    q = new Query( "delete from messages where id in "
+                                   "(select m.id from messages m"
+                                   " left join mailbox_messages mm on (m.id=mm.message)"
+                                   " left join deleted_messages dm on (m.id=dm.message)"
+                                   " left join deliveries d on (m.id=d.message)"
+                                   " where mm.message is null and dm.message is null"
+                                   " and d.message is null "
+                                   " limit "MSGBLOCKCOUNT")", this );
+                    q->execute();
+            case 3:
+                    if (!q->done())
+                        return;
+                } while (q->rows());
+                qstate = 4;
+                log( "vacuum: delete from bodyparts", Log::Significant );
+                do {
+                    q = new Query( "delete from bodyparts where id in (select id "
+                                   "from bodyparts b left join part_numbers p on "
+                                   "(b.id=p.bodypart) where bodypart is null "
+                                   " limit "MSGBLOCKCOUNT")", this );
+                    q->execute();
+            case 4:
+                    if (!q->done())
+                        return;
+                } while (q->rows());
+        }
 
-        q = new Query( "delete from deliveries "
-                       "where injected_at<current_timestamp-'" +
-                       fn( days ) + " days'::interval "
-                       "and id in "
-                       "(select delivery from delivery_recipients "
-                       " where action!=$1 and action!=$2) "
-                       "and id not in "
-                       "(select delivery from delivery_recipients "
-                       " where action=$1 or action=$2)", 0 );
-        q->bind( 1, Recipient::Unknown );
-        q->bind( 2, Recipient::Delayed );
-        t->enqueue( q );
-
-        q = new Query( "delete from deleted_messages "
-                       "where deleted_at<current_timestamp-'" + fn( days ) +
-                       " days'::interval", 0 );
-        t->enqueue( q );
-
-        q = new Query( "delete from messages where id in "
-                       "(select m.id from messages m"
-                       " left join mailbox_messages mm on (m.id=mm.message)"
-                       " left join deleted_messages dm on (m.id=dm.message)"
-                       " left join deliveries d on (m.id=d.message)"
-                       " where mm.message is null and dm.message is null"
-                       " and d.message is null)", 0 );
-        t->enqueue( q );
-
-        q = new Query( "delete from bodyparts where id in (select id "
-                       "from bodyparts b left join part_numbers p on "
-                       "(b.id=p.bodypart) where bodypart is null)", 0 );
-        t->enqueue( q );
-
+        t = new Transaction( this );
         if ( opt( 'a' ) > 0 ) {
             // delete the unnecessary addresses rows. this locks the
             // database for quite a while (seconds, perhaps even a
@@ -249,6 +275,8 @@ void Vacuum::execute()
             t->enqueue( "drop index af_a" );
         }
 
+        Mailbox::setup( this );
+        log( "vacuum: RetentionSelector", Log::Significant );
         r = new RetentionSelector( t, this );
         r->execute();
 
