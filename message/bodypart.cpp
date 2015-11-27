@@ -314,8 +314,10 @@ void Bodypart::parseMultipart( uint i, uint end,
                                const EString & divider,
                                bool digest,
                                List< Bodypart > * children,
-                               Multipart * parent )
+                               Multipart * parent,
+                               bool pgpSigned )
 {
+    bool isPgpSigned = pgpSigned;
     uint start = 0;
     bool last = false;
     uint pn = 1;
@@ -348,6 +350,7 @@ void Bodypart::parseMultipart( uint i, uint end,
                 if ( rfc2822[j] == 10 )
                     j++;
                 if ( start > 0 ) {
+                    uint sigstart = start;  // remember original start
                     Header * h = Message::parseHeader( start, j,
                                                        rfc2822,
                                                        Header::Mime );
@@ -361,6 +364,15 @@ void Bodypart::parseMultipart( uint i, uint end,
                         i--;
                         if ( rfc2822[i-1] == 13 )
                             i--;
+                    }
+    
+                    if ( isPgpSigned ) {
+                        // store the complete to-be-signed part, incl. header(s), to keep the unchanged version
+                        Bodypart * bpt = new Bodypart( 0, parent );
+                        bpt->setData( rfc2822.mid(sigstart, i - sigstart) );
+                        bpt->setNumBytes( i - sigstart );
+                        children->append( bpt );
+                        isPgpSigned = false;
                     }
 
                     Bodypart * bp =
@@ -764,7 +776,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         parseMultipart( start, end, rfc2822,
                         ct->parameter( "boundary" ),
                         ct->subtype() == "digest",
-                        bp->children(), bp );
+                        bp->children(), bp, false );
     }
     else if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
         // There are sometimes blank lines before the message.

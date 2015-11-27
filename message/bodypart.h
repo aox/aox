@@ -56,7 +56,8 @@ public:
 
     static void parseMultipart( uint, uint, const EString &,
                                 const EString &, bool,
-                                List< Bodypart > *, Multipart * );
+                                List< Bodypart > *, Multipart *, bool );
+
 private:
     class BodypartData * d;
     friend class Message;
