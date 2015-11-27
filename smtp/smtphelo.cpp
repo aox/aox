@@ -64,7 +64,6 @@ SmtpHelo::SmtpHelo( SMTP * s, SmtpParser * p, Type t )
             respond( 0, "SMTPUTF8" );
         if ( !s->hasTls() && Configuration::toggle( Configuration::UseTls ) )
             respond( 0, "STARTTLS" );
-        respond( 0, "SIZE" );
         respond( 0, "DSN" );
     }
     finish();

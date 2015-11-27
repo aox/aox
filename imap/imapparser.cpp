@@ -2,6 +2,7 @@
 
 #include "imapparser.h"
 
+#include "configuration.h"
 #include "ustring.h"
 #include "utf.h"
 
@@ -246,6 +247,11 @@ EString ImapParser::literal()
         setError( "Expected literal-}, but saw: " + following() );
         return "";
     }
+    if ( len > literalSizeLimit() ) {
+        setError( "Literal too big: " +
+                  fn( len ) + ">" + fn( literalSizeLimit() ) );
+        return "";
+    }
 
     step();
     require( "\r\n" );
@@ -398,4 +404,21 @@ EString ImapParser::dotLetters( uint min, uint max )
                   "letters/digits/dots, but saw: " + following() );
 
     return r;
+}
+
+
+static uint literalSizeLimit = 0;
+
+
+/*! Returns the maximum size if an inbound literal; depends on the
+    memory-limit configuration variable. SmtpClient::observedSize() is
+    related to this, although slightly different.
+*/
+
+uint ImapParser::literalSizeLimit()
+{
+    if ( !::literalSizeLimit )
+        ::literalSizeLimit =
+              150000 * Configuration::scalar( Configuration::MemoryLimit );
+    return ::literalSizeLimit;
 }

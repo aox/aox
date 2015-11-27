@@ -279,11 +279,12 @@ void IMAP::parse()
 
             if ( endsWithLiteral( s, &n, &plus ) ) {
                 d->str.append( "\r\n" );
-                d->readingLiteral = true;
-                d->literalSize = n;
-
-                if ( !plus )
-                    enqueue( "+ reading literal\r\n" );
+                if ( n <= ImapParser::literalSizeLimit() ) {
+                    d->readingLiteral = true;
+                    d->literalSize = n;
+                    if ( !plus )
+                        enqueue( "+ reading literal\r\n" );
+                }
             }
 
             // Have we finished reading the entire command?
