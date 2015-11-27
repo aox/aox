@@ -1359,7 +1359,6 @@ EString Fetch::bodyStructure( Multipart * m, bool extended )
                 ++it; // skip next child-structure, as we appended it already raw
                 inMultipartSigned = false;
             }
-            Header * h = it->header();
             children.append( bodyStructure( it, extended ) );
             ++it;
         }
