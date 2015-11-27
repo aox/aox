@@ -91,6 +91,10 @@ void Multipart::appendMultipart( EString &r, bool avoidUtf8 ) const
 {
     ContentType * ct = header()->contentType();
     EString delim = ct->parameter( "boundary" );
+    bool isSigned = false;
+    if ( ct->subtype() == "signed" ) {
+        isSigned = true;
+    }
     List<Bodypart>::Iterator it( children() );
     r.append( "--" + delim );
     while ( it ) {
@@ -98,11 +102,17 @@ void Multipart::appendMultipart( EString &r, bool avoidUtf8 ) const
 
         Bodypart * bp = it;
         ++it;
-
-        r.append( bp->header()->asText( avoidUtf8 ) );
-        r.append( crlf );
-        appendAnyPart( r, bp, ct, avoidUtf8 );
-
+        
+        if ( isSigned ) {
+            ++it;       // skip next part, we append it raw
+            isSigned = false;
+            // just append our raw text, header is contained
+            appendAnyPart( r, bp, ct, avoidUtf8 );
+        } else {
+            r.append( bp->header()->asText( avoidUtf8 ) );
+            r.append( crlf );
+            appendAnyPart( r, bp, ct, avoidUtf8 );
+        }
         r.append( crlf );
         r.append( "--" );
         r.append( delim );
