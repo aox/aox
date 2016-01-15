@@ -554,7 +554,7 @@ void EventLoop::stop( uint s )
                 c->react( Connection::Shutdown );
                 c->close();
             }
-            else if ( s <= 10 && !c->hasProperty( Connection::Internal ) ) {
+            else if ( s <= 1 && !c->hasProperty( Connection::Internal ) ) {
                 c->react( Connection::Shutdown );
             }
         } catch ( Exception e ) {

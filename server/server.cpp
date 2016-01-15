@@ -317,19 +317,9 @@ void Server::logSetup()
 static void shutdownLoop( int )
 {
     Server::killChildren( SIGTERM );
-    if ( !EventLoop::global() ) {
-        (void)alarm( 60 );
-        return;
-    }
-
-    uint used = Allocator::inUse() / 1024 + Allocator::allocated() / 1024;
-    uint limit = Configuration::scalar( Configuration::MemoryLimit );
-    if ( used > limit )
-        used = limit;
-    uint shorter = trunc( 10797.0 * used / limit );
-
-    EventLoop::global()->stop( 10800 - shorter );
-    (void)alarm( 10800 - shorter );
+    if ( EventLoop::global() )
+        EventLoop::global()->stop( 1 );
+    (void)alarm( 2 );
 }
 
 
