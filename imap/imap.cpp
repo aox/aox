@@ -774,10 +774,10 @@ static const char * clientBugMessages[IMAP::NumClientBugs] = {
 
 void IMAP::setClientBug( ClientBug bug )
 {
+    if ( d->clientBugs[bug] )
+        return;
     d->clientBugs[bug] = true;
-    (void)new ImapResponse( this,
-                            EString( "OK Activating workaround for: " ) +
-                                     clientBugMessages[bug] );
+    log( EString("Activating client workaround: ") + clientBugMessages[bug] );
 }
 
 
