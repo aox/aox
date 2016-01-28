@@ -6,6 +6,7 @@
 #include "imapparser.h"
 #include "message.h"
 #include "address.h"
+#include "codec.h"
 #include "field.h"
 #include "query.h"
 #include "dict.h"
@@ -109,8 +110,11 @@ void Thread::parse()
     else
         error( Bad, "Unsupported thread algorithm" );
     space();
-    astring(); // charset, roundly ignored
-    space();
+    parser()->mark();
+    if ( Codec::byName( astring() ) )
+        space();
+    else
+        parser()->restore();
     d->s = new Selector;
     d->s->add( parseKey() );
     while ( ok() && !parser()->atEnd() ) {
