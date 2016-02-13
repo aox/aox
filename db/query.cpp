@@ -590,6 +590,12 @@ void Query::notify()
                     EventLoop::global()->removeConnection( c );
                     c->close();
                 }
+                else if ( Configuration::scalar( Configuration::ServerProcesses ) > 1 ) {
+                    Scope x( l );
+                    ::log( "Invariant failed; Quitting child",
+                           Log::Error );
+                    EventLoop::shutdown();
+                }
             }
         }
         else {

@@ -279,11 +279,12 @@ void IMAP::parse()
 
             if ( endsWithLiteral( s, &n, &plus ) ) {
                 d->str.append( "\r\n" );
-                d->readingLiteral = true;
-                d->literalSize = n;
-
-                if ( !plus )
-                    enqueue( "+ reading literal\r\n" );
+                if ( n <= ImapParser::literalSizeLimit() ) {
+                    d->readingLiteral = true;
+                    d->literalSize = n;
+                    if ( !plus )
+                        enqueue( "+ reading literal\r\n" );
+                }
             }
 
             // Have we finished reading the entire command?
@@ -773,10 +774,10 @@ static const char * clientBugMessages[IMAP::NumClientBugs] = {
 
 void IMAP::setClientBug( ClientBug bug )
 {
+    if ( d->clientBugs[bug] )
+        return;
     d->clientBugs[bug] = true;
-    (void)new ImapResponse( this,
-                            EString( "OK Activating workaround for: " ) +
-                                     clientBugMessages[bug] );
+    log( EString("Activating client workaround: ") + clientBugMessages[bug] );
 }
 
 

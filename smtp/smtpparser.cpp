@@ -118,9 +118,7 @@ UString SmtpParser::subDomain()
         setError( "Domain cannot end with a dot" );
     else if ( e[e.length()-1] == '-' )
         setError( "subdomain cannot end with hyphen (" + e + ")" );
-    else if ( e.startsWith( "xn--" ) )
-        setError( "subdomain cannot be an a-label (" + e + ")" );
-    
+
     Utf8Codec u;
     UString r = u.toUnicode( e );
     if ( !u.valid() )

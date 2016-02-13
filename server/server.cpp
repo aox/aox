@@ -316,20 +316,10 @@ void Server::logSetup()
 
 static void shutdownLoop( int )
 {
-    Server::killChildren();
-    if ( !EventLoop::global() ) {
-        (void)alarm( 60 );
-        return;
-    }
-
-    uint used = Allocator::inUse() / 1024 + Allocator::allocated() / 1024;
-    uint limit = Configuration::scalar( Configuration::MemoryLimit );
-    if ( used > limit )
-        used = limit;
-    uint shorter = trunc( 10797.0 * used / limit );
-
-    EventLoop::global()->stop( 10800 - shorter );
-    (void)alarm( 10800 - shorter );
+    Server::killChildren( SIGTERM );
+    if ( EventLoop::global() )
+        EventLoop::global()->stop( 1 );
+    (void)alarm( 2 );
 }
 
 
@@ -349,14 +339,20 @@ static void dumpCoreAndGoOn( int )
 
 /*! Called by signal handling to kill any children started in fork(). */
 
-void Server::killChildren()
+void Server::killChildren( int signal )
 {
     List<pid_t>::Iterator child( d->children );
     while ( child ) {
         if ( *child )
-            ::kill( *child, SIGTERM );
+            ::kill( *child, signal );
         ++child;
     }
+}
+
+
+static void killChildrenAndExit( int ) {
+    Server::killChildren( SIGKILL );
+    ::exit(0);
 }
 
 
@@ -389,9 +385,10 @@ void Server::loop()
     ::sigaction( SIGUSR1, &sa, 0 );
 
     // a custom signal to die, quickly, for last-resort exit
-    sa.sa_handler = ::exit;
+    sa.sa_handler = ::killChildrenAndExit;
     ::sigaction( SIGALRM, &sa, 0 );
 }
+
 
 
 /*! Forks the server as required by -f and the configuration variable

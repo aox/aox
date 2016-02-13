@@ -327,6 +327,19 @@ void Select::execute()
         return;
 
     d->session->emitUpdates( transaction() );
+
+    if ( d->lastModSeq > 0 && !d->firstFetch ) {
+        if ( d->knownUids.isEmpty() ) {
+            IntegerSet all;
+            all.add( 1, d->mailbox->uidnext() );
+            d->firstFetch = new Fetch( true, false, all,
+                                       d->lastModSeq, imap(), 0 );
+        } else {
+            d->firstFetch = new Fetch( true, false, d->knownUids,
+                                       d->lastModSeq, imap(), 0 );
+        }
+    }
+
     transaction()->commit();
     if ( transaction()->state() == Transaction::Inactive ||
          transaction()->state() == Transaction::Executing )

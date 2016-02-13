@@ -38,6 +38,8 @@ public:
     void execute();
 
 private:
+    class Query * q;
+    int qstate;
     class Transaction * t;
     class RetentionSelector * r;
     class Selector * s;

@@ -29,6 +29,8 @@ public:
     EString listMailbox();
     EString flag();
     EString dotLetters( uint, uint );
+
+    static uint literalSizeLimit();
 };
 
 

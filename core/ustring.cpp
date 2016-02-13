@@ -145,7 +145,14 @@ const UString operator+( const UString & a, const char * b )
 
 const UString operator+( const char * a, const UString & b )
 {
-    return b + a;
+    UString result;
+    uint l = b.length();
+    if ( a )
+        l += strlen( a );
+    result.reserve( l );
+    result.append( a );
+    result.append( b );
+    return result;
 }
 
 

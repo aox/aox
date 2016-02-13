@@ -740,12 +740,14 @@ SmtpClient * SmtpClient::idleClient()
 }
 
 
-/*! Returns the SIZE argument provided by the smarthost, or 0 if we
-    haven't connected to the smarthost, or if the smarthost sent
-    something shady.
+/*! Returns the SIZE argument provided by the smarthost, or something smaller
+    if the smarthost's capacity outstrips our own.
 */
 
 uint SmtpClient::observedSize()
 {
-    return ::observedSize;
+    uint result = 150000 * Configuration::scalar( Configuration::MemoryLimit );
+    if ( result > ::observedSize )
+        result = ::observedSize;
+    return result;
 }

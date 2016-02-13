@@ -42,7 +42,7 @@ public:
     static EString name();
     static bool useCache();
 
-    static void killChildren();
+    static void killChildren( int );
 
 private:
     static class ServerData * d;

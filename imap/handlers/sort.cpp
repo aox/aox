@@ -4,6 +4,7 @@
 
 #include "user.h"
 #include "field.h"
+#include "codec.h"
 #include "mailbox.h"
 #include "imapparser.h"
 #include "imapsession.h"
@@ -149,9 +150,18 @@ void Sort::parse()
 
     space();
 
+    // Optional charset; there is an erratum in 6855 that doesn't
+    // specify syntax. I bet this isn't quite what Barry had in mind.
+    parser()->mark();
+    EString charset = astring();
+    if ( Codec::byName( charset ) ) {
+        setCharset( charset );
+        space();
+    } else {
+        parser()->restore();
+    }
+
     // search-criteria
-    setCharset( astring() );
-    space();
     d->s = new Selector;
     d->s->add( parseKey() );
     while ( ok() && !parser()->atEnd() ) {
