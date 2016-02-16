@@ -1591,6 +1591,8 @@ void Injector::insertMessages()
 
         bool skip = false;
         ContentType *ct = m->header()->contentType();
+        if ( ct )
+            ::log( "Injector::insertMessages - ct:" + ct->type(), Log::Debug );
         if ( !ct || ct->type() != "multipart" ) {
         //if ( !ct || ct->type() != "multipart" || ( ct->type() == "multipart" && ct->subtype() == "signed" ) ) {
             // hgu - skip header when multipart/signed
@@ -1605,6 +1607,7 @@ void Injector::insertMessages()
             EString pn( m->partNumber( b ) );
 
             ::log( "Injector::insertMessages - adding partnumber: " + pn, Log::Debug );
+            ::log( "Injector::insertMessages - ct:" + b->header()->asText( false ), Log::Debug );
             addPartNumber( qp, mid, pn, b );
             if ( !skip )
                 addHeader( qh, qa, qd, mid, pn, b->header() );
