@@ -107,7 +107,7 @@ void Multipart::appendMultipart( EString &r, bool avoidUtf8 ) const
         ++it;
         
         if ( isSigned ) {
-            ::log( "Multipart::appendMultipart - signed, skipping next child", Log::Debug );
+            ::log( "Multipart::appendMultipart - signed, skipping to child", Log::Debug );
             ++it;
             isSigned = false;
             // we do not want our simple header, just append our raw text
