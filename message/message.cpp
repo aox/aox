@@ -320,10 +320,11 @@ EString Message::body( bool avoidUtf8 ) const
     if ( ct && ct->type() == "multipart" ) {
         if ( ct->subtype() == "signed" ) {
             ::log( "Message::body - will appendMultipart signed", Log::Debug );
+            appendMultipart( r, avoidUtf8, true );
         } else {
             ::log( "Message::body - will appendMultipart", Log::Debug );
+            appendMultipart( r, avoidUtf8, false );
         }
-        appendMultipart( r, avoidUtf8 );
     }
     else {
         // XXX: Is this the right place to restore this linkage?

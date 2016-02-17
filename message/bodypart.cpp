@@ -301,7 +301,7 @@ EString Bodypart::asText( bool avoidUtf8 ) const
 
     if ( !children()->isEmpty() ) {
         ::log( "Bodypart::asText - will appendMultipart text:" + r, Log::Debug );
-        appendMultipart( r, avoidUtf8 );
+        appendMultipart( r, avoidUtf8, false );
     }
     else if ( !header()->contentType() ||
               header()->contentType()->type() == "text" ) {

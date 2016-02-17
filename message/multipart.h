@@ -29,9 +29,9 @@ public:
 
     List< Bodypart > * children() const;
 
-    void appendMultipart( EString &, bool ) const;
-    void appendAnyPart( EString &, const Bodypart *, ContentType *, bool ) const;
-    void appendTextPart( EString &, const Bodypart *, ContentType * ) const;
+    void appendMultipart( EString &, bool, bool ) const;
+    void appendAnyPart( EString &, const Bodypart *, ContentType *, bool, bool ) const;
+    void appendTextPart( EString &, const Bodypart *, ContentType *, bool ) const;
 
     virtual void simplifyMimeStructure();
     bool needsUnicode() const;
