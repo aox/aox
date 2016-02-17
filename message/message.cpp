@@ -332,7 +332,7 @@ EString Message::body( bool avoidUtf8 ) const
         if ( firstChild ) {
             firstChild->setHeader( header() );
             ::log( "Message::body - will appendAnyPart", Log::Debug );
-            appendAnyPart( r, firstChild, ct, avoidUtf8 );
+            appendAnyPart( r, firstChild, ct, avoidUtf8, false );
         }
     }
 
