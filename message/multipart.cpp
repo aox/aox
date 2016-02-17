@@ -183,6 +183,7 @@ void Multipart::appendTextPart( EString & r, const Bodypart * bp,
 {
     Codec * c = 0;
 
+    ::log( "Multipart::appendTextPart - text, we willappend to:" + r, Log::Debug );
     EString::Encoding e = EString::Binary;
     ContentTransferEncoding * cte
         = bp->header()->contentTransferEncoding();

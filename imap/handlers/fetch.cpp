@@ -150,7 +150,7 @@ Fetch::Fetch( bool u )
     handler starts fetching those messagges in \a set that have a
     modseq greater than \a limit. The responses are sent via \a i.
 
-    If \a t is non-zero, the fetch operates within a subtransaction
+    If \a t is non-null, the fetch operates within a subtransaction
     of \a t.
 */
 
@@ -176,7 +176,7 @@ Fetch::Fetch( bool f, bool a, const IntegerSet & set,
         ++c;
     while ( c && c->tag().isEmpty() )
         ++c;
-    if ( c && ( c->state() == Command::Finished ||
+    if ( c && c->group() > 0 && ( c->state() == Command::Finished ||
                 c->state() == Command::Executing ) ) {
         log( "Inserting flag update for modseq>" + fn( limit ) +
              " and UIDs " + set.set() + " before " +

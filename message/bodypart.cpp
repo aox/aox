@@ -119,18 +119,23 @@ ContentType * Bodypart::contentType() const
 {
     ::log( "Bodypart::contentType", Log::Debug );
     ContentType * ct = header()->contentType();
-    if ( ct )
+    if ( ct ) {
+        ::log( "Bodypart::contentType - " + ct->type(), Log::Debug );
         return ct;
+    }
     if ( !parent() )
         return 0;
     ct = parent()->header()->contentType();
     if ( ct ) {
+        ::log( "Bodypart::contentType - parent ct:" + ct->type(), Log::Debug );
         if ( ct->type() == "multipart" ) {
+            ::log( "Bodypart::contentType - parent ct:multipart/" + ct->subtype(), Log::Debug );
             ct = 0;
         }
         else if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
             Bodypart * bp = parent()->children()->firstElement();
             ct = bp->header()->contentType();
+            ::log( "Bodypart::contentType - ct of 1st parent child:" + ct->type(), Log::Debug );
         }
     }
     return ct;
@@ -392,7 +397,13 @@ void Bodypart::parseMultipart( uint i, uint end,
                         if ( rfc2822[i-1] == 13 )
                             i--;
                     }
-    
+                    // +hgu - check header for ct == multipart/signed
+                    ContentType * ct = h->contentType();
+                    if ( ct && ct->type() == "multipart" && ct->subtype() == "signed" ) {
+                        ::log( "Bodypart::parseMultipart - detected multipart/signed", Log::Debug );
+                        isPgpSigned = true;
+                    }
+                    // -hgu 
                     if ( isPgpSigned ) {
                         // store the complete to-be-signed part, incl. header(s), to keep the unchanged version
                         ::log( "**** hgu **** signed mail, adding complete body:" + rfc2822.mid(sigstart, i - start),Log::Debug );
