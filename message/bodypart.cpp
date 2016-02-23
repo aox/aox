@@ -412,22 +412,19 @@ void Bodypart::parseMultipart( uint i, uint end,
                         bpt->setData( rfc2822.mid(sigstart, i - sigstart) );
                         bpt->setNumBytes( i - sigstart );
                         children->append( bpt );
-                        bpt->d->number = pn;
-                        pn++;
                         ::log( "**** hgu **** adding signed mail body completed", Log::Debug );
                         isPgpSigned = false;
-                    } else {
+                    } 
   
-                        ::log( "Bodypart::parseMultipart - will parseBodypart", Log::Debug );
-                        Bodypart * bp =
-                            parseBodypart( start, i, rfc2822, h, parent );
-                        bp->d->number = pn;
-                        children->append( bp );
-                        pn++;
+                    ::log( "Bodypart::parseMultipart - will parseBodypart", Log::Debug );
+                    Bodypart * bp =
+                        parseBodypart( start, i, rfc2822, h, parent );
+                    bp->d->number = pn;
+                    children->append( bp );
+                    pn++;
     
-                        ::log( "Bodypart::parseMultipart - will repair header:" + bp->asText(false), Log::Debug );
-                        h->repair( bp, "" );
-                    }
+                    ::log( "Bodypart::parseMultipart - will repair header:" + bp->asText(false), Log::Debug );
+                    h->repair( bp, "" );
                 }
                 last = l;
                 start = j;
