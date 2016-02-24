@@ -918,13 +918,3 @@ EString Bodypart::error() const
 {
     return d->error;
 }
-
-bool Bodypart::isPgpSigned()
-{
-    return d->isPgpSigned;
-}
-
-void Bodypart::setPgpSigned( bool isSigned )
-{
-    d->isPgpSigned = isSigned;
-}

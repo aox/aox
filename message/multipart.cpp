@@ -394,3 +394,13 @@ bool Multipart::needsUnicode() const
     ::log( "Multipart::needsUnicode - false", Log::Debug );
     return false;
 }
+
+bool Multipart::isPgpSigned()
+{
+    return d->isPgpSigned;
+}
+
+void Multipart::setPgpSigned( bool isSigned )
+{
+    d->isPgpSigned = isSigned;
+}
