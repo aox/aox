@@ -37,7 +37,6 @@ public:
     EString data;
     UString text;
     bool hasText;
-    bool isPgpSigned;
     EString error;
 };
 
