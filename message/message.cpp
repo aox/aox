@@ -95,18 +95,12 @@ void Message::parse( const EString & rfc2822 )
     header()->repair( this, rfc2822.mid( i ) );
 
     ContentType * ct = header()->contentType();
-    bool isPgpSigned = false;
     if ( ct && ct->type() == "multipart" ) {
         ::log( "Message::parse - will parseMultipart", Log::Debug );
-        if ( ct->subtype() == "signed" ) {
-            ::log( "   Message::parse - have multipart/signed", Log::Debug );
-            ::log( "   ***** hgu: possible place to store part number 0 *****", Log::Debug );
-            isPgpSigned = true;
-        }
         Bodypart::parseMultipart( i, rfc2822.length(), rfc2822,
                                   ct->parameter( "boundary" ),
                                   ct->subtype() == "digest",
-                                  children(), this, isPgpSigned );
+                                  children(), this );
     }
     else {
         ::log( "Message::parse - will parseBodypart", Log::Debug );

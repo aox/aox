@@ -339,15 +339,9 @@ void Bodypart::parseMultipart( uint i, uint end,
                                const EString & divider,
                                bool digest,
                                List< Bodypart > * children,
-                               Multipart * parent,
-                               bool pgpSigned )
+                               Multipart * parent )
 {
-    bool isPgpSigned = pgpSigned;
     ::log( "Bodypart::parseMultipart - text:" + rfc2822.mid(i, end - i), Log::Debug );
-    if ( isPgpSigned ) 
-        ::log( "Bodypart::parseMultipart - signed-flag:true", Log::Debug );
-    else
-        ::log( "Bodypart::parseMultipart - signed-flag:false", Log::Debug );
     uint start = 0;
     bool last = false;
     uint pn = 1;
@@ -397,19 +391,13 @@ void Bodypart::parseMultipart( uint i, uint end,
                         if ( rfc2822[i-1] == 13 )
                             i--;
                     }
-                    // +hgu - check header for ct == multipart/signed
+  
+                    ::log( "Bodypart::parseMultipart - will parseBodypart", Log::Debug );
+                    Bodypart * bp = parseBodypart( start, i, rfc2822, h, parent );
+                    bp->d->number = pn;
                     ContentType * ct = h->contentType();
                     if ( ct && ct->type() == "multipart" && ct->subtype() == "signed" ) {
                         ::log( "Bodypart::parseMultipart - detected multipart/signed", Log::Debug );
-                        isPgpSigned = true;
-                    }
-                    // -hgu 
-  
-                    ::log( "Bodypart::parseMultipart - will parseBodypart", Log::Debug );
-                    Bodypart * bp =
-                        parseBodypart( start, i, rfc2822, h, parent );
-                    bp->d->number = pn;
-                    if ( isPgpSigned ) {
                         // override contents to store the complete to-be-signed part, 
                         // incl. header(s), to keep the unchanged version
                         ::log( "**** hgu **** signed mail, adding complete body:" + rfc2822.mid(sigstart, i - start),Log::Debug );
@@ -417,7 +405,6 @@ void Bodypart::parseMultipart( uint i, uint end,
                         bp->setData( rfc2822.mid(sigstart, i - sigstart) );
                         bp->setNumBytes( i - sigstart );
                         ::log( "**** hgu **** adding signed mail body completed", Log::Debug );
-                        isPgpSigned = false;
                     }
                     
                     children->append( bp );
@@ -848,7 +835,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         parseMultipart( start, end, rfc2822,
                         ct->parameter( "boundary" ),
                         ct->subtype() == "digest",
-                        bp->children(), bp, false );
+                        bp->children(), bp );
     }
     else if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
         // There are sometimes blank lines before the message.

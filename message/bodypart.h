@@ -56,10 +56,7 @@ public:
 
     static void parseMultipart( uint, uint, const EString &,
                                 const EString &, bool,
-                                List< Bodypart > *, Multipart *, bool );
-
-    bool isPgpSigned();
-    void setPgpSigned( bool );
+                                List< Bodypart > *, Multipart * );
 
 private:
     class BodypartData * d;
