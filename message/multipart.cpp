@@ -397,10 +397,10 @@ bool Multipart::needsUnicode() const
 
 bool Multipart::isPgpSigned()
 {
-    return d->isPgpSigned;
+    return isPgpSigned;
 }
 
 void Multipart::setPgpSigned( bool isSigned )
 {
-    d->isPgpSigned = isSigned;
+    isPgpSigned = isSigned;
 }
