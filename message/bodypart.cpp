@@ -404,22 +404,22 @@ void Bodypart::parseMultipart( uint i, uint end,
                         isPgpSigned = true;
                     }
                     // -hgu 
-                    if ( isPgpSigned ) {
-                        // store the complete to-be-signed part, incl. header(s), to keep the unchanged version
-                        ::log( "**** hgu **** signed mail, adding complete body:" + rfc2822.mid(sigstart, i - start),Log::Debug );
-                        Bodypart * bpt = new Bodypart( 0, parent );
-                        bpt->setPgpSigned( true );  // really needed ?
-                        bpt->setData( rfc2822.mid(sigstart, i - sigstart) );
-                        bpt->setNumBytes( i - sigstart );
-                        children->append( bpt );
-                        ::log( "**** hgu **** adding signed mail body completed", Log::Debug );
-                        isPgpSigned = false;
-                    }
   
                     ::log( "Bodypart::parseMultipart - will parseBodypart", Log::Debug );
                     Bodypart * bp =
                         parseBodypart( start, i, rfc2822, h, parent );
                     bp->d->number = pn;
+                    if ( isPgpSigned ) {
+                        // override contents to store the complete to-be-signed part, 
+                        // incl. header(s), to keep the unchanged version
+                        ::log( "**** hgu **** signed mail, adding complete body:" + rfc2822.mid(sigstart, i - start),Log::Debug );
+                        bp->setPgpSigned( true );
+                        bp->setData( rfc2822.mid(sigstart, i - sigstart) );
+                        bp->setNumBytes( i - sigstart );
+                        ::log( "**** hgu **** adding signed mail body completed", Log::Debug );
+                        isPgpSigned = false;
+                    }
+                    
                     children->append( bp );
                     pn++;
     
