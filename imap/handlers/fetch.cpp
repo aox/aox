@@ -1361,7 +1361,7 @@ EString Fetch::bodyStructure( Multipart * m, bool extended )
         EStringList children;
         List< Bodypart >::Iterator it( m->children() );
         while ( it ) {
-            if ( inMultipartSigned ) {
+            if ( inMultipartSigned && !extended ) {
                 log( "Fetch::bodyStructure - multipart/signed, skipping part 1", Log::Debug );
                 Header * h = it->header();
                 if ( h ) {

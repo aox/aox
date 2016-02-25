@@ -180,7 +180,7 @@ void Multipart::appendAnyPart( EString &r, const Bodypart * bp,
             ::log( "Multipart::appendAnypart - will appendTextPart 1", Log::Debug );
             appendTextPart( r, bp, childct, isSigned );
         }
-        else {
+        else if ( !( isSigned && !isPgpSigned ) ) {
             ::log( "Multipart::appendAnypart - will append rfc822", Log::Debug );
             r.append( bp->message()->rfc822( avoidUtf8 ) );
         }
@@ -193,7 +193,7 @@ void Multipart::appendAnyPart( EString &r, const Bodypart * bp,
         ::log( "Multipart::appendAnypart - will appendMultipart", Log::Debug );
         bp->appendMultipart( r, avoidUtf8, isSigned );
     }
-    else {
+    else if ( !( isSigned && !isPgpSigned ) ) {
         ::log( "Multipart::appendAnypart - will append data", Log::Debug );
         r.append( bp->data().encoded( e, 72 ) );
     }
