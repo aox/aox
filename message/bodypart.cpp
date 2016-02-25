@@ -62,7 +62,6 @@ Bodypart::Bodypart()
     : d ( new BodypartData )
 {
     setHeader( new Header( Header::Mime ) );
-    setPgpSigned( false );
 }
 
 
@@ -74,7 +73,6 @@ Bodypart::Bodypart( uint n, Multipart * p )
     setHeader( new Header( Header::Mime ) );
     d->number = n;
     setParent( p );
-    setPgpSigned( false );
 }
 
 
@@ -400,7 +398,6 @@ void Bodypart::parseMultipart( uint i, uint end,
                         // override contents to store the complete to-be-signed part, 
                         // incl. header(s), to keep the unchanged version
                         ::log( "**** hgu **** signed mail, adding complete body:" + rfc2822.mid(sigstart, i - start),Log::Debug );
-                        bp->setPgpSigned( true );
                         bp->setData( rfc2822.mid(sigstart, i - sigstart) );
                         bp->setNumBytes( i - sigstart );
                         ::log( "**** hgu **** adding signed mail body completed", Log::Debug );

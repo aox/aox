@@ -36,10 +36,6 @@ public:
     virtual void simplifyMimeStructure();
     bool needsUnicode() const;
 
-    bool pgpSigned;
-    bool isPgpSigned() const;
-    void setPgpSigned( bool );
-
 private:
     Header * h;
     Multipart * p;
