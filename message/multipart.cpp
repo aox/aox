@@ -162,10 +162,6 @@ void Multipart::appendAnyPart( EString &r, const Bodypart * bp,
     if ( childct && childct->type() == "multipart" && childct->subtype() == "signed" ) {
         isPgpSigned = true;
     }
-    if ( isSigned && !isPgpSigned ) {
-        ::log( "Multipart::appendAnyPart - in signed tree, skipping",  Log::Debug );
-        return;
-    }
     EString::Encoding e = EString::Binary;
     ContentTransferEncoding * cte
         = bp->header()->contentTransferEncoding();
