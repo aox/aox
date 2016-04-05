@@ -1346,39 +1346,10 @@ EString Fetch::bodyStructure( Multipart * m, bool extended )
     Header * hdr = m->header();
     ContentType * ct = hdr->contentType();
     bool inMultipartSigned = false;
-    if ( extended ) {
-        log( "Fetch::bodyStructure - extended", Log::Debug );
-    } else {
-        log( "Fetch::bodyStructure - plain", Log::Debug );
-    }
-    if ( ct )
-        log( "Fetch::bodyStructure - ct: " + ct->type(), Log::Debug );
     if ( ct && ct->type() == "multipart" ) {
-        if ( ct->subtype() == "signed" ) {
-            log( "Fetch::bodyStructure - have multipart/signed", Log::Debug );
-            inMultipartSigned = true;
-        }
         EStringList children;
         List< Bodypart >::Iterator it( m->children() );
         while ( it ) {
-            if ( inMultipartSigned && !extended ) {
-                log( "Fetch::bodyStructure - multipart/signed, skipping part 1", Log::Debug );
-                Header * h = it->header();
-                if ( h ) {
-                    ContentType * cty = h->contentType();
-                    if ( cty ) {
-                        log( "Fetch::bodyStructure - skipping ct:" + cty->type() +
-                             "/" + cty->subtype(),  Log::Debug );
-                    } else {
-                        log( "Fetch::bodyStructure - skipping part w/o ct", Log::Debug );
-                    }
-                } else {
-                    log( "Fetch::bodyStructure - skipping part w/o header", Log::Debug );
-                }
-                ++it; // skip next child-structure, as we appended it already raw
-                inMultipartSigned = false;
-                if ( !it ) break;
-            }
             Header * h = it->header();
             if ( h ) {
                 ContentType * cty = h->contentType();

@@ -1254,7 +1254,7 @@ void SieveCommand::parse( const EString & previous )
             Header * h = Message::parseHeader( i, x.length(),
                                                x, Header::Mime );
             Bodypart * bp = Bodypart::parseBodypart( i, x.length(),
-                                                     x, h, 0 );
+                                                     x, h, 0, false );
             if ( !h->error().isEmpty() )
                 setError( "While parsing MIME header: " + h->error() );
             else if ( !bp->error().isEmpty() )

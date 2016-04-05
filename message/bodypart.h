@@ -52,11 +52,11 @@ public:
     EString error() const;
 
     static Bodypart *parseBodypart( uint, uint, const EString &,
-                                    Header *, Multipart * );
+                                    Header *, Multipart *, bool );
 
     static void parseMultipart( uint, uint, const EString &,
                                 const EString &, bool,
-                                List< Bodypart > *, Multipart * );
+                                List< Bodypart > *, Multipart *, bool );
 
 private:
     class BodypartData * d;

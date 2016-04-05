@@ -1494,7 +1494,7 @@ void Header::repair( Multipart * p, const EString & body )
         Bodypart::parseMultipart( 0, body.length(), body,
                                   ct->parameter( "boundary" ),
                                   false,
-                                  tmp->children(), tmp );
+                                  tmp->children(), tmp, false ); // hgu - hack 
         List<Bodypart>::Iterator i( tmp->children() );
         Address * postmaster = 0;
         while ( i && !postmaster ) {

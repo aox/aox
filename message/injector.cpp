@@ -1293,6 +1293,7 @@ void Injector::addBodypartRow( Bodypart * b )
 
     ContentType *ct = b->contentType();
     if ( ct ) {
+        ::log( "Injector::addBodypartRow - ct:" + ct->type() + "/" + ct->subtype(), Log::Debug );
         if ( ct->type() == "text" ) {
             storeText = true;
             if ( ct->subtype() == "html" )

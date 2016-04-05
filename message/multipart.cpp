@@ -88,51 +88,30 @@ List< Bodypart > * Multipart::children() const
 /*! Appends the text of this multipart MIME entity to the string \a r.
 */
 
-void Multipart::appendMultipart( EString &r, bool avoidUtf8, bool isSigned ) const
+void Multipart::appendMultipart( EString &r, bool avoidUtf8 ) const
 {
-    ::log( "Multipart::appendMultipart - starting with text:" + r, Log::Debug );
-    if ( isSigned ) {
-        ::log( "Multipart::appendMultipart - signed flag set", Log::Debug );
-    } else {
-        ::log( "Multipart::appendMultipart - signed flag not set", Log::Debug );
-    }
+    ::log( "Multipart::appendMultipart - will append to text:" + r, Log::Debug );
 
     ContentType * ct = header()->contentType();
     EString delim = ct->parameter( "boundary" );
     ::log( "Multipart::appendMultipart - ct:" + ct->type() + "/" + ct->subtype(), Log::Debug );
     List<Bodypart>::Iterator it( children() );
     r.append( "--" + delim );
-    bool isPgpSigned = false;
     while ( it ) {
         r.append( crlf );
 
         Bodypart * bp = it;
         ++it;
-        if ( bp->header() && bp->header()->contentType() && 
-             bp->header()->contentType()->type() == "multipart" &&
-             bp->header()->contentType()->subtype() == "signed" ) {
-            isPgpSigned = true;
-        } else {
-            isPgpSigned = false;
+
+        if ( bp->header() && bp->header()->contentType() ) {
+            ::log( "Multipart::appendMultipart - child ct:" +
+                   bp->header()->contentType()->type() + "/" +
+                   bp->header()->contentType()->subtype(), Log::Debug );
         }
-        if ( isSigned || isPgpSigned ) {
-            if ( !isPgpSigned )
-                ::log( "**** Multipart::appendMultipart - deep in signed part, will skip", Log::Debug );
-            else
-                ::log( "**** Multipart::appendMultipart - signed, will append our raw text", Log::Debug );
-            // we do not want our simple header, just append our raw text
-            appendAnyPart( r, bp, ct, avoidUtf8, true );
-            if ( isPgpSigned ) {
-                ::log( "**** Multipart::appendMultipart - signed, raw text was appended", Log::Debug );
-            }
-            isSigned = false;
-        } else {
-            r.append( bp->header()->asText( avoidUtf8 ) );
-            r.append( crlf );
-            ::log( "Multipart::appendMultipart - header was appended:" +  bp->header()->asText( avoidUtf8 ), Log::Debug );
-            appendAnyPart( r, bp, ct, avoidUtf8, false );
-            ::log( "Multipart::appendMultipart - NOT signed, appendAnyPart finished", Log::Debug );
-        }
+        r.append( bp->header()->asText( avoidUtf8 ) );
+        r.append( crlf );
+        ::log( "Multipart::appendMultipart - header was appended:" +  bp->header()->asText( avoidUtf8 ), Log::Debug );
+        appendAnyPart( r, bp, ct, avoidUtf8 );
         r.append( crlf );
         r.append( "--" );
         r.append( delim );
@@ -150,18 +129,9 @@ void Multipart::appendMultipart( EString &r, bool avoidUtf8, bool isSigned ) con
 */
 
 void Multipart::appendAnyPart( EString &r, const Bodypart * bp,
-                               ContentType * ct, bool avoidUtf8, bool isSigned ) const
+                               ContentType * ct, bool avoidUtf8 ) const
 {
     ContentType * childct = bp->header()->contentType();
-    if ( isSigned ) {
-        ::log( "Multipart::appendAnypart signed", Log::Debug );
-    } else {
-        ::log( "Multipart::appendAnypart not signed", Log::Debug );
-    }
-    bool isPgpSigned = false;
-    if ( childct && childct->type() == "multipart" && childct->subtype() == "signed" ) {
-        isPgpSigned = true;
-    }
     EString::Encoding e = EString::Binary;
     ContentTransferEncoding * cte
         = bp->header()->contentTransferEncoding();
@@ -174,22 +144,22 @@ void Multipart::appendAnyPart( EString &r, const Bodypart * bp,
     {
         if ( childct && childct->subtype() != "rfc822" ) {
             ::log( "Multipart::appendAnypart - will appendTextPart 1", Log::Debug );
-            appendTextPart( r, bp, childct, isSigned );
+            appendTextPart( r, bp, childct );
         }
-        else if ( !( isSigned && !isPgpSigned ) ) {
+        else {
             ::log( "Multipart::appendAnypart - will append rfc822", Log::Debug );
             r.append( bp->message()->rfc822( avoidUtf8 ) );
         }
     }
     else if ( !childct || childct->type().lower() == "text" ) {
         ::log( "Multipart::appendAnypart - will appendTextPart 2", Log::Debug );
-        appendTextPart( r, bp, childct, isSigned );
+        appendTextPart( r, bp, childct );
     }
     else if ( childct->type() == "multipart" ) {
         ::log( "Multipart::appendAnypart - will appendMultipart", Log::Debug );
-        bp->appendMultipart( r, avoidUtf8, isSigned );
+        bp->appendMultipart( r, avoidUtf8 );
     }
-    else if ( !( isSigned && !isPgpSigned ) ) {
+    else {
         ::log( "Multipart::appendAnypart - will append data", Log::Debug );
         r.append( bp->data().encoded( e, 72 ) );
     }
@@ -203,18 +173,10 @@ void Multipart::appendAnyPart( EString &r, const Bodypart * bp,
 */
 
 void Multipart::appendTextPart( EString & r, const Bodypart * bp,
-                                ContentType * ct, bool isSigned ) const
+                                ContentType * ct ) const
 {
     Codec * c = 0;
-    ::log( "Multipart::appendTextPart - text, we will append to:" + r, Log::Debug );
-    bool isPgpSigned = false;
-    if ( ct && ct->type() == "multipart" && ct->subtype() == "signed" ) {
-        isPgpSigned = true;
-    }
-    if ( isSigned && !isPgpSigned ) {
-        ::log( "Multipart::appendTextPart - in signed tree, skipping",  Log::Debug );
-        return;
-    }
+
     EString::Encoding e = EString::Binary;
     ContentTransferEncoding * cte
         = bp->header()->contentTransferEncoding();

@@ -96,16 +96,24 @@ void Message::parse( const EString & rfc2822 )
 
     ContentType * ct = header()->contentType();
     if ( ct && ct->type() == "multipart" ) {
-        ::log( "Message::parse - will parseMultipart", Log::Debug );
-        Bodypart::parseMultipart( i, rfc2822.length(), rfc2822,
-                                  ct->parameter( "boundary" ),
-                                  ct->subtype() == "digest",
-                                  children(), this );
+        if ( ct->subtype() == "signed" ) {
+            ::log( "Message::parse - will parseMultipart signed", Log::Debug );
+            Bodypart::parseMultipart( i, rfc2822.length(), rfc2822,
+                                      ct->parameter( "boundary" ),
+                                      ct->subtype() == "digest",
+                                      children(), this, true );
+        } else {
+            ::log( "Message::parse - will parseMultipart", Log::Debug );
+            Bodypart::parseMultipart( i, rfc2822.length(), rfc2822,
+                                      ct->parameter( "boundary" ),
+                                      ct->subtype() == "digest",
+                                      children(), this, false );
+        }
     }
     else {
         ::log( "Message::parse - will parseBodypart", Log::Debug );
         Bodypart * bp = Bodypart::parseBodypart( i, rfc2822.length(), rfc2822,
-                                                 header(), this );
+                                                 header(), this, false );
         children()->append( bp );
     }
 
@@ -314,11 +322,10 @@ EString Message::body( bool avoidUtf8 ) const
     if ( ct && ct->type() == "multipart" ) {
         if ( ct->subtype() == "signed" ) {
             ::log( "Message::body - will appendMultipart signed", Log::Debug );
-            appendMultipart( r, avoidUtf8, true );
         } else {
             ::log( "Message::body - will appendMultipart", Log::Debug );
-            appendMultipart( r, avoidUtf8, false );
         }
+        appendMultipart( r, avoidUtf8 );
     }
     else {
         // XXX: Is this the right place to restore this linkage?
@@ -326,7 +333,7 @@ EString Message::body( bool avoidUtf8 ) const
         if ( firstChild ) {
             firstChild->setHeader( header() );
             ::log( "Message::body - will appendAnyPart", Log::Debug );
-            appendAnyPart( r, firstChild, ct, avoidUtf8, false );
+            appendAnyPart( r, firstChild, ct, avoidUtf8 );
         }
     }
 
@@ -372,7 +379,10 @@ List<Bodypart> *Message::allBodyparts() const
 
 class Bodypart * Message::bodypart( const EString & s, bool create )
 {
-    ::log( "Message::bodypart - text:" + s, Log::Debug );
+    if ( create )
+        ::log( "Message::bodypart - will create part number:" + s, Log::Debug );
+    else
+        ::log( "Message::bodypart - deliver part number:" + s, Log::Debug );
     uint b = 0;
     Bodypart * bp = 0;
     while ( b < s.length() ) {
@@ -422,6 +432,7 @@ class Bodypart * Message::bodypart( const EString & s, bool create )
             return 0;
         }
     }
+    ::log( "Message::bodypart - delivered part number:" + s, Log::Debug );
     return bp;
 }
 
