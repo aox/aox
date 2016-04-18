@@ -60,6 +60,10 @@ public:
     void setBodiesFetched();
     bool hasBytesAndLines() const;
     void setBytesAndLinesFetched();
+    bool hasPGPsignedPart() const;
+    void setPGPsignedPart( bool );
+    
+    void setRawSignedMessageBody( const EString & );
 
     static UString baseSubject( const UString & );
 

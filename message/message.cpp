@@ -29,7 +29,7 @@ public:
         : databaseId( 0 ), threadId( 0 ),
           wrapped( false ), rfc822Size( 0 ), internalDate( 0 ),
           hasHeaders( false ), hasAddresses( false ), hasBodies( false ),
-          hasTrivia( false ), hasBytesAndLines( false )
+          hasTrivia( false ), hasBytesAndLines( false ), hasPGPsignedPart( false )
     {}
 
     EString error;
@@ -46,6 +46,8 @@ public:
     bool hasBodies: 1;
     bool hasTrivia : 1;
     bool hasBytesAndLines : 1;
+    bool hasPGPsignedPart : 1;
+    EString rawSignedMessageBody;
 };
 
 
@@ -90,35 +92,28 @@ void Message::parse( const EString & rfc2822 )
 
     ::log( "Message::parse - parseHeader and setHeader", Log::Debug );
     setHeader( parseHeader( i, rfc2822.length(), rfc2822, Header::Rfc2822 ) );
-    ::log( "Message::parse - will repair header", Log::Debug );
     header()->repair();
     header()->repair( this, rfc2822.mid( i ) );
 
+    ::log( "Message::parse - saving raw message-body:" + rfc2822.mid( i, rfc2822.length() - i ), Log::Debug );
+    setRawSignedMessageBody( rfc2822.mid( i, rfc2822.length() - i ) );
+    uint rawLength = rfc2822.length() - i;
     ContentType * ct = header()->contentType();
     if ( ct && ct->type() == "multipart" ) {
-        if ( ct->subtype() == "signed" ) {
-            ::log( "Message::parse - will parseMultipart signed", Log::Debug );
-            Bodypart::parseMultipart( i, rfc2822.length(), rfc2822,
-                                      ct->parameter( "boundary" ),
-                                      ct->subtype() == "digest",
-                                      children(), this, true );
-        } else {
-            ::log( "Message::parse - will parseMultipart", Log::Debug );
-            Bodypart::parseMultipart( i, rfc2822.length(), rfc2822,
-                                      ct->parameter( "boundary" ),
-                                      ct->subtype() == "digest",
-                                      children(), this, false );
-        }
+        if ( ct->subtype() == "signed" )
+            setPGPsignedPart( true );
+        Bodypart::parseMultipart( i, rfc2822.length(), rfc2822,
+                                  ct->parameter( "boundary" ),
+                                  ct->subtype() == "digest",
+                                  children(), this );
     }
     else {
-        ::log( "Message::parse - will parseBodypart", Log::Debug );
         Bodypart * bp = Bodypart::parseBodypart( i, rfc2822.length(), rfc2822,
-                                                 header(), this, false );
+                                                 header(), this );
         children()->append( bp );
     }
 
     fix8BitHeaderFields();
-    ::log( "Message::parse - will simplify header", Log::Debug );
     header()->simplify();
 
     EString e = d->error;
@@ -131,6 +126,21 @@ void Message::parse( const EString & rfc2822 )
     setAddressesFetched();
     setHeadersFetched();
     setBodiesFetched();
+    
+    // throw away raw body text, if we are not signed
+    if ( !hasPGPsignedPart() ) {
+        ::log( "Message::parse - erasing unneeded raw part", Log::Debug );
+        d->rawSignedMessageBody.truncate(0);
+    } else { // add raw body as first bodypart
+        // hgu TODO: do we have to consider cte, numEncodedBytes etc. ?
+        Bodypart * bpt = new Bodypart( 0, this );
+        bpt->setData( d->rawSignedMessageBody );
+        bpt->setNumBytes( rawLength );
+        bpt->setParent( this );
+        //bpt->setHeader( header() );
+        ::log( "Message::parse - prepending raw bodypart, length:" + fn( rawLength ), Log::Debug );
+        children()->prepend( bpt );
+    }
 }
 
 
@@ -233,6 +243,7 @@ Header * Message::parseHeader( uint & i, uint end,
         }
         else if ( j > i && rfc2822[j] == ':' ) {
             EString name = rfc2822.mid( i, j-i );
+            ::log( "Message::parseHeader - name found:" + name, Log::Debug );
             i = j;
             i++;
             while ( rfc2822[i] == ' ' || rfc2822[i] == '\t' )
@@ -261,6 +272,7 @@ Header * Message::parseHeader( uint & i, uint end,
             done = true;
         }
     }
+    ::log( "Message::parseHeader - returning header:" + h->asText(false), Log::Debug );
     return h;
 }
 
@@ -385,54 +397,67 @@ class Bodypart * Message::bodypart( const EString & s, bool create )
         ::log( "Message::bodypart - deliver part number:" + s, Log::Debug );
     uint b = 0;
     Bodypart * bp = 0;
-    while ( b < s.length() ) {
-        uint e = b;
-        while ( s[e] >= '0' && s[e] <= '9' )
-            e++;
-        if ( e < s.length() && s[e] != '.' )
-            return 0;
-        bool inrange = false;
-        uint n = s.mid( b, e-b ).number( &inrange );
-        b = e + 1;
-        if ( !inrange || n == 0 ) {
-            // TBD hgu - do we need to support part number 0 ?
-            // TDB hgu - n=0 is also returned in error case, but inrange is false in that case anyway
-            return 0;
+    
+    if ( s == "raw-pgp-signed" ) {
+        if ( create ) {
+            bp = new Bodypart( 0, this ); // hgu TODO: correct number ?
+            this->setPGPsignedPart( true );
+            children()->prepend( bp );
+        } else {
+            bp = children()->first();
         }
-        List<Bodypart> * c = children();
-        if ( bp )
-            c = bp->children();
-        List<Bodypart>::Iterator i( c );
-        while ( i && i->number() < n )
-            ++i;
-        if ( i && i->number() == n ) {
-            if ( n == 1 && !i->header() ) {
-                // it's possible that i doesn't have a header of its
-                // own, and that the parent message's header functions
-                // as such. link it in if that's the case.
-                Header * h = header();
-                if ( bp && bp->message() )
-                    h = bp->message()->header();
-                if ( h && ( !h->contentType() ||
-                            h->contentType()->type() != "multipart" ) )
-                    i->setHeader( h );
+    } else {
+        while ( b < s.length() ) {
+            uint e = b;
+            while ( s[e] >= '0' && s[e] <= '9' )
+                e++;
+            if ( e < s.length() && s[e] != '.' ) {
+                ::log( "Message::bodypart - return 0(1)", Log::Debug );
+                return 0;
             }
-            bp = i;
-        }
-        else if ( create ) {
-            Bodypart * child = 0;
+            bool inrange = false;
+            uint n = s.mid( b, e-b ).number( &inrange );
+            b = e + 1;
+            if ( !inrange || n == 0 ) {
+                ::log( "Message::bodypart - return 0(2)", Log::Debug );
+                return 0;
+            }
+            List<Bodypart> * c = children();
             if ( bp )
-                child = new Bodypart( n, bp );
-            else
-                child = new Bodypart( n, this );
-            c->insert( i, child );
-            bp = child;
-        }
-        else {
-            return 0;
+                c = bp->children();
+            List<Bodypart>::Iterator i( c );
+            while ( i && i->number() < n )
+                ++i;
+            if ( i && i->number() == n ) {
+                if ( n == 1 && !i->header() ) {
+                    // it's possible that i doesn't have a header of its
+                    // own, and that the parent message's header functions
+                    // as such. link it in if that's the case.
+                    Header * h = header();
+                    if ( bp && bp->message() )
+                        h = bp->message()->header();
+                    if ( h && ( !h->contentType() ||
+                                h->contentType()->type() != "multipart" ) )
+                        i->setHeader( h );
+                }
+                bp = i;
+            }
+            else if ( create ) {
+                Bodypart * child = 0;
+                if ( bp )
+                    child = new Bodypart( n, bp );
+                else
+                    child = new Bodypart( n, this );
+                c->insert( i, child );
+                bp = child;
+            }
+            else {
+                ::log( "Message::bodypart - return 0(3)", Log::Debug );
+                return 0;
+            }
         }
     }
-    ::log( "Message::bodypart - delivered part number:" + s, Log::Debug );
+    ::log( "Message::bodypart - delivered/created part number:" + s, Log::Debug );
     return bp;
 }
 
@@ -972,4 +997,24 @@ void Message::setWrapped( bool w ) const
 bool Message::isWrapped() const
 {
     return d->wrapped;
+}
+
+/*! Records that this message has a PGP-signed part
+*/
+
+void Message::setPGPsignedPart( bool p )
+{
+    d->hasPGPsignedPart = p;
+}
+
+/*! Returns whether a PGP-signed part has been found in this message. */
+
+bool Message::hasPGPsignedPart() const
+{
+    return d->hasPGPsignedPart;
+}
+
+void Message::setRawSignedMessageBody( const EString & s )
+{
+    d->rawSignedMessageBody = s;
 }

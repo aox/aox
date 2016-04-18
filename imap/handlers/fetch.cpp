@@ -1342,13 +1342,39 @@ static EString languageEString( ContentLanguage *cl )
 EString Fetch::bodyStructure( Multipart * m, bool extended )
 {
     EString r;
-
+    bool isSigned = false;
+    if ( extended )
+        log( "Fetch::bodyStructure - structure delivery", Log::Debug );
+    else
+        log( "Fetch::bodyStructure - body delivery", Log::Debug );
+    Multipart * ancestor = m;
+    while ( ancestor->parent() != NULL )
+        ancestor = ancestor->parent();  
+    if ( ancestor->isMessage() ) {
+        Message *msg = (Message *)ancestor;
+        if ( msg->hasPGPsignedPart() ) {
+            ::log( "Fetch::bodyStructure - signed message", Log::Debug );
+            isSigned = true;
+        }
+    }
+        
     Header * hdr = m->header();
     ContentType * ct = hdr->contentType();
-    bool inMultipartSigned = false;
     if ( ct && ct->type() == "multipart" ) {
         EStringList children;
         List< Bodypart >::Iterator it( m->children() );
+        if ( ( m == ancestor ) && isSigned ) {  // if top level, consider raw part
+            if ( !extended ) {
+                log( "Fetch::bodyStructure - append raw part", Log::Debug );
+                children.append( bodyStructure( it, extended ) );
+                uint i;
+                for ( i = 1; i <= m->children()->count(); i++ )
+                    ++it;
+            } else {  // skip raw part
+                log( "Fetch::bodyStructure - skip raw part", Log::Debug );
+                ++it;
+            }
+        }
         while ( it ) {
             Header * h = it->header();
             if ( h ) {
@@ -1384,11 +1410,13 @@ EString Fetch::bodyStructure( Multipart * m, bool extended )
     }
     else {
         log( "Fetch::bodyStructure - calling singlePartStructure", Log::Debug );
-
         r = singlePartStructure( (Bodypart*)m, extended );
     }
 
-    log( "Fetch::bodyStructure - returned structure:" + r, Log::Debug );
+    if ( extended )
+        log( "Fetch::bodyStructure - returned structure:" + r, Log::Debug );
+    else
+        log( "Fetch::bodyStructure - returned body:" + r, Log::Debug );
     return r;
 }
 

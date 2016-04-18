@@ -94,6 +94,27 @@ void Multipart::appendMultipart( EString &r, bool avoidUtf8 ) const
 
     ContentType * ct = header()->contentType();
     EString delim = ct->parameter( "boundary" );
+    if ( ! this )
+        ::log( "****** Fetch::bodyStructure - FATAL, cannnot determine message", Log::Debug );
+    else {
+        if ( this->parent() && this->parent()->isMessage() ) {
+            Message *msg = (Message *)this->parent();
+            if ( msg->hasPGPsignedPart() ) {
+                ::log( "Multipart::appendMultipart- signed message (1)", Log::Debug );
+                appendAnyPart( r, children()->first(), ct, avoidUtf8 );
+                ::log( "Multipart::appendMultipart (signed) - returning text:" + r, Log::Debug );
+                return;
+            }
+        } else if ( this->isMessage() ) {
+            Message *msg = (Message *)this;
+            if ( msg->hasPGPsignedPart() ) {
+                ::log( "Multipart::appendMultipart- signed message (2)", Log::Debug );
+                appendAnyPart( r, children()->first(), ct, avoidUtf8 );
+                ::log( "Multipart::appendMultipart (signed) - returning text:" + r, Log::Debug );
+                return;
+            }
+        }
+    }
     ::log( "Multipart::appendMultipart - ct:" + ct->type() + "/" + ct->subtype(), Log::Debug );
     List<Bodypart>::Iterator it( children() );
     r.append( "--" + delim );

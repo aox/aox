@@ -1592,16 +1592,19 @@ void Injector::insertMessages()
 
         bool skip = false;
         ContentType *ct = m->header()->contentType();
-        if ( ct )
-            ::log( "Injector::insertMessages - ct:" + ct->type(), Log::Debug );
-        if ( !ct || ct->type() != "multipart" ) {
-        //if ( !ct || ct->type() != "multipart" || ( ct->type() == "multipart" && ct->subtype() == "signed" ) ) {
-            // hgu - skip header when multipart/signed
+        if ( !ct || ct->type() != "multipart" )
             skip = true;
-        }
 
         // Now we insert the headers and bodies of every MIME bodypart.
 
+        Bodypart *bp;
+        if ( m->hasPGPsignedPart() ) {
+            EString pnr( "raw-pgp-signed" );
+            bp = m->children()->shift(); // avoid starting pns with 2
+            addPartNumber( qp, mid, pnr, bp );
+            ::log( "Injector::insertMessages - added partnumber for raw-signed part: " + pnr, Log::Debug );
+            // hgu - TODO: do we need a signed flag in database ?!
+        }
         List<Bodypart>::Iterator bi( m->allBodyparts() );
         while ( bi ) {
             Bodypart * b = bi;
@@ -1634,6 +1637,9 @@ void Injector::insertMessages()
             }
 
             ++bi;
+        }
+        if ( m->hasPGPsignedPart() ) { // reinsert raw part in children list
+            m->children()->prepend( bp );
         }
 
         ++it;
@@ -1683,6 +1689,7 @@ void Injector::insertMessages()
 void Injector::addPartNumber( Query * q, uint mid, const EString &part,
                               Bodypart * b )
 {
+    ::log( "Injector::addPartNumber - " + part, Log::Debug );
     q->bind( 1, mid );
     q->bind( 2, part );
 
@@ -1712,7 +1719,7 @@ void Injector::addPartNumber( Query * q, uint mid, const EString &part,
 void Injector::addHeader( Query * qh, Query * qa, Query * qd, uint mid,
                           const EString & part, Header * h )
 {
-    ::log( "Injector::addHeader", Log::Debug );
+    ::log( "Injector::addHeader - " + part, Log::Debug );
     List< HeaderField >::Iterator it( h->fields() );
     while ( it ) {
         HeaderField * hf = it;

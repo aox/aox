@@ -115,7 +115,7 @@ EString Header::error() const
 
 void Header::add( HeaderField * hf )
 {
-    ::log( "Header::add - name:" + hf->name(), Log::Debug );
+    ::log( "Header::add - name:" + hf->name() + ", value:" + hf->value().utf8(), Log::Debug );
     HeaderField::Type t = hf->type();
 
     if ( t == HeaderField::To || t == HeaderField::Cc ||
@@ -1494,7 +1494,7 @@ void Header::repair( Multipart * p, const EString & body )
         Bodypart::parseMultipart( 0, body.length(), body,
                                   ct->parameter( "boundary" ),
                                   false,
-                                  tmp->children(), tmp, false ); // hgu - hack 
+                                  tmp->children(), tmp );
         List<Bodypart>::Iterator i( tmp->children() );
         Address * postmaster = 0;
         while ( i && !postmaster ) {

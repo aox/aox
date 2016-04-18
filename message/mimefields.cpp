@@ -153,7 +153,7 @@ void MimeField::removeParameter( const EString &n )
 
 void MimeField::parseParameters( EmailParser *p )
 {
-    ::log( "MimeField::parseParameters", Log::Debug );
+    ::log( "MimeField::parseParameters:" + p->input(), Log::Debug );
     bool done = false;
     bool first = true;
     while ( valid() && !done ) {
@@ -219,9 +219,8 @@ void MimeField::parseParameters( EmailParser *p )
             p->step();
             p->whitespace();
             EString v;
-            if ( p->nextChar() == '"' ) {
+            if ( p->nextChar() == '"' )
                 v = p->mimeValue();
-            }
             else {
                 uint start = p->pos();
                 v = p->mimeValue();
@@ -235,6 +234,7 @@ void MimeField::parseParameters( EmailParser *p )
                 if ( ok )
                     v = p->input().mid( start, p->pos()-start );
             }
+            ::log( "MimeField::parseParameters - value:" + v, Log::Debug );
             p->comment();
 
             if ( !n.isEmpty() ) {
@@ -628,7 +628,6 @@ void ContentTransferEncoding::parse( const EString &s )
 void ContentTransferEncoding::setEncoding( EString::Encoding en )
 {
     e = en;
-    // hgu-temporary commented   ::log( "ContentTransferEncoding::setEncoding=" + baseValue(), Log::Debug );
 }
 
 

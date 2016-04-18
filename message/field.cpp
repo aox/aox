@@ -201,7 +201,6 @@ HeaderField *HeaderField::create( const EString &name,
 HeaderField *HeaderField::assemble( const EString &name,
                                     const UString &data )
 {
-    ::log( "HeaderField::assemble:" + name, Log::Debug );
     HeaderField *hf = fieldNamed( name );
     // XXX HACK HACK HACK XXX
     // in the case of the mime fields, we store the RFC822 form, and
@@ -209,14 +208,10 @@ HeaderField *HeaderField::assemble( const EString &name,
     if ( hf->type() == ContentType ||
          hf->type() == ContentTransferEncoding ||
          hf->type() == ContentLanguage ||
-         hf->type() == ContentDisposition ) {
-        ::log( "HeaderField::assemble - will parse data(1):" + data.utf8(), Log::Debug );
+         hf->type() == ContentDisposition )
         hf->parse( data.utf8() );
-    }
-    else {
+    else
         hf->setValue( data );
-        ::log( "HeaderField::assemble - will parse data(2):" + data.utf8(), Log::Debug );
-    }
     return hf;
 }
 
