@@ -12,6 +12,7 @@
 #include "unknown.h"
 #include "iso2022jp.h"
 #include "mimefields.h"
+#include "log.h"
 
 
 class BodypartData
@@ -19,7 +20,7 @@ class BodypartData
 {
 public:
     BodypartData()
-        : id( 0 ), number( 1 ), message( 0 ),
+        : id( 0 ), number( 0 ), message( 0 ),
           numBytes( 0 ), numEncodedBytes(), numEncodedLines( 0 ),
           hasText( false )
     {}
@@ -113,19 +114,25 @@ void Bodypart::setId( uint id )
 
 ContentType * Bodypart::contentType() const
 {
+    ::log( "Bodypart::contentType", Log::Debug );
     ContentType * ct = header()->contentType();
-    if ( ct )
+    if ( ct ) {
+        ::log( "Bodypart::contentType - " + ct->type(), Log::Debug );
         return ct;
+    }
     if ( !parent() )
         return 0;
     ct = parent()->header()->contentType();
     if ( ct ) {
+        ::log( "Bodypart::contentType - parent ct:" + ct->type(), Log::Debug );
         if ( ct->type() == "multipart" ) {
+            ::log( "Bodypart::contentType - parent ct:multipart/" + ct->subtype(), Log::Debug );
             ct = 0;
         }
         else if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
             Bodypart * bp = parent()->children()->firstElement();
             ct = bp->header()->contentType();
+            ::log( "Bodypart::contentType - ct of 1st parent child:" + ct->type(), Log::Debug );
         }
     }
     return ct;
@@ -142,6 +149,7 @@ ContentType * Bodypart::contentType() const
 
 EString::Encoding Bodypart::contentTransferEncoding() const
 {
+    ::log( "Bodypart::contentTransferEncoding", Log::Debug );
     ContentTransferEncoding * cte = header()->contentTransferEncoding();
     if ( !cte && parent() ) {
         ContentType * ct = parent()->header()->contentType();
@@ -288,13 +296,27 @@ EString Bodypart::asText( bool avoidUtf8 ) const
     if ( !c )
         c = new AsciiCodec;
 
-    if ( !children()->isEmpty() )
+    if ( !children()->isEmpty() ) {
+        ::log( "Bodypart::asText - will appendMultipart text:" + r, Log::Debug );
         appendMultipart( r, avoidUtf8 );
+    }
     else if ( !header()->contentType() ||
-              header()->contentType()->type() == "text" )
+              header()->contentType()->type() == "text" ) {
+              // ||
+              // header()->contentType()->baseValue() == "application/pgp-signature" ) {  //hgu - fix for signatures
+        if ( !header()->contentType() ) {
+            ::log( "Bodypart::asText - contentType empty, using text", Log::Debug );
+        } else {
+            ::log( "Bodypart::asText - contentType=text", Log::Debug );
+        }
         r = c->fromUnicode( text() );
-    else
+    }
+    else {
+        ::log( "Bodypart::asText - cte:" +  header()->contentType()->baseValue() + " will return base64 encoded data", Log::Debug );
         r = d->data.e64( 72 );
+    }
+
+    ::log( "Bodypart::asText - text:" + r, Log::Debug );
 
     return r;
 }
@@ -314,10 +336,15 @@ void Bodypart::parseMultipart( uint i, uint end,
                                const EString & divider,
                                bool digest,
                                List< Bodypart > * children,
-                               Multipart * parent,
-                               bool pgpSigned )
+                               Multipart * parent )
 {
-    bool isPgpSigned = pgpSigned;
+    ::log( "Bodypart::parseMultipart - text:" + rfc2822.mid(i, end - i), Log::Debug );
+    ::log( "Bodypart::parseMultipart - boundary:" + divider, Log::Debug );
+    if ( parent && parent->isMessage() )
+        ::log( "Bodypart::parseMultipart - parent is message", Log::Debug );
+    ::log( "Bodypart::parseMultipart - parent type:" +
+           parent->header()->contentType()->type() + "/" +
+           parent->header()->contentType()->subtype(), Log::Debug );
     uint start = 0;
     bool last = false;
     uint pn = 1;
@@ -350,14 +377,27 @@ void Bodypart::parseMultipart( uint i, uint end,
                 if ( rfc2822[j] == 10 )
                     j++;
                 if ( start > 0 ) {
-                    uint sigstart = start;  // remember original start
+                    ::log( "Bodypart::parseMultipart - will parseHeader", Log::Debug );
                     Header * h = Message::parseHeader( start, j,
                                                        rfc2822,
                                                        Header::Mime );
                     if ( digest )
                         h->setDefaultType( Header::MessageRfc822 );
-
+    
                     h->repair();
+    
+                    ContentType * ct = h->contentType();
+                    if ( ct && ct->type() == "multipart" && ct->subtype() == "signed" ) {
+                        Multipart * ancestor = parent;
+                        while ( ancestor->parent() != NULL )
+                            ancestor = ancestor->parent();  
+                        if ( ancestor->isMessage() ) {
+                            ::log( "Bodypart::parseMultipart - mark message signed", Log::Debug );
+                            Message *msg = (Message *)ancestor;
+                            msg->setPGPsignedPart( true );
+                        } else
+                            ::log( "****Bodypart::parseMultipart - problem, no parent message found", Log::Debug );
+                    }
 
                     // Strip the [CR]LF that belongs to the boundary.
                     if ( rfc2822[i-1] == 10 ) {
@@ -365,18 +405,8 @@ void Bodypart::parseMultipart( uint i, uint end,
                         if ( rfc2822[i-1] == 13 )
                             i--;
                     }
-    
-                    if ( isPgpSigned ) {
-                        // store the complete to-be-signed part, incl. header(s), to keep the unchanged version
-                        Bodypart * bpt = new Bodypart( 0, parent );
-                        bpt->setData( rfc2822.mid(sigstart, i - sigstart) );
-                        bpt->setNumBytes( i - sigstart );
-                        children->append( bpt );
-                        isPgpSigned = false;
-                    }
-
-                    Bodypart * bp =
-                        parseBodypart( start, i, rfc2822, h, parent );
+  
+                    Bodypart * bp = parseBodypart( start, i, rfc2822, h, parent );
                     bp->d->number = pn;
                     children->append( bp );
                     pn++;
@@ -398,6 +428,7 @@ void Bodypart::parseMultipart( uint i, uint end,
 
 static Codec * guessTextCodec( const EString & body )
 {
+    ::log( "Bodypart guessTextCodec", Log::Debug );
     // step 1. try iso-2022-jp. this goes first because it's so
     // restrictive, and because 2022 strings also match the ascii and
     // utf-8 tests.
@@ -451,6 +482,7 @@ static Codec * guessTextCodec( const EString & body )
 
 static Codec * guessHtmlCodec( const EString & body )
 {
+    ::log( "Bodypart guessHtmlCodec", Log::Debug );
     // Let's see if the general function has something for us.
     Codec * guess = guessTextCodec( body );
 
@@ -535,6 +567,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                                     const EString & rfc2822,
                                     Header * h, Multipart * parent )
 {
+    ::log( "Bodypart::parseBodypart - text:" + rfc2822.mid(start, end - start), Log::Debug );
+    //::log( "Bodypart::parseBodypart - header:" + h->asText(false), Log::Debug );
     if ( rfc2822[start] == 13 )
         start++;
     if ( rfc2822[start] == 10 )
@@ -558,28 +592,36 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                 any = true;
             i++;
         }
-        if ( any && i > 1 )
+        if ( any && i > 1 ) {
+            ::log( "Bodypart::parseBodypart - will removeField cte", Log::Debug );
             h->removeField( HeaderField::ContentTransferEncoding );
+        }
     }
 
+        
     EString::Encoding e = EString::Binary;
     ContentTransferEncoding * cte = h->contentTransferEncoding();
     if ( cte )
         e = cte->encoding();
     if ( !body.isEmpty() ) {
-        if ( e == EString::Base64 || e == EString::Uuencode )
+        if ( e == EString::Base64 || e == EString::Uuencode ) {
             body = body.decoded( e );
-        else
+            ::log( "Bodypart::parseBodypart - decoding - base64 or uuencode", Log::Debug );
+        } else {
+            ::log( "Bodypart::parseBodypart - decoding - not base64", Log::Debug );
             body = body.crlf().decoded( e );
+        }
     }
-
+    ::log( "Bodypart::parseBodypart - decoded body:" + body, Log::Debug );
     ContentType * ct = h->contentType();
     if ( !ct ) {
         switch ( h->defaultType() ) {
         case Header::TextPlain:
+            ::log( "Bodypart::parseBodypart - add ct=text/plain", Log::Debug );
             h->add( "Content-Type", "text/plain" );
             break;
         case Header::MessageRfc822:
+            ::log( "Bodypart::parseBodypart - add ct=message/rfc822", Log::Debug );
             h->add( "Content-Type", "message/rfc822" );
             break;
         }
@@ -589,7 +631,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         bool specified = false;
         bool unknown = false;
         Codec * c = 0;
-
+    
+        ::log( "Bodypart::parseBodypart - content-type is text", Log::Debug );
         if ( ct ) {
             EString csn = ct->parameter( "charset" );
             if ( csn.lower() == "default" )
@@ -610,13 +653,13 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                 // Not pretty.
             }
         }
-
+    
         if ( !c )
             c = new AsciiCodec;
-
+    
         bp->d->hasText = true;
         bp->d->text = c->toUnicode( body.crlf() );
-
+    
         if ( c->name() == "GB2312" || c->name() == "ISO-2022-JP" ||
              c->name() == "KS_C_5601-1987" ) {
             // undefined code point usage in GB2312 spam is much too
@@ -626,9 +669,9 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             // form and say it's the canonical form. when a client
             // later reads the message, it gets the text in unicode,
             // including U+FFFD.
-
+    
             bool bad = !c->valid();
-
+    
             // the header may contain some unencoded gb2312. we bang
             // it by hand, ignoring errors.
             List<HeaderField>::Iterator hf( h->fields() );
@@ -641,7 +684,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                 }
                 ++hf;
             }
-
+    
             // if the body was bad, we prefer the (unicode) in
             // bp->d->text and pretend it arrived as UTF-8:
             if ( bad ) {
@@ -649,7 +692,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                 body = c->fromUnicode( bp->d->text );
             }
         }
-
+        ::log( "Bodypart::parseBodypart - guessing html codec", Log::Debug );
+    
         if ( ( !specified && ( !c->wellformed() ||
                                ct->subtype() == "html" ) ) ||
              ( specified &&  ( !c->valid() ) ) ) {
@@ -679,7 +723,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                 }
             }
         }
-
+    
+        ::log( "Bodypart::parseBodypart - checking for invalid codec", Log::Debug );
         if ( specified && c->state() == Codec::Invalid ) {
             // the codec was specified, and the specified codec
             // resulted in an error, but did not abort conversion. we
@@ -695,12 +740,12 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             c = new Unknown8BitCodec;
             bp->d->text = c->toUnicode( body );
         }
-
+    
         // if we ended up using a 16-bit codec and were using q-p, we
         // need to reevaluate without any trailing CRLF
         if ( e == EString::QP && c->name().startsWith( "UTF-16" ) )
             bp->d->text = c->toUnicode( body.stripCRLF() );
-
+    
         if ( !c->valid() && bp->d->error.isEmpty() ) {
             bp->d->error = "Could not convert body to Unicode";
             if ( specified ) {
@@ -716,17 +761,17 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             else if ( !c->error().isEmpty() )
                 bp->d->error.append( ": " + c->error() );
         }
-
+    
         if ( c->name().lower() != "us-ascii" )
             ct->addParameter( "charset", c->name().lower() );
         else if ( ct )
             ct->removeParameter( "charset" );
-
         body = c->fromUnicode( bp->d->text );
         bool qp = body.needsQP();
-
+    
         if ( cte ) {
             if ( !qp ) {
+                ::log( "Bodypart::parseBodypart - removeField cte", Log::Debug );
                 h->removeField( HeaderField::ContentTransferEncoding );
                 cte = 0;
             }
@@ -735,11 +780,18 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             }
         }
         else if ( qp ) {
+            ::log( "Bodypart::parseBodypart - add cte='quoted-printable'", Log::Debug );
             h->add( "Content-Transfer-Encoding", "quoted-printable" );
             cte = h->contentTransferEncoding();
         }
     }
     else {
+        ::log( "Bodypart::parseBodypart - content-type is not text, body:" + body, Log::Debug );
+        ::log( "Bodypart::parseBodypart - content-type ct->type:" + ct->type(), Log::Debug );
+        ::log( "Bodypart::parseBodypart - content-type ct->subtype:" + ct->subtype(), Log::Debug );
+        if ( body.needsQP() ) {
+            ::log( "Bodypart::parseBodypart - body needs QP", Log::Debug );
+        }
         bp->d->data = body;
         if ( ct->type() != "multipart" && ct->type() != "message" ) {
             e = EString::Base64;
@@ -755,28 +807,34 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                       ct->subtype() == "octet-stream" &&
                       body.contains( "BEGIN PGP MESSAGE" ) ) {
                 // mutt cannot handle PGP in base64 (what a crock)
+                ::log( "Bodypart::parseBodypart - 'BEGIN PGP MESSAGE' encountered", Log::Debug );
                 e = EString::Binary;
             }
             // change c-t-e to match the encoding decided above
             if ( e == EString::Binary ) {
+                ::log( "Bodypart::parseBodypart - cte is binary, removeField", Log::Debug );
                 h->removeField( HeaderField::ContentTransferEncoding );
                 cte = 0;
             }
             else if ( cte ) {
+                ::log( "Bodypart::parseBodypart - before setencoding", Log::Debug );
                 cte->setEncoding( e );
             }
             else {
+                ::log( "Bodypart::parseBodypart - add cte='base64'", Log::Debug );
                 h->add( "Content-Transfer-Encoding", "base64" );
                 cte = h->contentTransferEncoding();
             }
         }
     }
+    ::log( "Bodypart::parseBodypart - before asking if multipart", Log::Debug );
 
     if ( ct->type() == "multipart" ) {
+        ::log( "Bodypart::parseBodypart - will parseMultipart", Log::Debug );
         parseMultipart( start, end, rfc2822,
                         ct->parameter( "boundary" ),
                         ct->subtype() == "digest",
-                        bp->children(), bp, false );
+                        bp->children(), bp );
     }
     else if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
         // There are sometimes blank lines before the message.

@@ -8,6 +8,7 @@
 #include "mimefields.h"
 #include "ustring.h"
 #include "codec.h"
+#include "log.h"
 
 #include <stdio.h>
 
@@ -89,12 +90,32 @@ List< Bodypart > * Multipart::children() const
 
 void Multipart::appendMultipart( EString &r, bool avoidUtf8 ) const
 {
+    ::log( "Multipart::appendMultipart - will append to text:" + r, Log::Debug );
+
     ContentType * ct = header()->contentType();
     EString delim = ct->parameter( "boundary" );
-    bool isSigned = false;
-    if ( ct->subtype() == "signed" ) {
-        isSigned = true;
+    if ( ! this )
+        ::log( "****** Fetch::bodyStructure - FATAL, cannnot determine message", Log::Debug );
+    else {
+        if ( this->parent() && this->parent()->isMessage() ) {
+            Message *msg = (Message *)this->parent();
+            if ( msg->hasPGPsignedPart() ) {
+                ::log( "Multipart::appendMultipart- signed message (1)", Log::Debug );
+                appendAnyPart( r, children()->first(), ct, avoidUtf8 );
+                ::log( "Multipart::appendMultipart (signed) - returning text:" + r, Log::Debug );
+                return;
+            }
+        } else if ( this->isMessage() ) {
+            Message *msg = (Message *)this;
+            if ( msg->hasPGPsignedPart() ) {
+                ::log( "Multipart::appendMultipart- signed message (2)", Log::Debug );
+                appendAnyPart( r, children()->first(), ct, avoidUtf8 );
+                ::log( "Multipart::appendMultipart (signed) - returning text:" + r, Log::Debug );
+                return;
+            }
+        }
     }
+    ::log( "Multipart::appendMultipart - ct:" + ct->type() + "/" + ct->subtype(), Log::Debug );
     List<Bodypart>::Iterator it( children() );
     r.append( "--" + delim );
     while ( it ) {
@@ -102,23 +123,23 @@ void Multipart::appendMultipart( EString &r, bool avoidUtf8 ) const
 
         Bodypart * bp = it;
         ++it;
-        
-        if ( isSigned ) {
-            ++it;       // skip next part, we append it raw
-            isSigned = false;
-            // just append our raw text, header is contained
-            appendAnyPart( r, bp, ct, avoidUtf8 );
-        } else {
-            r.append( bp->header()->asText( avoidUtf8 ) );
-            r.append( crlf );
-            appendAnyPart( r, bp, ct, avoidUtf8 );
+
+        if ( bp->header() && bp->header()->contentType() ) {
+            ::log( "Multipart::appendMultipart - child ct:" +
+                   bp->header()->contentType()->type() + "/" +
+                   bp->header()->contentType()->subtype(), Log::Debug );
         }
+        r.append( bp->header()->asText( avoidUtf8 ) );
+        r.append( crlf );
+        ::log( "Multipart::appendMultipart - header was appended:" +  bp->header()->asText( avoidUtf8 ), Log::Debug );
+        appendAnyPart( r, bp, ct, avoidUtf8 );
         r.append( crlf );
         r.append( "--" );
         r.append( delim );
     }
     r.append( "--" );
     r.append( crlf );
+    ::log( "Multipart::appendMultipart - returning text:" + r, Log::Debug );
 }
 
 
@@ -142,18 +163,25 @@ void Multipart::appendAnyPart( EString &r, const Bodypart * bp,
          ( ct && ct->type() == "multipart" && ct->subtype() == "digest" &&
            !childct ) )
     {
-        if ( childct && childct->subtype() != "rfc822" )
+        if ( childct && childct->subtype() != "rfc822" ) {
+            ::log( "Multipart::appendAnypart - will appendTextPart 1", Log::Debug );
             appendTextPart( r, bp, childct );
-        else
+        }
+        else {
+            ::log( "Multipart::appendAnypart - will append rfc822", Log::Debug );
             r.append( bp->message()->rfc822( avoidUtf8 ) );
+        }
     }
     else if ( !childct || childct->type().lower() == "text" ) {
+        ::log( "Multipart::appendAnypart - will appendTextPart 2", Log::Debug );
         appendTextPart( r, bp, childct );
     }
     else if ( childct->type() == "multipart" ) {
+        ::log( "Multipart::appendAnypart - will appendMultipart", Log::Debug );
         bp->appendMultipart( r, avoidUtf8 );
     }
     else {
+        ::log( "Multipart::appendAnypart - will append data", Log::Debug );
         r.append( bp->data().encoded( e, 72 ) );
     }
 }
@@ -183,6 +211,7 @@ void Multipart::appendTextPart( EString & r, const Bodypart * bp,
 
     EString body = c->fromUnicode( bp->text() );
 
+    ::log( "Multipart::appendTextPart - text:" + body, Log::Debug );
     r.append( body.encoded( e, 72 ) );
 }
 
@@ -322,6 +351,7 @@ void Multipart::simplifyMimeStructure()
     // If we're looking at a multipart with just a single part, change
     // the mime type to avoid the middle multipart. This affects
     // Kaiten Mail.
+    ::log( "Multipart::simplifyMimeStructure", Log::Debug );
     if ( header()->contentType() &&
          header()->contentType()->type() == "multipart" &&
          parts->count() == 1 &&
@@ -358,6 +388,7 @@ void Multipart::simplifyMimeStructure()
 
 bool Multipart::needsUnicode() const
 {
+    ::log( "Multipart::needsUnicode", Log::Debug );
     if ( h->needsUnicode() )
         return true;
 
@@ -368,5 +399,6 @@ bool Multipart::needsUnicode() const
         ++it;
     }
 
+    ::log( "Multipart::needsUnicode - false", Log::Debug );
     return false;
 }

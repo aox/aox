@@ -227,11 +227,13 @@ Injector::Injector( EventHandler * owner )
 
 void Injector::addInjection( List<Injectee> * messages )
 {
+    ::log( "Injector::addInjection", Log::Debug );
     if ( !messages || messages->isEmpty() )
         return;
 
     List<Injectee>::Iterator i( messages );
     while ( i ) {
+        ::log( "Injector::addInjection - append injectee", Log::Debug );
         d->injectables.append( i );
         ++i;
     }
@@ -247,6 +249,7 @@ void Injector::addDelivery( Injectee * message, Address * sender,
                             List<Address> * recipients,
                             Date * later )
 {
+    ::log( "Injector::addDelivery", Log::Debug );
     d->deliveries.append( new InjectorData::Delivery( message, sender,
                                                       recipients, later ) );
 }
@@ -318,6 +321,7 @@ void Injector::setTransaction( class Transaction * t )
 
 void Injector::execute()
 {
+    ::log( "Injector::execute", Log::Debug );
     Scope x( log() );
 
     State last;
@@ -526,6 +530,7 @@ void Injector::createMailboxes()
 
 void Injector::findDependencies()
 {
+    ::log( "Injector::findDependencies", Log::Debug );
     Dict<Injector> seenFields;
 
     List<Header> * l = new List<Header>;
@@ -567,6 +572,7 @@ void Injector::findDependencies()
                 if ( hf->type() >= HeaderField::Other &&
                      !seenFields.contains( n ) )
                 {
+                    ::log( "Injector::findDependencies - appending things", Log::Debug );
                     d->fields.append( n );
                     seenFields.insert( n, this );
                 }
@@ -682,6 +688,7 @@ uint Injector::addressId( Address * a )
 
 void Injector::createDependencies()
 {
+    ::log( "Injector::createDependencies", Log::Debug );
     if ( !d->fields.isEmpty() ) {
         d->fieldNameCreator =
             new FieldNameCreator( d->fields, d->transaction );
@@ -716,6 +723,7 @@ void Injector::createDependencies()
 
 void Injector::convertInReplyTo()
 {
+    ::log( "Injector::convertInReplyTo", Log::Debug );
     EStringList ids;
     if ( d->outlooks.isEmpty() ) {
         List<Injectee>::Iterator i( d->messages );
@@ -1122,6 +1130,7 @@ void Injector::insertThreadRoots()
 
 void Injector::insertBodyparts()
 {
+    ::log( "Injector::insertBodyparts", Log::Debug );
     uint last;
 
     do {
@@ -1276,6 +1285,7 @@ Query * Injector::selectNextvals( const EString & sequence, uint num )
 
 void Injector::addBodypartRow( Bodypart * b )
 {
+    ::log( "Injector::addBodypartRow", Log::Debug );
     bool storeText = false;
     bool storeData = false;
 
@@ -1283,6 +1293,7 @@ void Injector::addBodypartRow( Bodypart * b )
 
     ContentType *ct = b->contentType();
     if ( ct ) {
+        ::log( "Injector::addBodypartRow - ct:" + ct->type() + "/" + ct->subtype(), Log::Debug );
         if ( ct->type() == "text" ) {
             storeText = true;
             if ( ct->subtype() == "html" )
@@ -1300,8 +1311,10 @@ void Injector::addBodypartRow( Bodypart * b )
         storeText = true;
     }
 
-    if ( !( storeText || storeData ) )
+    if ( !( storeText || storeData ) ) {
+        ::log( "Injector::addBodypartRow - nothing to store", Log::Debug );
         return;
+    }
 
     // Yes. What exactly do we need to store?
 
@@ -1320,6 +1333,7 @@ void Injector::addBodypartRow( Bodypart * b )
         // content types this way. But where to?)
 
         if ( storeData ) {
+            ::log( "Injector::addBodypartRow - storing data and text" + *text, Log::Debug );
             data = s;
             text =
                 new EString( u.fromUnicode( HTML::asText( b->text() ) ) );
@@ -1327,6 +1341,7 @@ void Injector::addBodypartRow( Bodypart * b )
     }
     else {
         data = s = new EString( b->data() );
+        ::log( "Injector::addBodypartRow - storing data:" + *s, Log::Debug );
     }
     hash = MD5::hash( *s ).hex();
 
@@ -1526,6 +1541,7 @@ void Injector::selectUids()
 
 void Injector::insertMessages()
 {
+    ::log( "Injector::insertMessages", Log::Debug );
     Query * qp =
         new Query( "copy part_numbers (message,part,bodypart,bytes,lines) "
                    "from stdin with binary", 0 );
@@ -1581,11 +1597,21 @@ void Injector::insertMessages()
 
         // Now we insert the headers and bodies of every MIME bodypart.
 
+        Bodypart *bp;
+        if ( m->hasPGPsignedPart() ) {
+            EString pnr( "raw-pgp-signed" );
+            bp = m->children()->shift(); // avoid starting pns with 2
+            addPartNumber( qp, mid, pnr, bp );
+            ::log( "Injector::insertMessages - added partnumber for raw-signed part: " + pnr, Log::Debug );
+            // hgu - TODO: do we need a signed flag in database ?!
+        }
         List<Bodypart>::Iterator bi( m->allBodyparts() );
         while ( bi ) {
             Bodypart * b = bi;
             EString pn( m->partNumber( b ) );
 
+            ::log( "Injector::insertMessages - adding partnumber: " + pn, Log::Debug );
+            ::log( "Injector::insertMessages - ct:" + b->header()->asText( false ), Log::Debug );
             addPartNumber( qp, mid, pn, b );
             if ( !skip )
                 addHeader( qh, qa, qd, mid, pn, b->header() );
@@ -1596,6 +1622,7 @@ void Injector::insertMessages()
 
             if ( b->message() ) {
                 EString rpn( pn + ".rfc822" );
+                ::log( "Injector::insertMessages - adding partnumber " + rpn, Log::Debug );
                 addPartNumber( qp, mid, rpn, b );
                 addHeader( qh, qa, qd, mid, rpn, b->message()->header() );
             }
@@ -1610,6 +1637,9 @@ void Injector::insertMessages()
             }
 
             ++bi;
+        }
+        if ( m->hasPGPsignedPart() ) { // reinsert raw part in children list
+            m->children()->prepend( bp );
         }
 
         ++it;
@@ -1659,6 +1689,7 @@ void Injector::insertMessages()
 void Injector::addPartNumber( Query * q, uint mid, const EString &part,
                               Bodypart * b )
 {
+    ::log( "Injector::addPartNumber - " + part, Log::Debug );
     q->bind( 1, mid );
     q->bind( 2, part );
 
@@ -1688,6 +1719,7 @@ void Injector::addPartNumber( Query * q, uint mid, const EString &part,
 void Injector::addHeader( Query * qh, Query * qa, Query * qd, uint mid,
                           const EString & part, Header * h )
 {
+    ::log( "Injector::addHeader - " + part, Log::Debug );
     List< HeaderField >::Iterator it( h->fields() );
     while ( it ) {
         HeaderField * hf = it;
@@ -2245,6 +2277,7 @@ static void addField( EString & wrapper,
                       const EString & field, const EString & message,
                       const EString & dflt = "" )
 {
+    ::log( "injector.cpp static addField", Log::Debug );
     EString value = invalidField( message, field );
     HeaderField * hf = 0;
     if ( !value.isEmpty() )
@@ -2278,6 +2311,7 @@ Injectee * Injectee::wrapUnparsableMessage( const EString & message,
                                             const EString & defaultSubject,
                                             const EString & id )
 {
+    ::log( "Injectee::wrapUnparsableMessage", Log::Debug );
     EString boundary = acceptableBoundary( message );
     EString wrapper;
 

@@ -177,7 +177,7 @@ Fetch::Fetch( bool f, bool a, const IntegerSet & set,
     while ( c && c->tag().isEmpty() )
         ++c;
     if ( c && c->group() > 0 && ( c->state() == Command::Finished ||
-                                  c->state() == Command::Executing ) ) {
+                c->state() == Command::Executing ) ) {
         log( "Inserting flag update for modseq>" + fn( limit ) +
              " and UIDs " + set.set() + " before " +
              c->tag() + " " + c->name() );
@@ -1342,23 +1342,49 @@ static EString languageEString( ContentLanguage *cl )
 EString Fetch::bodyStructure( Multipart * m, bool extended )
 {
     EString r;
-
+    bool isSigned = false;
+    if ( extended )
+        log( "Fetch::bodyStructure - structure delivery", Log::Debug );
+    else
+        log( "Fetch::bodyStructure - body delivery", Log::Debug );
+    Multipart * ancestor = m;
+    while ( ancestor->parent() != NULL )
+        ancestor = ancestor->parent();  
+    if ( ancestor->isMessage() ) {
+        Message *msg = (Message *)ancestor;
+        if ( msg->hasPGPsignedPart() ) {
+            ::log( "Fetch::bodyStructure - signed message", Log::Debug );
+            isSigned = true;
+        }
+    }
+        
     Header * hdr = m->header();
     ContentType * ct = hdr->contentType();
-
-    bool inMultipartSigned = false;
-
     if ( ct && ct->type() == "multipart" ) {
-        if ( ct->subtype() == "signed" ) {
-            inMultipartSigned = true;
-        }
         EStringList children;
         List< Bodypart >::Iterator it( m->children() );
+        if ( ( m == ancestor ) && isSigned ) {  // if top level, consider raw part
+            if ( !extended ) {
+                log( "Fetch::bodyStructure - append raw part", Log::Debug );
+                children.append( bodyStructure( it, extended ) );
+                uint i;
+                for ( i = 1; i <= m->children()->count(); i++ )
+                    ++it;
+            } else {  // skip raw part
+                log( "Fetch::bodyStructure - skip raw part", Log::Debug );
+                ++it;
+            }
+        }
         while ( it ) {
-            if ( inMultipartSigned ) {
-                ++it; // skip next child-structure, as we appended it already raw
-                inMultipartSigned = false;
-                if ( !it ) break;
+            Header * h = it->header();
+            if ( h ) {
+                ContentType * cty = h->contentType();
+                if ( cty ) {
+                    log( "Fetch::bodyStructure - append child, ct:" + cty->type() +
+                             "/" + cty->subtype(),  Log::Debug );
+                } else {
+                    log( "Fetch::bodyStructure - append child", Log::Debug );
+                }
             }
             children.append( bodyStructure( it, extended ) );
             ++it;
@@ -1383,9 +1409,14 @@ EString Fetch::bodyStructure( Multipart * m, bool extended )
         r.append( ")" );
     }
     else {
+        log( "Fetch::bodyStructure - calling singlePartStructure", Log::Debug );
         r = singlePartStructure( (Bodypart*)m, extended );
     }
 
+    if ( extended )
+        log( "Fetch::bodyStructure - returned structure:" + r, Log::Debug );
+    else
+        log( "Fetch::bodyStructure - returned body:" + r, Log::Debug );
     return r;
 }
 
@@ -1452,6 +1483,7 @@ EString Fetch::singlePartStructure( Multipart * mp, bool extended )
             // body-type-msg   = media-message SP body-fields SP envelope
             //                   SP body SP body-fld-lines
             l.append( envelope( bp->message() ) );
+            log( "Fetch::singlePartStructure - calling bodyStructure", Log::Debug );
             l.append( bodyStructure( bp->message(), extended ) );
             l.append( fn ( bp->numEncodedLines() ) );
         }
