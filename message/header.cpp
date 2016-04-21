@@ -1473,7 +1473,7 @@ void Header::repair( Multipart * p, const EString & body )
         Bodypart::parseMultipart( 0, body.length(), body,
                                   ct->parameter( "boundary" ),
                                   false,
-                                  tmp->children(), tmp, false );
+                                  tmp->children(), tmp);
         List<Bodypart>::Iterator i( tmp->children() );
         Address * postmaster = 0;
         while ( i && !postmaster ) {

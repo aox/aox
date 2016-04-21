@@ -117,10 +117,6 @@ void Multipart::appendMultipart( EString &r, bool avoidUtf8 ) const
         Bodypart * bp = it;
         ++it;
 
-        if ( bp->header() && bp->header()->contentType() ) {
-                   bp->header()->contentType()->type() + "/" +
-                   bp->header()->contentType()->subtype(), Log::Debug );
-        }
         r.append( bp->header()->asText( avoidUtf8 ) );
         r.append( crlf );
         appendAnyPart( r, bp, ct, avoidUtf8 );
