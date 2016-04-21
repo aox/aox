@@ -62,7 +62,7 @@ public:
     void setBytesAndLinesFetched();
     bool hasPGPsignedPart() const;
     void setPGPsignedPart( bool );
-    
+
     void setRawSignedMessageBody( const EString & );
 
     static UString baseSubject( const UString & );

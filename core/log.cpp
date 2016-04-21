@@ -81,7 +81,6 @@ void Log::log( const EString &m, Severity s )
         EString n = "Archiveopteryx";
         if ( l )
             n = l->name();
-        //fprintf( stderr, "%s: %s\n", n.cstr(), m.simplified().cstr() );
         fprintf( stderr, "%s: %s\n", n.cstr(), m.cstr() );  // hgu - we want correct output
     }
 

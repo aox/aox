@@ -738,7 +738,6 @@ bool FetcherData::AddressDecoder::isDone( Message * m ) const
 
 void FetcherData::BodyDecoder::decode( Message * m, List<Row> * rows )
 {
-    ::log( "FetcherData::BodyDecoder::decode", Log::Debug );
     PartNumberDecoder::decode( m, rows );
 
     List<Row>::Iterator i( rows );
@@ -747,15 +746,15 @@ void FetcherData::BodyDecoder::decode( Message * m, List<Row> * rows )
         ++i;
 
         EString part = r->getEString( "part" );
-    
+
         if ( !part.endsWith( ".rfc822" ) ) {
             Bodypart * bp = m->bodypart( part, true );
-    
+
             if ( !r->isNull( "data" ) )
                 bp->setData( r->getEString( "data" ) );
             else if ( !r->isNull( "text" ) )
                 bp->setText( r->getUString( "text" ) );
-    
+
             if ( !r->isNull( "rawbytes" ) )
                 bp->setNumBytes( r->getInt( "rawbytes" ) );
         }
@@ -784,8 +783,7 @@ void FetcherData::PartNumberDecoder::decode( Message * m, List<Row> * rows )
         ++i;
 
         EString part = r->getEString( "part" );
-        ::log( "FetcherData::PartNumberDecoder::decode - part:" + part, Log::Debug );
-    
+
         if ( part.endsWith( ".rfc822" ) ) {
             Bodypart *bp = m->bodypart( part.mid( 0, part.length()-7 ),
                                         true );
@@ -793,7 +791,7 @@ void FetcherData::PartNumberDecoder::decode( Message * m, List<Row> * rows )
                 bp->setMessage( new Message );
                 bp->message()->setParent( bp );
             }
-    
+
             List< Bodypart >::Iterator it( bp->children() );
             while ( it ) {
                 bp->message()->children()->append( it );

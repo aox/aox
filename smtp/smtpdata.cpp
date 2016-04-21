@@ -136,6 +136,7 @@ void SmtpData::execute()
         }
         if ( !line )
             return;
+
         if ( *line == "." ) {
             d->state = 2;
             server()->setInputState( SMTP::Command );
@@ -469,7 +470,6 @@ Injectee * SmtpData::message( const EString & body )
              "\r\n";
 
     d->body = rp + received + body;
-    log( "SmtpData::message - 2 - body:" + body, Log::Debug );
     Injectee * m = new Injectee;
     m->parse( d->body );
     // if the sender is another dickhead specifying <> in From to
