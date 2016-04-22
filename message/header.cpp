@@ -21,6 +21,7 @@
 #include "utf.h"
 
 
+
 static const char *crlf = "\015\012";
 
 
@@ -166,9 +167,8 @@ void Header::removeField( HeaderField::Type t )
 {
     List<HeaderField>::Iterator it( d->fields );
     while ( it ) {
-        if ( it->type() == t ) {
+        if ( it->type() == t )
             d->fields.take( it );
-        }
         else
             ++it;
     }
@@ -583,9 +583,8 @@ void Header::simplify()
     }
 
     ContentTransferEncoding *cte = contentTransferEncoding();
-    if ( cte && cte->encoding() == EString::Binary ) {
+    if ( cte && cte->encoding() == EString::Binary )
         removeField( HeaderField::ContentTransferEncoding );
-    }
 
     ContentDisposition *cdi = contentDisposition();
     if ( cdi ) {
@@ -623,16 +622,14 @@ void Header::simplify()
         removeField( HeaderField::MimeVersion );
     }
     else {
-        if ( mode() == Rfc2822 && !field( HeaderField::MimeVersion ) ) {
+        if ( mode() == Rfc2822 && !field( HeaderField::MimeVersion ) )
             add( "Mime-Version", "1.0" );
-        }
     }
     if ( ct &&
          ( ct->type() == "multipart" || ct->type() == "message" ||
            ct->type() == "image" || ct->type() == "audio" ||
-           ct->type() == "video" ) ) {
+           ct->type() == "video" ) )
         ct->removeParameter( "charset" );
-    }
 
     if ( field( "Errors-To" ) ) {
         EString et = field( "Errors-To" )->value().ascii();
@@ -676,9 +673,8 @@ void Header::simplify()
 
 void Header::repair()
 {
-    if ( valid() ) {
+    if ( valid() )
         return;
-    }
 
     // We remove duplicates of any field that may occur only once.
     // (Duplication has been observed for Date/Subject/M-V/C-T-E/C-T/M-I.)
@@ -869,9 +865,8 @@ void Header::repair()
 
 void Header::repair( Multipart * p, const EString & body )
 {
-    if ( valid() ) {
+    if ( valid() )
         return;
-    }
 
     // Duplicated from above.
     uint occurrences[ (int)HeaderField::Other ];

@@ -1300,9 +1300,8 @@ void Injector::addBodypartRow( Bodypart * b )
         storeText = true;
     }
 
-    if ( !( storeText || storeData ) ) {
+    if ( !( storeText || storeData ) )
         return;
-    }
 
     // Yes. What exactly do we need to store?
 

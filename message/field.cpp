@@ -270,21 +270,17 @@ EString HeaderField::rfc822( bool avoidUtf8 ) const
     if ( d->type == Subject ||
          d->type == Comments ||
          d->type == ContentDescription ) {
-        if ( avoidUtf8 ) {
+        if ( avoidUtf8 )
             return wrap( encodeText( d->value ) );
-        }
-        else {
+        else
             return wrap( d->value.utf8() );
-        }
     }
 
     if ( d->type == Other ) {
-        if ( avoidUtf8 ) {
+        if ( avoidUtf8 )
             return encodeText( d->value );
-        }
-        else {
+        else
             return d->value.utf8();
-        }
     }
 
     // We assume that, for most fields, we can use the database

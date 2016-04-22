@@ -149,12 +149,10 @@ void Multipart::appendAnyPart( EString &r, const Bodypart * bp,
          ( ct && ct->type() == "multipart" && ct->subtype() == "digest" &&
            !childct ) )
     {
-        if ( childct && childct->subtype() != "rfc822" ) {
+        if ( childct && childct->subtype() != "rfc822" )
             appendTextPart( r, bp, childct );
-        }
-        else {
+        else
             r.append( bp->message()->rfc822( avoidUtf8 ) );
-        }
     }
     else if ( !childct || childct->type().lower() == "text" ) {
         appendTextPart( r, bp, childct );

@@ -378,9 +378,8 @@ class Bodypart * Message::bodypart( const EString & s, bool create )
             bp = new Bodypart( 0, this ); // hgu TODO: correct number ?
             this->setPGPsignedPart( true );
             children()->prepend( bp );
-        } else {
+        } else
             bp = children()->first();
-        }
     } else {
         while ( b < s.length() ) {
             uint e = b;

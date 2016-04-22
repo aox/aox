@@ -97,9 +97,8 @@ EString MimeField::parameter( const EString &n ) const
     List< MimeFieldData::Parameter >::Iterator it( d->parameters );
     while ( it && s != it->name )
         ++it;
-    if ( it ) {
+    if ( it )
         return it->value;
-    }
     return "";
 }
 
@@ -585,24 +584,18 @@ void ContentTransferEncoding::parse( const EString &s )
     // XXX shouldn't we do p.end() here and record parse errors?
 
     if ( t == "7bit" || t == "8bit" || t == "8bits" || t == "binary" ||
-         t == "unknown" ) {
+         t == "unknown" )
         setEncoding( EString::Binary );
-    }
-    else if ( t == "quoted-printable" ) {
+    else if ( t == "quoted-printable" )
         setEncoding( EString::QP );
-    }
-    else if ( t == "base64" ) {
+    else if ( t == "base64" )
         setEncoding( EString::Base64 );
-    }
-    else if ( t == "x-uuencode" || t == "uuencode" ) {
+    else if ( t == "x-uuencode" || t == "uuencode" )
         setEncoding( EString::Uuencode );
-    }
-    else if ( t.contains( "bit" ) && t[0] >= '0' && t[0] <= '9' ) {
+    else if ( t.contains( "bit" ) && t[0] >= '0' && t[0] <= '9' )
         setEncoding( EString::Binary );
-    }
-    else {
+    else
         setError( "Invalid c-t-e value: " + t.quoted() );
-    }
 }
 
 

@@ -115,9 +115,8 @@ void Bodypart::setId( uint id )
 ContentType * Bodypart::contentType() const
 {
     ContentType * ct = header()->contentType();
-    if ( ct ) {
+    if ( ct )
         return ct;
-    }
     if ( !parent() )
         return 0;
     ct = parent()->header()->contentType();
@@ -290,16 +289,13 @@ EString Bodypart::asText( bool avoidUtf8 ) const
     if ( !c )
         c = new AsciiCodec;
 
-    if ( !children()->isEmpty() ) {
+    if ( !children()->isEmpty() )
         appendMultipart( r, avoidUtf8 );
-    }
     else if ( !header()->contentType() ||
-              header()->contentType()->type() == "text" ) {
+              header()->contentType()->type() == "text" )
         r = c->fromUnicode( text() );
-    }
-    else {
+    else
         r = d->data.e64( 72 );
-    }
     return r;
 }
 
@@ -560,9 +556,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                 any = true;
             i++;
         }
-        if ( any && i > 1 ) {
+        if ( any && i > 1 )
             h->removeField( HeaderField::ContentTransferEncoding );
-        }
     }
 
         
@@ -571,11 +566,10 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     if ( cte )
         e = cte->encoding();
     if ( !body.isEmpty() ) {
-        if ( e == EString::Base64 || e == EString::Uuencode ) {
+        if ( e == EString::Base64 || e == EString::Uuencode )
             body = body.decoded( e );
-        } else {
+        else
             body = body.crlf().decoded( e );
-        }
     }
     ContentType * ct = h->contentType();
     if ( !ct ) {
@@ -653,7 +647,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                 body = c->fromUnicode( bp->d->text );
             }
         }
-    
+
         if ( ( !specified && ( !c->wellformed() ||
                                ct->subtype() == "html" ) ) ||
              ( specified &&  ( !c->valid() ) ) ) {
@@ -720,7 +714,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             else if ( !c->error().isEmpty() )
                 bp->d->error.append( ": " + c->error() );
         }
-    
+
         if ( c->name().lower() != "us-ascii" )
             ct->addParameter( "charset", c->name().lower() );
         else if ( ct )
