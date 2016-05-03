@@ -1,4 +1,0 @@
-git clone http://github.com/aox/aox
-cd aox
-setenv CLANG 1
-jam

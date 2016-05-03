@@ -364,7 +364,7 @@ void Bodypart::parseMultipart( uint i, uint end,
                             Message *msg = (Message *)ancestor;
                             msg->setPGPsignedPart( true );
                         } else
-                            ::log( "****Bodypart::parseMultipart - problem, no parent message found", Log::Debug );
+                            ::log( "Bodypart::parseMultipart - problem, no parent message found", Log::Error );
                     }
 
                     // Strip the [CR]LF that belongs to the boundary.

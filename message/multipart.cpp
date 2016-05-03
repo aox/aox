@@ -93,7 +93,7 @@ void Multipart::appendMultipart( EString &r, bool avoidUtf8 ) const
     ContentType * ct = header()->contentType();
     EString delim = ct->parameter( "boundary" );
     if ( ! this )
-        ::log( "****** Fetch::bodyStructure - FATAL, cannnot determine message", Log::Debug );
+        ::log( "Fetch::bodyStructure - FATAL, cannnot determine message", Log::Error );
     else {
         if ( this->parent() && this->parent()->isMessage() ) {
             Message *msg = (Message *)this->parent();
