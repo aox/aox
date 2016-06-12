@@ -29,7 +29,7 @@ public:
           mailbox( 0 ), session( 0 ), permissions( 0 ),
           cacheFirstUnseen( 0 ), sessionPreloader( 0 ),
           lastUidValidity( 0 ), lastModSeq( 0 ),
-          firstFetch( 0 )
+          changedFlags( 0 )
     {}
 
     bool readOnly;
@@ -49,7 +49,7 @@ public:
     uint lastUidValidity;
     uint lastModSeq;
     IntegerSet knownUids;
-    Fetch * firstFetch;
+    Query * changedFlags;
 
     class FirstUnseenCache
         : public Cache
@@ -263,7 +263,7 @@ void Select::execute()
         while ( d->cacheFirstUnseen && d->cacheFirstUnseen->hasResults() ) {
             Row * r = d->cacheFirstUnseen->nextRow();
             Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
-            ::firstUnseenCache->insert( m, 1 + r->getBigint( "modseq" ),
+            ::firstUnseenCache->insert( m, r->getBigint( "modseq" ),
                                         r->getInt( "uid" ) );
         }
         if ( d->cacheFirstUnseen && !d->cacheFirstUnseen->done() )
@@ -309,6 +309,24 @@ void Select::execute()
         transaction()->enqueue( d->vanished );
     }
 
+    if ( d->lastModSeq > 0 && !d->changedFlags ) {
+        if ( d->knownUids.isEmpty() ) {
+            d->changedFlags = new Query( "select uid from mailbox_messages "
+                                         "where mailbox=$1 and modseq >= $2",
+                                         this );
+        }
+        else {
+            d->changedFlags = new Query( "select uid from mailbox_messages "
+                                         "where mailbox=$1 and modseq >= $2 "
+                                         "and uid=any($3)",
+                                         this );
+            d->changedFlags->bind( 3, d->knownUids );
+        }
+        d->changedFlags->bind( 1, d->mailbox->id() );
+        d->changedFlags->bind( 2, d->lastModSeq );
+        transaction()->enqueue( d->changedFlags );
+    }
+
     if ( d->needFirstUnseen && !d->firstUnseen ) {
         d->firstUnseen
             = new Query( "select uid from mailbox_messages mm "
@@ -327,18 +345,6 @@ void Select::execute()
         return;
 
     d->session->emitUpdates( transaction() );
-
-    if ( d->lastModSeq > 0 && !d->firstFetch ) {
-        if ( d->knownUids.isEmpty() ) {
-            IntegerSet all;
-            all.add( 1, d->mailbox->uidnext() );
-            d->firstFetch = new Fetch( true, false, all,
-                                       d->lastModSeq, imap(), 0 );
-        } else {
-            d->firstFetch = new Fetch( true, false, d->knownUids,
-                                       d->lastModSeq, imap(), 0 );
-        }
-    }
 
     transaction()->commit();
     if ( transaction()->state() == Transaction::Inactive ||
@@ -382,6 +388,17 @@ void Select::execute()
         }
         if ( !vanished.isEmpty() )
             respond( "VANISHED (EARLIER) " + vanished.set() );
+    }
+
+    if ( d->changedFlags ) {
+        IntegerSet updated;
+        while ( d->changedFlags->hasResults() ) {
+            Row * r = d->changedFlags->nextRow();
+            uint uid = r->getInt( "uid" );
+            updated.add( uid );
+        }
+        (void)new Fetch( true, false,
+                         updated, d->lastModSeq - 1, imap(), 0 );
     }
 
     if ( d->session->readOnly() )
