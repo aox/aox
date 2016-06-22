@@ -240,8 +240,8 @@ EString Utf16Codec::fromUnicode( const UString & u )
         r.append( 0xff );
     }
     else {
-        r.append( 0xfe );
         r.append( 0xff );
+        r.append( 0xfe );
     }
 
     if ( be )
