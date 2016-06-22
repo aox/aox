@@ -918,7 +918,7 @@ void pointers( void * p )
                                 if ( m->payload[n] == p ) {
                                     fprintf( stderr,
                                              "Pointer at 0x%p (in 0x%p, "
-                                             "size <= %d, %d pointers)\n",
+                                             "size <= %d, %u pointers)\n",
                                              &m->payload[n],
                                              &m->payload[0],
                                              a->step - bytes,
