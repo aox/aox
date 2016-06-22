@@ -380,10 +380,6 @@ void ContentType::parse( const EString &s )
                 t = "application";
                 st = "postscript";
             }
-            else if ( s == "postscript" ) {
-                t = "application";
-                st = "postscript";
-            }
             else if ( s == "sgml" ) {
                 t = "text";
                 st = "sgml";
