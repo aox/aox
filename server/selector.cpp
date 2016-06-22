@@ -1972,10 +1972,13 @@ EString Selector::debugString() const
         break;
     case Age:
         w = "age";
+        break;
     case DatabaseId:
         w = "database-id";
+        break;
     case ThreadId:
         w = "thread-id";
+        break;
     };
 
     r = w + " " + o + " ";
