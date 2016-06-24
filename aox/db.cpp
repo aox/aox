@@ -173,13 +173,16 @@ void Vacuum::execute()
                 qstate = 1;
                 log( "vacuum: delete from deliveries", Log::Significant );
                 do {
+                    // Literals have changed meaning in c++11, we need spaces
+                    // or they have potentially changed effect in future
+                    // http://www.preney.ca/paul/archives/636
                     q = new Query( "delete from deliveries "
                                    "where injected_at<current_timestamp-'" +
                                    fn( days ) + " days'::interval "
                                    "and id in "
                                    "(select delivery from delivery_recipients "
                                    " where action not in ($1,$2) "
-                                   " limit "MSGBLOCKCOUNT") "
+                                   " limit " MSGBLOCKCOUNT ") "
                                    "and id not in "
                                    "(select delivery from delivery_recipients "
                                    " where action in ($1,$2))", this );
@@ -209,7 +212,7 @@ void Vacuum::execute()
                                    " left join deliveries d on (m.id=d.message)"
                                    " where mm.message is null and dm.message is null"
                                    " and d.message is null "
-                                   " limit "MSGBLOCKCOUNT")", this );
+                                   " limit " MSGBLOCKCOUNT ")", this );
                     q->execute();
             case 3:
                     if (!q->done())
@@ -221,7 +224,7 @@ void Vacuum::execute()
                     q = new Query( "delete from bodyparts where id in (select id "
                                    "from bodyparts b left join part_numbers p on "
                                    "(b.id=p.bodypart) where bodypart is null "
-                                   " limit "MSGBLOCKCOUNT")", this );
+                                   " limit " MSGBLOCKCOUNT ")", this );
                     q->execute();
             case 4:
                     if (!q->done())
