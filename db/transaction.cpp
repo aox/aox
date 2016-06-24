@@ -609,7 +609,7 @@ void Transaction::notify()
     try {
         d->owner->execute();
     }
-    catch ( Exception e ) {
+    catch ( const Exception& e ) {
         d->owner = 0; // so we can't get close to a segfault again
         if ( e == Invariant ) {
             setError( 0,
@@ -633,7 +633,7 @@ void Transaction::notify()
             }
         }
         else {
-            throw e;
+            throw;
         }
     }
     if ( done() && d->parent &&

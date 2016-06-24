@@ -135,7 +135,7 @@ void Timer::notify()
     try {
         d->owner->execute();
     }
-    catch ( Exception e ) {
+    catch ( const Exception& e ) {
         d->owner = 0; // so we can't get close to a segfault again
         if ( e == Invariant ) {
             // Analogous to EventLoop::dispatch, we try to close the
@@ -161,7 +161,7 @@ void Timer::notify()
             }
         }
         else {
-            throw e;
+            throw;
         }
     }
 }
