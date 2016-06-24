@@ -432,7 +432,7 @@ void Allocator::deallocate( void * p )
     random binary data.
 
     Scanning long strings is slow. Binary data can give false alarms
-    during pointer scanning, which will lead ot memory not being
+    during pointer scanning, which will lead to memory not being
     freed.
 */
 
@@ -533,8 +533,8 @@ void Allocator::mark()
 }
 
 
-/*! Frees all memory that's no longer in use. This can take some time. 
- 
+/*! Frees all memory that's no longer in use. This can take some time.
+
     Returns null if entries is null or empty, returns an object in
     entries else. The returned object is (in some sense) the one
     that's responsible for the largest share of allocated memory.
@@ -558,7 +558,7 @@ Garbage * Allocator::free( List<Garbage> * entries )
     uint freed = 0;
     objects = 0;
     ::marked = 0;
-    
+
     Garbage * biggest = 0;
 
     // mark
