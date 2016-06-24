@@ -207,7 +207,7 @@ void Server::setup( Stage s )
             }
             d->stage = (Stage)(d->stage + 1);
         }
-    } catch ( Exception e ) {
+    } catch ( const Exception& e ) {
         // don't allocate memory or call anything here.
         const char * c = 0;
         switch (e) {

@@ -369,7 +369,7 @@ void EventLoop::start()
                 c->log( "Still have " +
                         EString::humanNumber( c->writeBuffer()->size() ) +
                         " bytes to write", Log::Debug );
-        } catch ( Exception e ) {
+        } catch ( const Exception& e ) {
             // we don't really care at this point, do we?
         }
     }
@@ -501,7 +501,7 @@ void EventLoop::dispatch( Connection * c, bool r, bool w, uint now )
              s && s == c->writeBuffer()->size() )
             c->writeBuffer()->remove( s );
     }
-    catch ( Exception e ) {
+    catch ( const Exception& e ) {
         EString s;
         switch (e) {
         case Invariant:
@@ -557,7 +557,7 @@ void EventLoop::stop( uint s )
             else if ( s <= 1 && !c->hasProperty( Connection::Internal ) ) {
                 c->react( Connection::Shutdown );
             }
-        } catch ( Exception e ) {
+        } catch ( const Exception& e ) {
             removeConnection( c );
         }
     }

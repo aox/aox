@@ -562,7 +562,7 @@ void Query::notify()
     try {
         d->owner->execute();
     }
-    catch ( Exception e ) {
+    catch ( const Exception& e ) {
         d->owner = 0; // so we can't get close to a segfault again
         if ( e == Invariant ) {
             setError( "Invariant failed while processing Query::notify()" );
@@ -599,7 +599,7 @@ void Query::notify()
             }
         }
         else {
-            throw e;
+            throw;
         }
     }
 }
