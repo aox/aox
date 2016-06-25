@@ -197,12 +197,14 @@ public:
 
 /*! Creates a new ImapSession for the Mailbox \a m to be accessed
     using \a imap. If \a readOnly is true, the session is read-only.
-    If \a unicode is true, the session presents messages in EAI format, if
-    false, in classic MIME format.
+    If \a unicode is true, the session presents messages in EAI
+    format, if false, in classic MIME format. If \a previousModSeq is
+    not zero, then the ImapSession will emit flag updates starting at
+    that modseq.
 */
 
 ImapSession::ImapSession( IMAP * imap, Mailbox * m, bool readOnly,
-                          bool unicode )
+                          bool unicode, int64 previousModSeq )
     : Session( m, readOnly ),
       d( new ImapSessionData )
 {
@@ -210,6 +212,7 @@ ImapSession::ImapSession( IMAP * imap, Mailbox * m, bool readOnly,
     Scope x( imap->log() );
     d->l = new Log;
     d->unicode = unicode;
+    d->cms = previousModSeq;
 }
 
 
@@ -285,9 +288,6 @@ void ImapSession::emitUpdates( Transaction * t )
         work = true;
     }
 
-    if ( d->changed.isEmpty() )
-        d->cms = d->nms;
-
     if ( work )
         d->i->unblockCommands();
     d->i->emitResponses();
@@ -341,10 +341,23 @@ void ImapSession::emitFlagUpdates( Transaction * t )
             d->ignorable.clear();
     }
 
-    (void)new Fetch( true, d->i->clientSupports( IMAP::Annotate ),
-                     d->changed, d->cms - 1, d->i, t );
+    Fetch * f = new Fetch( true, d->i->clientSupports( IMAP::Annotate ),
+                           d->changed, d->cms - 1, d->i, t );
+    d->cms = d->nms;
     d->changed.clear();
+    f->setState( Command::Executing );
 }
+
+
+/*! Records that \a uid has been changed, and should be mentioned to
+    the client as a FETCH.
+ */
+
+void ImapSession::addChangedMessage( uint uid )
+{
+    d->changed.add( uid );
+}
+
 
 
 /*! Records that \a set was fetched while also expunged. If any

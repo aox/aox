@@ -18,7 +18,7 @@ class ImapSession
     : public Session
 {
 public:
-    ImapSession( IMAP *, Mailbox *, bool, bool = false );
+    ImapSession( IMAP *, Mailbox *, bool, bool = false, int64 = 0 );
     ~ImapSession();
 
     IMAP * imap() const;
@@ -35,6 +35,8 @@ public:
     void sendFlagUpdate( class FlagCreator * );
 
     bool unicode() const;
+
+    void addChangedMessage( uint );
 
 private:
     class ImapSessionData * d;
