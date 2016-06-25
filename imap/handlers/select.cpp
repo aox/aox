@@ -25,11 +25,10 @@ public:
     SelectData()
         : readOnly( false ), annotate( false ), condstore( false ),
           needFirstUnseen( false ), unicode( false ), qresync( false ),
-          firstUnseen( 0 ), allFlags( 0 ), vanished( 0 ),
+          firstUnseen( 0 ), allFlags( 0 ), updated( 0 ),
           mailbox( 0 ), session( 0 ), permissions( 0 ),
           cacheFirstUnseen( 0 ), sessionPreloader( 0 ),
-          lastUidValidity( 0 ), lastModSeq( 0 ),
-          changedFlags( 0 )
+          lastUidValidity( 0 ), lastModSeq( 0 )
     {}
 
     bool readOnly;
@@ -40,7 +39,7 @@ public:
     bool qresync;
     Query * firstUnseen;
     Query * allFlags;
-    Query * vanished;
+    Query * updated;
     Mailbox * mailbox;
     ImapSession * session;
     Permissions * permissions;
@@ -49,7 +48,6 @@ public:
     uint lastUidValidity;
     uint lastModSeq;
     IntegerSet knownUids;
-    Query * changedFlags;
 
     class FirstUnseenCache
         : public Cache
@@ -275,7 +273,7 @@ void Select::execute()
 
     if ( !d->session ) {
         d->session = new ImapSession( imap(), d->mailbox,
-                                      d->readOnly, d->unicode );
+                                      d->readOnly, d->unicode, d->lastModSeq );
         d->session->setPermissions( d->permissions );
         imap()->setSession( d->session );
     }
@@ -291,40 +289,29 @@ void Select::execute()
     else
         d->needFirstUnseen = true;
 
-    if ( d->lastModSeq > 0 && !d->vanished ) {
+    if ( d->lastModSeq > 0 && !d->updated ) {
         if ( d->knownUids.isEmpty() ) {
-            d->vanished = new Query( "select uid from deleted_messages "
-                                     "where mailbox=$1 and modseq >= $2",
-                                     this );
+            d->updated = new Query( "select uid from deleted_messages "
+                                    "where mailbox=$1 and modseq >= $2"
+                                    " union "
+                                    "select uid from mailbox_messages "
+                                    "where mailbox=$1 and modseq >= $2",
+                                    this );
         }
         else {
-            d->vanished = new Query( "select uid from deleted_messages "
-                                     "where mailbox=$1 and modseq >= $2 "
-                                     "and uid=any($3)",
-                                     this );
-            d->vanished->bind( 3, d->knownUids );
+            d->updated = new Query( "select uid from deleted_messages "
+                                    "where mailbox=$1 and modseq >= $2 "
+                                    "and uid=any($3)"
+                                    " union "
+                                    "select uid from mailbox_messages "
+                                    "where mailbox=$1 and modseq >= $2 "
+                                    "and uid=any($3)",
+                                    this );
+            d->updated->bind( 3, d->knownUids );
         }
-        d->vanished->bind( 1, d->mailbox->id() );
-        d->vanished->bind( 2, d->lastModSeq );
-        transaction()->enqueue( d->vanished );
-    }
-
-    if ( d->lastModSeq > 0 && !d->changedFlags ) {
-        if ( d->knownUids.isEmpty() ) {
-            d->changedFlags = new Query( "select uid from mailbox_messages "
-                                         "where mailbox=$1 and modseq >= $2",
-                                         this );
-        }
-        else {
-            d->changedFlags = new Query( "select uid from mailbox_messages "
-                                         "where mailbox=$1 and modseq >= $2 "
-                                         "and uid=any($3)",
-                                         this );
-            d->changedFlags->bind( 3, d->knownUids );
-        }
-        d->changedFlags->bind( 1, d->mailbox->id() );
-        d->changedFlags->bind( 2, d->lastModSeq );
-        transaction()->enqueue( d->changedFlags );
+        d->updated->bind( 1, d->mailbox->id() );
+        d->updated->bind( 2, d->lastModSeq );
+        transaction()->enqueue( d->updated );
     }
 
     if ( d->needFirstUnseen && !d->firstUnseen ) {
@@ -338,17 +325,33 @@ void Select::execute()
 
     transaction()->execute();
 
+    if ( ( d->updated && !d->updated->done() ) ||
+         ( d->firstUnseen && !d->firstUnseen->done() ) )
+        return;
+    if ( d->updated ) {
+        if ( !d->updated->done() )
+            return;
+        bool any = false;
+        while ( d->updated->hasResults() ) {
+            Row * r = d->updated->nextRow();
+            d->session->addChangedMessage( r->getInt( "uid" ) );
+            any = true;
+        }
+        if ( any ) {
+            d->session->emitUpdates( transaction() );
+            setState( Blocked );
+        }
+    }
+
     // emitUpdates often calls Imap::runCommands, which calls this
     // function, which will then change its state to Finished. so
     // check that and don't repeat the last few responses.
+    d->session->emitUpdates( transaction() );
     if ( state() != Executing )
         return;
 
-    d->session->emitUpdates( transaction() );
-
     transaction()->commit();
-    if ( transaction()->state() == Transaction::Inactive ||
-         transaction()->state() == Transaction::Executing )
+    if ( transaction()->state() == Transaction::Executing )
         return;
 
     respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]"
@@ -377,28 +380,6 @@ void Select::execute()
             respond( "OK [ANNOTATIONS 262144] Arbitrary limit" );
         else
             respond( "OK [ANNOTATIONS READ-ONLY] Missing 'n' right" );
-    }
-
-    if ( d->vanished ) {
-        IntegerSet vanished;
-        while ( d->vanished->hasResults() ) {
-            Row * r = d->vanished->nextRow();
-            uint uid = r->getInt( "uid" );
-            vanished.add( uid );
-        }
-        if ( !vanished.isEmpty() )
-            respond( "VANISHED (EARLIER) " + vanished.set() );
-    }
-
-    if ( d->changedFlags ) {
-        IntegerSet updated;
-        while ( d->changedFlags->hasResults() ) {
-            Row * r = d->changedFlags->nextRow();
-            uint uid = r->getInt( "uid" );
-            updated.add( uid );
-        }
-        (void)new Fetch( true, false,
-                         updated, d->lastModSeq - 1, imap(), 0 );
     }
 
     if ( d->session->readOnly() )

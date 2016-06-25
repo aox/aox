@@ -166,19 +166,27 @@ Fetch::Fetch( bool f, bool a, const IntegerSet & set,
     d->set = set;
     d->changedSince = limit;
     d->modseq = i->clientSupports( IMAP::Condstore );
+    d->vanished = true;
     if ( t )
         setTransaction( t->subTransaction( this ) );
 
     d->peek = true;
+
+    Transaction * parent = t;
+    while( parent && parent->parent() )
+        parent = parent->parent();
 
     List<Command>::Iterator c( i->commands() );
     while ( c && c->state() == Command::Retired )
         ++c;
     while ( c && c->tag().isEmpty() )
         ++c;
-    if ( c && c->group() > 0 && ( c->state() == Command::Finished ||
-                                  c->state() == Command::Executing ) ) {
-        log( "Inserting flag update for modseq>" + fn( limit ) +
+    if ( c &&
+         ( ( parent && parent == c->transaction() ) || c->group() > 0 ) &&
+         ( c->state() == Command::Blocked ||
+           c->state() == Command::Finished ||
+           c->state() == Command::Executing ) ) {
+        log( EString("Inserting flag update for modseq>") + fn( limit ) +
              " and UIDs " + set.set() + " before " +
              c->tag() + " " + c->name() );
         i->commands()->insert( c, this );
@@ -192,7 +200,6 @@ Fetch::Fetch( bool f, bool a, const IntegerSet & set,
     }
 
     setAllowedState( IMAP::Selected );
-    setState( Executing );
 }
 
 
@@ -744,12 +751,14 @@ void Fetch::execute()
                     d->those->setString( s );
                 }
                 enqueue( d->those );
-                d->set.clear();
                 if ( transaction() )
                     transaction()->execute();
             }
         }
         if ( d->those ) {
+            if ( !d->those->done() )
+                return;
+            d->set.clear();
             Row * r;
             while ( d->those->hasResults() ) {
                 r = d->those->nextRow();
@@ -766,8 +775,6 @@ void Fetch::execute()
                     d->dynamics.insert( uid, dd );
                 }
             }
-            if ( !d->those->done() )
-                return;
         }
         else {
             IntegerSet r( d->set );
