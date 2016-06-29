@@ -601,11 +601,10 @@ void Store::execute()
         q->bind( 2, m->id() );
         transaction()->enqueue( q );
 
-        Mailbox::refreshMailboxes( transaction() );
-        transaction()->commit();
-
         if ( d->silent )
             d->session->ignoreModSeq( d->modseq );
+        Mailbox::refreshMailboxes( transaction() );
+        transaction()->commit();
     }
 
     if ( !transaction()->done() )

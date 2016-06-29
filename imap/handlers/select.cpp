@@ -334,7 +334,7 @@ void Select::execute()
         bool any = false;
         while ( d->updated->hasResults() ) {
             Row * r = d->updated->nextRow();
-            d->session->addChangedMessage( r->getInt( "uid" ) );
+            d->session->addUnannounced( r->getInt( "uid" ) );
             any = true;
         }
         if ( any ) {
