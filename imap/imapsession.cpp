@@ -29,7 +29,6 @@ public:
     Log * l;
     IntegerSet expungesReported;
     IntegerSet expungedFetched;
-    IntegerSet changed;
     uint exists;
     uint recent;
     uint uidnext;
@@ -48,7 +47,6 @@ public:
             : ImapResponse( s ), d( data ) {
         }
         EString text() const {
-            session()->clearUnannounced();
             uint x = session()->messages().count();
             if ( x == d->exists && d->uidnext )
                 return "";
@@ -280,8 +278,7 @@ void ImapSession::emitUpdates( Transaction * t )
         }
     }
 
-    if ( imap()->clientSupports( IMAP::Condstore ) &&
-         d->nms < nextModSeq() &&
+    if ( d->nms < nextModSeq() &&
          !d->highestModseqResponse ) {
         d->highestModseqResponse =
             new ImapSessionData::HighestModseqResponse( this, d );
@@ -304,14 +301,7 @@ void ImapSession::emitFlagUpdates( Transaction * t )
 {
     sendFlagUpdate();
 
-    if ( !d->nms )
-        return;
-    if ( d->cms >= nextModSeq() )
-        return;
-
-    d->changed.add( unannounced().intersection( messages() ) );
-
-    if ( d->changed.isEmpty() )
+    if ( unannounced().isEmpty() )
         return;
 
     List<Command>::Iterator c( d->i->commands() );
@@ -342,20 +332,10 @@ void ImapSession::emitFlagUpdates( Transaction * t )
     }
 
     Fetch * f = new Fetch( true, d->i->clientSupports( IMAP::Annotate ),
-                           d->changed, d->cms - 1, d->i, t );
+                           unannounced(), d->cms - 1, d->i, t );
     d->cms = d->nms;
-    d->changed.clear();
+    clearUnannounced();
     f->setState( Command::Executing );
-}
-
-
-/*! Records that \a uid has been changed, and should be mentioned to
-    the client as a FETCH.
- */
-
-void ImapSession::addChangedMessage( uint uid )
-{
-    d->changed.add( uid );
 }
 
 

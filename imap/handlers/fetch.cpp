@@ -166,7 +166,7 @@ Fetch::Fetch( bool f, bool a, const IntegerSet & set,
     d->set = set;
     d->changedSince = limit;
     d->modseq = i->clientSupports( IMAP::Condstore );
-    d->vanished = true;
+    d->vanished = i->clientSupports( IMAP::QResync );
     if ( t )
         setTransaction( t->subTransaction( this ) );
 
