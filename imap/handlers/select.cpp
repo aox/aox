@@ -28,7 +28,7 @@ public:
           firstUnseen( 0 ), allFlags( 0 ), updated( 0 ),
           mailbox( 0 ), session( 0 ), permissions( 0 ),
           cacheFirstUnseen( 0 ), sessionPreloader( 0 ),
-          lastUidValidity( 0 ), lastModSeq( 0 )
+          lastUidValidity( 0 ), lastModSeq( 0 ), firstFetch( 0 )
     {}
 
     bool readOnly;
@@ -48,6 +48,7 @@ public:
     uint lastUidValidity;
     uint lastModSeq;
     IntegerSet knownUids;
+    Fetch * firstFetch;
 
     class FirstUnseenCache
         : public Cache
@@ -328,20 +329,27 @@ void Select::execute()
     if ( ( d->updated && !d->updated->done() ) ||
          ( d->firstUnseen && !d->firstUnseen->done() ) )
         return;
-    if ( d->updated ) {
-        if ( !d->updated->done() )
-            return;
-        bool any = false;
+
+    if ( d->updated && !d->updated->done() )
+        return;
+    if ( d->updated && !d->firstFetch ) {
+        IntegerSet s;
         while ( d->updated->hasResults() ) {
             Row * r = d->updated->nextRow();
-            d->session->addUnannounced( r->getInt( "uid" ) );
-            any = true;
+            s.add( r->getInt( "uid" ) );
         }
-        if ( any ) {
+        if ( !s.isEmpty() ) {
+            d->firstFetch = new Fetch( true, false, true,
+                                       s, d->lastModSeq - 1, imap(),
+                                       transaction() );
+            d->firstFetch->setState( Command::Executing );
             d->session->emitUpdates( transaction() );
-            setState( Blocked );
         }
     }
+    if ( d->firstFetch &&
+         d->firstFetch->state() != Finished &&
+         d->firstFetch->state() != Retired )
+        return;
 
     // emitUpdates often calls Imap::runCommands, which calls this
     // function, which will then change its state to Finished. so
