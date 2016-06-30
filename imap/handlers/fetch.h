@@ -21,7 +21,7 @@ class Fetch
 {
 public:
     Fetch( bool = false );
-    Fetch( bool, bool, const IntegerSet &, int64, IMAP *, Transaction * );
+    Fetch( bool, bool, bool, const IntegerSet &, int64, IMAP *, Transaction * );
 
     void parse();
     void execute();

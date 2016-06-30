@@ -47,6 +47,7 @@ public:
             : ImapResponse( s ), d( data ) {
         }
         EString text() const {
+            session()->clearUnannounced();
             uint x = session()->messages().count();
             if ( x == d->exists && d->uidnext )
                 return "";
@@ -288,6 +289,7 @@ void ImapSession::emitUpdates( Transaction * t )
     if ( work )
         d->i->unblockCommands();
     d->i->emitResponses();
+    clearUnannounced();
 
     d->emitting = false;
 }
@@ -331,10 +333,10 @@ void ImapSession::emitFlagUpdates( Transaction * t )
             d->ignorable.clear();
     }
 
-    Fetch * f = new Fetch( true, d->i->clientSupports( IMAP::Annotate ),
-                           unannounced(), d->cms - 1, d->i, t );
+    Fetch * f = new Fetch( true, d->i->clientSupports( IMAP::Annotate ), false,
+                           unannounced().intersection( messages() ),
+                           d->cms - 1, d->i, t );
     d->cms = d->nms;
-    clearUnannounced();
     f->setState( Command::Executing );
 }
 

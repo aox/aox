@@ -154,7 +154,7 @@ Fetch::Fetch( bool u )
     of \a t.
 */
 
-Fetch::Fetch( bool f, bool a, const IntegerSet & set,
+Fetch::Fetch( bool f, bool a, bool v, const IntegerSet & set,
               int64 limit, IMAP * i, Transaction * t )
     : Command( i ), d( new FetchData )
 {
@@ -166,7 +166,7 @@ Fetch::Fetch( bool f, bool a, const IntegerSet & set,
     d->set = set;
     d->changedSince = limit;
     d->modseq = i->clientSupports( IMAP::Condstore );
-    d->vanished = i->clientSupports( IMAP::QResync );
+    d->vanished = v;
     if ( t )
         setTransaction( t->subTransaction( this ) );
 
@@ -751,10 +751,10 @@ void Fetch::execute()
                     d->those->setString( s );
                 }
                 enqueue( d->those );
-                if ( transaction() )
-                    transaction()->execute();
             }
         }
+        if ( transaction() )
+            transaction()->execute();
         if ( d->those ) {
             if ( !d->those->done() )
                 return;
