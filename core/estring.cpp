@@ -946,7 +946,15 @@ uint EString::number( bool * ok, uint base ) const
 EString EString::fromNumber( int64 n, uint base )
 {
     EString r;
-    r.appendNumber( n, base );
+    if (0 == n) {
+        r.append("0");        // Short-circuit, 0 is 0 in any base, no need for extra processing
+    } else {
+        if (n < 0) {
+            n = -n;        // Negate, otherwise negative numbers get messed up
+            r.append("-");    // But we remember we need a - sign
+        }
+        r.appendNumber( n, base );
+    }
     return r;
 }
 
