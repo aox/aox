@@ -293,19 +293,19 @@ void Select::execute()
     if ( d->lastModSeq > 0 && !d->updated ) {
         if ( d->knownUids.isEmpty() ) {
             d->updated = new Query( "select uid from deleted_messages "
-                                    "where mailbox=$1 and modseq >= $2"
+                                    "where mailbox=$1 and modseq > $2"
                                     " union "
                                     "select uid from mailbox_messages "
-                                    "where mailbox=$1 and modseq >= $2",
+                                    "where mailbox=$1 and modseq > $2",
                                     this );
         }
         else {
             d->updated = new Query( "select uid from deleted_messages "
-                                    "where mailbox=$1 and modseq >= $2 "
+                                    "where mailbox=$1 and modseq > $2 "
                                     "and uid=any($3)"
                                     " union "
                                     "select uid from mailbox_messages "
-                                    "where mailbox=$1 and modseq >= $2 "
+                                    "where mailbox=$1 and modseq > $2 "
                                     "and uid=any($3)",
                                     this );
             d->updated->bind( 3, d->knownUids );

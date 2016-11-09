@@ -335,7 +335,7 @@ void ImapSession::emitFlagUpdates( Transaction * t )
 
     Fetch * f = new Fetch( true, d->i->clientSupports( IMAP::Annotate ), false,
                            unannounced().intersection( messages() ),
-                           d->cms - 1, d->i, t );
+                           d->cms, d->i, t );
     d->cms = d->nms;
     f->setState( Command::Executing );
 }
