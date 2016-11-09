@@ -340,7 +340,7 @@ void Select::execute()
         }
         if ( !s.isEmpty() ) {
             d->firstFetch = new Fetch( true, false, true,
-                                       s, d->lastModSeq - 1, imap(),
+                                       s, d->lastModSeq, imap(),
                                        transaction() );
             d->firstFetch->setState( Command::Executing );
             d->session->emitUpdates( transaction() );
