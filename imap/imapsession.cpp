@@ -306,6 +306,11 @@ void ImapSession::emitFlagUpdates( Transaction * t )
     if ( unannounced().isEmpty() )
         return;
 
+    if ( d->cms == 0 ) {
+        d->cms = d->nms;
+        return;
+    }
+
     List<Command>::Iterator c( d->i->commands() );
     if ( !c || c->state() != Command::Executing )
         return;
@@ -335,7 +340,7 @@ void ImapSession::emitFlagUpdates( Transaction * t )
 
     Fetch * f = new Fetch( true, d->i->clientSupports( IMAP::Annotate ), false,
                            unannounced().intersection( messages() ),
-                           d->cms, d->i, t );
+                           d->cms - 1, d->i, t );
     d->cms = d->nms;
     f->setState( Command::Executing );
 }

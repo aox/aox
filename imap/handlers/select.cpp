@@ -229,6 +229,9 @@ void Select::execute()
             d->readOnly = true;
     }
 
+    if ( d->lastModSeq < 1 )
+        d->lastModSeq = d->mailbox->nextModSeq() - 1;
+
     if ( !transaction() )
         setTransaction( new Transaction( this ) );
 
@@ -274,7 +277,8 @@ void Select::execute()
 
     if ( !d->session ) {
         d->session = new ImapSession( imap(), d->mailbox,
-                                      d->readOnly, d->unicode, d->lastModSeq );
+                                      d->readOnly, d->unicode,
+                                      d->mailbox->nextModSeq() );
         d->session->setPermissions( d->permissions );
         imap()->setSession( d->session );
     }
@@ -290,7 +294,7 @@ void Select::execute()
     else
         d->needFirstUnseen = true;
 
-    if ( d->lastModSeq > 0 && !d->updated ) {
+    if ( d->lastModSeq < d->mailbox->nextModSeq() - 1 && !d->updated ) {
         if ( d->knownUids.isEmpty() ) {
             d->updated = new Query( "select uid from deleted_messages "
                                     "where mailbox=$1 and modseq > $2"
@@ -330,8 +334,6 @@ void Select::execute()
          ( d->firstUnseen && !d->firstUnseen->done() ) )
         return;
 
-    if ( d->updated && !d->updated->done() )
-        return;
     if ( d->updated && !d->firstFetch ) {
         IntegerSet s;
         while ( d->updated->hasResults() ) {
