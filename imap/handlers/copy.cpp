@@ -121,6 +121,8 @@ void Copy::execute()
         if ( (uint)r->getInt( "id" ) == d->mailbox->id() ) {
             d->toUid = r->getInt( "uidnext" );
             d->toMs = r->getBigint( "nextmodseq" );
+            if ( session()->mailbox() == d->mailbox )
+                d->fromMs = d->toMs;
         }
         else {
             d->fromMs = r->getBigint( "nextmodseq" );
