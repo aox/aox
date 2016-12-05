@@ -27,7 +27,7 @@ public:
           needFirstUnseen( false ), unicode( false ), qresync( false ),
           firstUnseen( 0 ), allFlags( 0 ), updated( 0 ),
           mailbox( 0 ), session( 0 ), permissions( 0 ),
-          cacheFirstUnseen( 0 ), sessionPreloader( 0 ),
+          cacheFirstUnseen( 0 ),
           lastUidValidity( 0 ), lastModSeq( 0 ), firstFetch( 0 )
     {}
 
@@ -44,7 +44,6 @@ public:
     ImapSession * session;
     Permissions * permissions;
     Query * cacheFirstUnseen;
-    SessionPreloader * sessionPreloader;
     uint lastUidValidity;
     uint lastModSeq;
     IntegerSet knownUids;
@@ -237,43 +236,6 @@ void Select::execute()
 
     if ( !::firstUnseenCache )
         ::firstUnseenCache = new SelectData::FirstUnseenCache;
-
-    if ( mailboxGroup() && !d->sessionPreloader ) {
-        d->sessionPreloader = new SessionPreloader( mailboxGroup()->contents(),
-                                                    this );
-        d->sessionPreloader->execute();
-
-        IntegerSet s;
-        List<Mailbox>::Iterator i( mailboxGroup()->contents() );
-        while ( i ) {
-            if ( !::firstUnseenCache->find( i, i->nextModSeq() ) )
-                s.add( i->id() );
-            ++i;
-        }
-        if ( s.count() > 2 ) {
-            d->cacheFirstUnseen
-                = new Query( "select min(uid) as uid, mailbox, "
-                             "max(modseq) as modseq "
-                             "from mailbox_messages mm "
-                             "where mailbox=any($1) and not seen "
-                             "group by mailbox", this );
-            d->cacheFirstUnseen->bind( 1, s );
-            transaction()->enqueue( d->cacheFirstUnseen );
-        }
-    }
-    if ( d->sessionPreloader ) {
-        while ( d->cacheFirstUnseen && d->cacheFirstUnseen->hasResults() ) {
-            Row * r = d->cacheFirstUnseen->nextRow();
-            Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
-            ::firstUnseenCache->insert( m, r->getBigint( "modseq" ),
-                                        r->getInt( "uid" ) );
-        }
-        if ( d->cacheFirstUnseen && !d->cacheFirstUnseen->done() )
-            return;
-        if ( !d->sessionPreloader->done() )
-            return;
-    }
-
 
     if ( !d->session ) {
         d->session = new ImapSession( imap(), d->mailbox,
