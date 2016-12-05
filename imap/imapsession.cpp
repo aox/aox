@@ -259,8 +259,6 @@ void ImapSession::emitUpdates( Transaction * t )
         }
     }
 
-    emitFlagUpdates( t );
-
     if ( d->uidnext < uidnext() ) {
         if ( !d->existsResponse ) {
             d->existsResponse =
@@ -285,6 +283,8 @@ void ImapSession::emitUpdates( Transaction * t )
             new ImapSessionData::HighestModseqResponse( this, d );
         work = true;
     }
+
+    emitFlagUpdates( t );
 
     if ( work )
         d->i->unblockCommands();
