@@ -99,18 +99,4 @@ private:
 };
 
 
-class SessionPreloader
-    : public EventHandler
-{
-public:
-    SessionPreloader( List<Mailbox> *, EventHandler * );
-
-    void execute();
-    bool done();
-
-private:
-    class SessionPreloaderData * d;
-};
-
-
 #endif
