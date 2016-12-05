@@ -1721,6 +1721,7 @@ EString Selector::whereNoField()
 {
     if ( d->a == And ) {
         bool f = false;
+        int oldPlaceholder = root()->d->placeholder;
         EStringList conditions;
         List<Selector>::Iterator i( d->children );
         while ( i ) {
@@ -1733,7 +1734,7 @@ EString Selector::whereNoField()
         }
         if ( conditions.isEmpty() )
             return "true";
-        if ( f )
+        if ( f && oldPlaceholder == root()->d->placeholder )
             return "false";
         if ( conditions.count() == 1 )
             return conditions.join( "" );
