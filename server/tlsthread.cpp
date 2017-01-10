@@ -93,14 +93,14 @@ void TlsThread::setup()
     SSL_library_init();
 
     ctx = ::SSL_CTX_new( SSLv23_server_method() );
-    int options = SSL_OP_ALL
-                  // also try to pick the same ciphers suites more often
-                  | SSL_OP_CIPHER_SERVER_PREFERENCE
-                  // and don't use SSLv2, even if the client wants to
-                  | SSL_OP_NO_SSLv2
-                  // and not v3 either
-                  | SSL_OP_NO_SSLv3
-                  ;
+    long options = SSL_OP_ALL
+        // also try to pick the same ciphers suites more often
+        | SSL_OP_CIPHER_SERVER_PREFERENCE
+        // and don't use SSLv2, even if the client wants to
+        | SSL_OP_NO_SSLv2
+        // and not v3 either
+        | SSL_OP_NO_SSLv3
+        ;
     SSL_CTX_set_options( ctx, options );
 
     SSL_CTX_set_cipher_list( ctx, "kEDH:HIGH:!aNULL:!MD5" );
