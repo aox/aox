@@ -1581,6 +1581,13 @@ void Injector::insertMessages()
 
         // Now we insert the headers and bodies of every MIME bodypart.
 
+        Bodypart *bp;
+        if ( m->hasPGPsignedPart() ) {
+            EString pnr( "raw-pgp-signed" );
+            bp = m->children()->shift(); // avoid starting pns with 2
+            addPartNumber( qp, mid, pnr, bp );
+            ::log( "Injector::insertMessages - added partnumber for raw-signed part: " + pnr, Log::Debug );
+        }
         List<Bodypart>::Iterator bi( m->allBodyparts() );
         while ( bi ) {
             Bodypart * b = bi;
@@ -1610,6 +1617,9 @@ void Injector::insertMessages()
             }
 
             ++bi;
+        }
+        if ( m->hasPGPsignedPart() ) { // reinsert raw part in children list
+            m->children()->prepend( bp );
         }
 
         ++it;

@@ -28,7 +28,7 @@ public:
         : databaseId( 0 ), threadId( 0 ),
           wrapped( false ), rfc822Size( 0 ), internalDate( 0 ),
           hasHeaders( false ), hasAddresses( false ), hasBodies( false ),
-          hasTrivia( false ), hasBytesAndLines( false )
+          hasTrivia( false ), hasBytesAndLines( false ), hasPGPsignedPart( false )
     {}
 
     EString error;
@@ -45,6 +45,8 @@ public:
     bool hasBodies: 1;
     bool hasTrivia : 1;
     bool hasBytesAndLines : 1;
+    bool hasPGPsignedPart : 1;
+    EString rawSignedMessageBody;
 };
 
 
@@ -90,15 +92,16 @@ void Message::parse( const EString & rfc2822 )
     header()->repair();
     header()->repair( this, rfc2822.mid( i ) );
 
+    setRawSignedMessageBody( rfc2822.mid( i, rfc2822.length() - i ) );
+    uint rawLength = rfc2822.length() - i;
     ContentType * ct = header()->contentType();
-    bool isPgpSigned = false;
     if ( ct && ct->type() == "multipart" ) {
         if ( ct->subtype() == "signed" )
-            isPgpSigned = true;
+            setPGPsignedPart( true );
         Bodypart::parseMultipart( i, rfc2822.length(), rfc2822,
                                   ct->parameter( "boundary" ),
                                   ct->subtype() == "digest",
-                                  children(), this, isPgpSigned );
+                                  children(), this );
     }
     else {
         Bodypart * bp = Bodypart::parseBodypart( i, rfc2822.length(), rfc2822,
@@ -119,6 +122,17 @@ void Message::parse( const EString & rfc2822 )
     setAddressesFetched();
     setHeadersFetched();
     setBodiesFetched();
+
+    // throw away raw body text, if we are not signed
+    if ( !hasPGPsignedPart() ) {
+        d->rawSignedMessageBody.truncate(0);
+    } else { // add raw body as first bodypart
+        Bodypart * bpt = new Bodypart( 0, this );
+        bpt->setData( d->rawSignedMessageBody );
+        bpt->setNumBytes( rawLength );
+        bpt->setParent( this );
+        children()->prepend( bpt );
+    }
 }
 
 
@@ -358,48 +372,60 @@ class Bodypart * Message::bodypart( const EString & s, bool create )
 {
     uint b = 0;
     Bodypart * bp = 0;
-    while ( b < s.length() ) {
-        uint e = b;
-        while ( s[e] >= '0' && s[e] <= '9' )
-            e++;
-        if ( e < s.length() && s[e] != '.' )
-            return 0;
-        bool inrange = false;
-        uint n = s.mid( b, e-b ).number( &inrange );
-        b = e + 1;
-        if ( !inrange || n == 0 )
-            return 0;
-        List<Bodypart> * c = children();
-        if ( bp )
-            c = bp->children();
-        List<Bodypart>::Iterator i( c );
-        while ( i && i->number() < n )
-            ++i;
-        if ( i && i->number() == n ) {
-            if ( n == 1 && !i->header() ) {
-                // it's possible that i doesn't have a header of its
-                // own, and that the parent message's header functions
-                // as such. link it in if that's the case.
-                Header * h = header();
-                if ( bp && bp->message() )
-                    h = bp->message()->header();
-                if ( h && ( !h->contentType() ||
-                            h->contentType()->type() != "multipart" ) )
-                    i->setHeader( h );
+
+    if ( s == "raw-pgp-signed" ) {
+        if ( create ) {
+            bp = new Bodypart( 0, this ); // hgu TODO: correct number ?
+            this->setPGPsignedPart( true );
+            children()->prepend( bp );
+        } else
+            bp = children()->first();
+    } else {
+        while ( b < s.length() ) {
+            uint e = b;
+            while ( s[e] >= '0' && s[e] <= '9' )
+                e++;
+            if ( e < s.length() && s[e] != '.' ) {
+                return 0;
             }
-            bp = i;
-        }
-        else if ( create ) {
-            Bodypart * child = 0;
+            bool inrange = false;
+            uint n = s.mid( b, e-b ).number( &inrange );
+            b = e + 1;
+            if ( !inrange || n == 0 ) {
+                return 0;
+            }
+            List<Bodypart> * c = children();
             if ( bp )
-                child = new Bodypart( n, bp );
-            else
-                child = new Bodypart( n, this );
-            c->insert( i, child );
-            bp = child;
-        }
-        else {
-            return 0;
+                c = bp->children();
+            List<Bodypart>::Iterator i( c );
+            while ( i && i->number() < n )
+                ++i;
+            if ( i && i->number() == n ) {
+                if ( n == 1 && !i->header() ) {
+                    // it's possible that i doesn't have a header of its
+                    // own, and that the parent message's header functions
+                    // as such. link it in if that's the case.
+                    Header * h = header();
+                    if ( bp && bp->message() )
+                        h = bp->message()->header();
+                    if ( h && ( !h->contentType() ||
+                                h->contentType()->type() != "multipart" ) )
+                        i->setHeader( h );
+                }
+                bp = i;
+            }
+            else if ( create ) {
+                Bodypart * child = 0;
+                if ( bp )
+                    child = new Bodypart( n, bp );
+                else
+                    child = new Bodypart( n, this );
+                c->insert( i, child );
+                bp = child;
+            }
+            else {
+                return 0;
+            }
         }
     }
     return bp;
@@ -937,4 +963,24 @@ void Message::setWrapped( bool w ) const
 bool Message::isWrapped() const
 {
     return d->wrapped;
+}
+
+/*! Records that this message has a PGP-signed part
+*/
+
+void Message::setPGPsignedPart( bool p )
+{
+    d->hasPGPsignedPart = p;
+}
+
+/*! Returns whether a PGP-signed part has been found in this message. */
+
+bool Message::hasPGPsignedPart() const
+{
+    return d->hasPGPsignedPart;
+}
+
+void Message::setRawSignedMessageBody( const EString & s )
+{
+    d->rawSignedMessageBody = s;
 }

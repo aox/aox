@@ -18,6 +18,7 @@
 #include "timer.h"
 #include "utf.h"
 #include "map.h"
+#include "log.h"
 
 #include <time.h> // time()
 
@@ -744,19 +745,19 @@ void FetcherData::BodyDecoder::decode( Message * m, List<Row> * rows )
         Row * r = i;
         ++i;
 
-    EString part = r->getEString( "part" );
+        EString part = r->getEString( "part" );
 
-    if ( !part.endsWith( ".rfc822" ) ) {
-        Bodypart * bp = m->bodypart( part, true );
+        if ( !part.endsWith( ".rfc822" ) ) {
+            Bodypart * bp = m->bodypart( part, true );
 
-        if ( !r->isNull( "data" ) )
-            bp->setData( r->getEString( "data" ) );
-        else if ( !r->isNull( "text" ) )
-            bp->setText( r->getUString( "text" ) );
+            if ( !r->isNull( "data" ) )
+                bp->setData( r->getEString( "data" ) );
+            else if ( !r->isNull( "text" ) )
+                bp->setText( r->getUString( "text" ) );
 
-        if ( !r->isNull( "rawbytes" ) )
-            bp->setNumBytes( r->getInt( "rawbytes" ) );
-    }
+            if ( !r->isNull( "rawbytes" ) )
+                bp->setNumBytes( r->getInt( "rawbytes" ) );
+        }
     }
 }
 
@@ -781,30 +782,29 @@ void FetcherData::PartNumberDecoder::decode( Message * m, List<Row> * rows )
         Row * r = i;
         ++i;
 
-    EString part = r->getEString( "part" );
+        EString part = r->getEString( "part" );
 
-    if ( part.endsWith( ".rfc822" ) ) {
-        Bodypart *bp = m->bodypart( part.mid( 0, part.length()-7 ),
-                                    true );
-        if ( !bp->message() ) {
-            bp->setMessage( new Message );
-            bp->message()->setParent( bp );
+        if ( part.endsWith( ".rfc822" ) ) {
+            Bodypart *bp = m->bodypart( part.mid( 0, part.length()-7 ),
+                                        true );
+            if ( !bp->message() ) {
+                bp->setMessage( new Message );
+                bp->message()->setParent( bp );
+            }
+
+            List< Bodypart >::Iterator it( bp->children() );
+            while ( it ) {
+                bp->message()->children()->append( it );
+                ++it;
+            }
         }
-
-        List< Bodypart >::Iterator it( bp->children() );
-        while ( it ) {
-            bp->message()->children()->append( it );
-            ++it;
+        else {
+            Bodypart * bp = m->bodypart( part, true );
+            if ( !r->isNull( "bytes" ) )
+                bp->setNumEncodedBytes( r->getInt( "bytes" ) );
+            if ( !r->isNull( "lines" ) )
+                bp->setNumEncodedLines( r->getInt( "lines" ) );
         }
-    }
-    else {
-        Bodypart * bp = m->bodypart( part, true );
-
-        if ( !r->isNull( "bytes" ) )
-            bp->setNumEncodedBytes( r->getInt( "bytes" ) );
-        if ( !r->isNull( "lines" ) )
-            bp->setNumEncodedLines( r->getInt( "lines" ) );
-    }
     }
 }
 

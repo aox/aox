@@ -8,6 +8,7 @@
 #include "mimefields.h"
 #include "ustring.h"
 #include "codec.h"
+#include "log.h"
 
 #include <stdio.h>
 
@@ -91,9 +92,22 @@ void Multipart::appendMultipart( EString &r, bool avoidUtf8 ) const
 {
     ContentType * ct = header()->contentType();
     EString delim = ct->parameter( "boundary" );
-    bool isSigned = false;
-    if ( ct->subtype() == "signed" ) {
-        isSigned = true;
+    if ( ! this )
+        ::log( "Fetch::bodyStructure - FATAL, cannnot determine message", Log::Error );
+    else {
+        if ( this->parent() && this->parent()->isMessage() ) {
+            Message *msg = (Message *)this->parent();
+            if ( msg->hasPGPsignedPart() ) {
+                appendAnyPart( r, children()->first(), ct, avoidUtf8 );
+                return;
+            }
+        } else if ( this->isMessage() ) {
+            Message *msg = (Message *)this;
+            if ( msg->hasPGPsignedPart() ) {
+                appendAnyPart( r, children()->first(), ct, avoidUtf8 );
+                return;
+            }
+        }
     }
     List<Bodypart>::Iterator it( children() );
     r.append( "--" + delim );
@@ -102,17 +116,10 @@ void Multipart::appendMultipart( EString &r, bool avoidUtf8 ) const
 
         Bodypart * bp = it;
         ++it;
-        
-        if ( isSigned ) {
-            ++it;       // skip next part, we append it raw
-            isSigned = false;
-            // just append our raw text, header is contained
-            appendAnyPart( r, bp, ct, avoidUtf8 );
-        } else {
-            r.append( bp->header()->asText( avoidUtf8 ) );
-            r.append( crlf );
-            appendAnyPart( r, bp, ct, avoidUtf8 );
-        }
+
+        r.append( bp->header()->asText( avoidUtf8 ) );
+        r.append( crlf );
+        appendAnyPart( r, bp, ct, avoidUtf8 );
         r.append( crlf );
         r.append( "--" );
         r.append( delim );

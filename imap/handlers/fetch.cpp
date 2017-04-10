@@ -1349,23 +1349,36 @@ static EString languageEString( ContentLanguage *cl )
 EString Fetch::bodyStructure( Multipart * m, bool extended )
 {
     EString r;
+    bool isSigned = false;
+    Multipart * ancestor = m;
+    while ( ancestor->parent() != NULL )
+        ancestor = ancestor->parent();
+    if ( ancestor->isMessage() ) {
+        Message *msg = (Message *)ancestor;
+        if ( msg->hasPGPsignedPart() ) {
+            ::log( "Fetch::bodyStructure - signed message", Log::Debug );
+            isSigned = true;
+        }
+    }
 
     Header * hdr = m->header();
     ContentType * ct = hdr->contentType();
-
-    bool inMultipartSigned = false;
-
     if ( ct && ct->type() == "multipart" ) {
-        if ( ct->subtype() == "signed" ) {
-            inMultipartSigned = true;
-        }
         EStringList children;
         List< Bodypart >::Iterator it( m->children() );
-        while ( it ) {
-            if ( inMultipartSigned ) {
-                ++it; // skip next child-structure, as we appended it already raw
-                inMultipartSigned = false;
+        if ( ( m == ancestor ) && isSigned ) {  // if top level, consider raw part
+            if ( !extended ) {
+                log( "Fetch::bodyStructure - append raw part", Log::Debug );
+                children.append( bodyStructure( it, extended ) );
+                uint i;
+                for ( i = 1; i <= m->children()->count(); i++ )
+                    ++it;
+            } else {  // skip raw part
+                log( "Fetch::bodyStructure - skip raw part", Log::Debug );
+                ++it;
             }
+        }
+        while ( it ) {
             children.append( bodyStructure( it, extended ) );
             ++it;
         }
@@ -1391,7 +1404,6 @@ EString Fetch::bodyStructure( Multipart * m, bool extended )
     else {
         r = singlePartStructure( (Bodypart*)m, extended );
     }
-
     return r;
 }
 

@@ -211,9 +211,8 @@ void MimeField::parseParameters( EmailParser *p )
             p->step();
             p->whitespace();
             EString v;
-            if ( p->nextChar() == '"' ) {
+            if ( p->nextChar() == '"' )
                 v = p->mimeValue();
-            }
             else {
                 uint start = p->pos();
                 v = p->mimeValue();

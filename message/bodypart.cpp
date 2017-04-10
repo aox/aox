@@ -12,6 +12,7 @@
 #include "unknown.h"
 #include "iso2022jp.h"
 #include "mimefields.h"
+#include "log.h"
 
 
 class BodypartData
@@ -19,7 +20,7 @@ class BodypartData
 {
 public:
     BodypartData()
-        : id( 0 ), number( 1 ), message( 0 ),
+        : id( 0 ), number( 0 ), message( 0 ),
           numBytes( 0 ), numEncodedBytes(), numEncodedLines( 0 ),
           hasText( false )
     {}
@@ -295,7 +296,6 @@ EString Bodypart::asText( bool avoidUtf8 ) const
         r = c->fromUnicode( text() );
     else
         r = d->data.e64( 72 );
-
     return r;
 }
 
@@ -314,10 +314,8 @@ void Bodypart::parseMultipart( uint i, uint end,
                                const EString & divider,
                                bool digest,
                                List< Bodypart > * children,
-                               Multipart * parent,
-                               bool pgpSigned )
+                               Multipart * parent )
 {
-    bool isPgpSigned = pgpSigned;
     uint start = 0;
     bool last = false;
     uint pn = 1;
@@ -350,14 +348,24 @@ void Bodypart::parseMultipart( uint i, uint end,
                 if ( rfc2822[j] == 10 )
                     j++;
                 if ( start > 0 ) {
-                    uint sigstart = start;  // remember original start
                     Header * h = Message::parseHeader( start, j,
                                                        rfc2822,
                                                        Header::Mime );
                     if ( digest )
                         h->setDefaultType( Header::MessageRfc822 );
-
                     h->repair();
+                    ContentType * ct = h->contentType();
+                    if ( ct && ct->type() == "multipart" && ct->subtype() == "signed" ) {
+                        Multipart * ancestor = parent;
+                        while ( ancestor->parent() != NULL )
+                            ancestor = ancestor->parent();  
+                        if ( ancestor->isMessage() ) {
+                            ::log( "Bodypart::parseMultipart - mark message signed", Log::Debug );
+                            Message *msg = (Message *)ancestor;
+                            msg->setPGPsignedPart( true );
+                        } else
+                            ::log( "Bodypart::parseMultipart - problem, no parent message found", Log::Error );
+                    }
 
                     // Strip the [CR]LF that belongs to the boundary.
                     if ( rfc2822[i-1] == 10 ) {
@@ -365,18 +373,8 @@ void Bodypart::parseMultipart( uint i, uint end,
                         if ( rfc2822[i-1] == 13 )
                             i--;
                     }
-    
-                    if ( isPgpSigned ) {
-                        // store the complete to-be-signed part, incl. header(s), to keep the unchanged version
-                        Bodypart * bpt = new Bodypart( 0, parent );
-                        bpt->setData( rfc2822.mid(sigstart, i - sigstart) );
-                        bpt->setNumBytes( i - sigstart );
-                        children->append( bpt );
-                        isPgpSigned = false;
-                    }
-
-                    Bodypart * bp =
-                        parseBodypart( start, i, rfc2822, h, parent );
+  
+                    Bodypart * bp = parseBodypart( start, i, rfc2822, h, parent );
                     bp->d->number = pn;
                     children->append( bp );
                     pn++;
@@ -562,6 +560,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             h->removeField( HeaderField::ContentTransferEncoding );
     }
 
+        
     EString::Encoding e = EString::Binary;
     ContentTransferEncoding * cte = h->contentTransferEncoding();
     if ( cte )
@@ -572,7 +571,6 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         else
             body = body.crlf().decoded( e );
     }
-
     ContentType * ct = h->contentType();
     if ( !ct ) {
         switch ( h->defaultType() ) {
@@ -721,7 +719,6 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             ct->addParameter( "charset", c->name().lower() );
         else if ( ct )
             ct->removeParameter( "charset" );
-
         body = c->fromUnicode( bp->d->text );
         bool qp = body.needsQP();
 
@@ -776,7 +773,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         parseMultipart( start, end, rfc2822,
                         ct->parameter( "boundary" ),
                         ct->subtype() == "digest",
-                        bp->children(), bp, false );
+                        bp->children(), bp );
     }
     else if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
         // There are sometimes blank lines before the message.

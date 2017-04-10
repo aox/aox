@@ -14,7 +14,6 @@
 #include "parser.h"
 #include "utf.h"
 
-
 static struct {
     const char * name;
     HeaderField::Type type;
