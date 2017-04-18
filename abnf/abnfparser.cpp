@@ -168,7 +168,8 @@ bool AbnfParser::present( const EString & s )
 void AbnfParser::require( const EString & s )
 {
     if ( !present( s ) )
-        setError( "Expected: " + s.quoted() + ", got: " + following() );
+        setError( "Expected: " + s.quoted() + " at " + fn( d->at ) +
+                  ", got: " + following() );
 }
 
 
