@@ -352,7 +352,7 @@ void TlsThread::start()
                 tv.tv_usec = 0;
             }
 
-            int n = select( maxfd+1, &r, &w, 0, &tv );
+            int n = finish ? 0 : select( maxfd+1, &r, &w, 0, &tv );
             if ( n < 0 && errno != EINTR )
                 finish = true;
 
