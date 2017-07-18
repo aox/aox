@@ -92,7 +92,6 @@ private:
     uint addFlags( Query *, Injectee *, Mailbox * );
     uint addAnnotations( Query *, Injectee *, Mailbox * );
     void logDescription();
-    void cache();
     Query * selectNextvals( const EString &, uint );
 
     uint internalDate( Message * ) const;

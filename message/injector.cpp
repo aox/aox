@@ -393,10 +393,8 @@ void Injector::execute()
             insertDeliveries();
             insertThreadIndexes();
             next();
-            if ( !d->mailboxes.isEmpty() ) {
-                cache();
+            if ( !d->mailboxes.isEmpty() )
                 Mailbox::refreshMailboxes( d->transaction );
-            }
             d->transaction->commit();
             break;
 
@@ -1956,32 +1954,6 @@ struct MailboxAnnouncement {
     uint uidnext;
     int64 nextmodseq;
 };
-
-
-/*! Inserts this/these message/s into the MessageCache. If the
-    transaction fails, the cache has to be cleared.
-*/
-
-void Injector::cache()
-{
-    List<Injectee>::Iterator it( d->injectables );
-    while ( it ) {
-        Injectee * m = it;
-        ++it;
-        m->setBodiesFetched();
-        m->setBytesAndLinesFetched();
-        m->setAddressesFetched();
-        m->setHeadersFetched();
-        List<Mailbox>::Iterator mi( m->mailboxes() );
-        while ( mi ) {
-            Mailbox * mb = mi;
-            ++mi;
-            uint uid = m->uid( mb );
-
-            MessageCache::insert( mb, uid, m );
-        }
-    }
-}
 
 
 /*! Returns a sensible internaldate for \a m. If
