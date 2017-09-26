@@ -28,6 +28,7 @@ public:
     uint uidnext() const;
     uint uidvalidity() const;
     int64 nextModSeq() const;
+    EString flag() const;
 
     void setType( Type );
     Type type() const;
@@ -42,6 +43,7 @@ public:
     void setUidvalidity( uint );
     void setDeleted( bool );
     void setUidnextAndNextModSeq( uint, int64, Transaction * );
+    void setFlag( EString );
 
     Mailbox * parent() const;
     List< Mailbox > * children() const;

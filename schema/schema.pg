@@ -95,7 +95,10 @@ create table mailboxes (
 
     -- When a mailbox is deleted, its entry is marked (not removed), so
     -- that its UIDVALIDITY can be incremented if it is ever re-created.
-    deleted     boolean not null default false
+    deleted     boolean not null default false,
+
+    -- Each mailbox can have a single mailbox flag, see RFC 6154
+    flag        text
 );
 
 

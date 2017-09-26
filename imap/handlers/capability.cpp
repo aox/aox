@@ -44,6 +44,7 @@
     RFC 5257: ANNOTATE-EXPERIMENT-1,
     RFC 5258: LISTEXT,
     RFC 5465: NOTIFY,
+    RFC 6154: SPECIAL-USE,
     RFC 6855: UTF=ACCEPT,
     RFC 7162: QRESYNC.
 */
@@ -86,8 +87,10 @@ EString Capability::capabilities( IMAP * i, bool all )
     }
     if ( i->readBuffer()->compression() == Buffer::None )
         c.append( "COMPRESS=DEFLATE" );
-    if ( all || login )
+    if ( all || login ) {
         c.append( "CONDSTORE" );
+        c.append( "CREATE-SPECIAL-USE" );
+    }
     c.append( "ENABLE" );
     if ( all || login ) {
         c.append( "ESEARCH" );
@@ -119,6 +122,7 @@ EString Capability::capabilities( IMAP * i, bool all )
     if ( all || login ) {
         c.append( "SORT" );
         c.append( "SORT=DISPLAY" ); // draft-ietf-morg-sortdisplay
+        c.append( "SPECIAL-USE" );
     }
     if ( Configuration::toggle( Configuration::UseTls ) && !i->hasTls() )
         c.append( "STARTTLS" );

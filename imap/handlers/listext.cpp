@@ -25,8 +25,10 @@ public:
         state( 0 ),
         extended( false ),
         returnSubscribed( false ), returnChildren( false ),
+        returnSpecialUse( false ),
         selectSubscribed( false ), selectRemote( false ),
-        selectRecursiveMatch( false )
+        selectRecursiveMatch( false ),
+        selectSpecialUse( false )
     {}
 
     Query * selectQuery;
@@ -67,9 +69,11 @@ public:
     bool extended;
     bool returnSubscribed;
     bool returnChildren;
+    bool returnSpecialUse;
     bool selectSubscribed;
     bool selectRemote;
     bool selectRecursiveMatch;
+    bool selectSpecialUse;
 };
 
 
@@ -152,6 +156,8 @@ void Listext::parse()
 
     if ( d->selectSubscribed )
         d->returnSubscribed = true;
+    if ( d->selectSpecialUse )
+        d->returnSpecialUse = true;
 
    if ( ok() )
        log( "List " + d->reference->name().ascii() +
@@ -213,6 +219,9 @@ void Listext::execute()
                 sel.append( " from mailboxes mb" );
             }
             sel.append( " where " );
+        }
+        if ( d->selectSpecialUse ) {
+            sel.append( "flag is not null" );
         }
         EStringList conditions;
         UStringList::Iterator i( d->patterns );
@@ -389,6 +398,8 @@ void Listext::addReturnOption( const EString & option )
         d->returnSubscribed = true;
     else if ( option == "children" )
         d->returnChildren = true;
+    else if ( option == "special-use" )
+        d->returnSpecialUse = true;
     else
         error( Bad, "Unknown return option: " + option );
 }
@@ -405,6 +416,8 @@ void Listext::addSelectOption( const EString & option )
         d->selectRemote = true;
     else if ( option == "recursivematch" )
         d->selectRecursiveMatch = true;
+    else if ( option == "special-use" )
+        d->selectSpecialUse = true;
     else
         error( Bad, "Unknown selection option: " + option );
 }
@@ -430,6 +443,10 @@ void Listext::makeResponse( Row * row )
         a.append( "\\haschildren" );
     else if ( !mailbox->deleted() )
         a.append( "\\hasnochildren" );
+
+    // 6154 is easy
+    if ( !mailbox->flag().isEmpty() )
+        a.append( mailbox->flag() );
 
     // then there's subscription
     bool include = false;

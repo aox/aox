@@ -16,6 +16,7 @@ public:
     UString name;
     Mailbox * m;
     Mailbox * parent;
+    EString attr;
 };
 
 
@@ -37,10 +38,45 @@ void Create::parse()
 {
     space();
     d->name = mailboxName();
+    if ( present( " (" ) ) {
+        parseCreateParam();
+        while ( present( " " ) )
+            parseCreateParam();
+        require( ")" );
+    }
     end();
     if ( d->name.titlecased() == imap()->user()->inbox()->name().titlecased() )
         error( No, "INBOX always exists" );
     log( "Create " + d->name.ascii() );
+}
+
+
+void Create::parseCreateParam()
+{
+    if ( !present( "use (" ) )
+        error( Bad, "Unknown create parameter" );
+    parseUseAttr();
+    while ( present( " " ) )
+        parseUseAttr();
+    require( ")" );
+}
+
+void Create::parseUseAttr()
+{
+    require("\\");
+    EString attr = "\\" + atom();
+    if ( attr == "\\all" || attr == "\\archive" || attr == "\\drafts" ||
+         attr == "\\flagged" || attr == "\\junk" || attr == "\\sent" ||
+         attr == "\\trash" ) {
+        if ( d->attr.isEmpty() || d->attr == attr ) {
+            // fine
+            d->attr = attr;
+        } else {
+            error( No, "Archiveopteryx supports only one flag per mailbox" );
+        }
+    } else {
+        error( No, "Unknown attribute" );
+    }
 }
 
 
@@ -70,7 +106,8 @@ void Create::execute()
             error( No, d->name.ascii() + " is not a valid mailbox name" );
             return;
         }
-        else if ( d->m->create( transaction(), imap()->user() ) == 0 ) {
+        d->m->setFlag( d->attr );
+        if ( d->m->create( transaction(), imap()->user() ) == 0 ) {
             error( No, d->name.ascii() + " already exists" );
             setRespTextCode( "ALREADYEXISTS" );
             return;

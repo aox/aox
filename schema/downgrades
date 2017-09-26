@@ -153,3 +153,10 @@ begin
     );
     return 0;
 end;$$ language 'plpgsql';
+
+create or replace function downgrade_to_97()
+returns int as $$
+begin
+    alter table mailboxes drop flag;
+    return 0;
+end;$$ language 'plpgsql';

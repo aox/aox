@@ -590,6 +590,8 @@ bool Schema::singleStep()
         c = stepTo96(); break;
     case 96:
         c = stepTo97(); break;
+    case 97:
+        c = stepTo98(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -4406,5 +4408,15 @@ bool Schema::stepTo97()
     describeStep( "Dropping aox views." );
     d->t->enqueue( "delete from views" );
     d->t->enqueue( "drop table views" );
+    return true;
+}
+
+
+/*! Add a mailbox flag. */
+
+bool Schema::stepTo98()
+{
+    describeStep( "Adding a single flag per mailbox." );
+    d->t->enqueue( "alter table mailboxes add flag text" );
     return true;
 }

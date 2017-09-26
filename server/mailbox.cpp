@@ -46,6 +46,7 @@ public:
     uint uidnext;
     uint uidvalidity;
     uint owner;
+    EString flag;
 
     Mailbox * parent;
     List< Mailbox > * children;
@@ -97,7 +98,7 @@ MailboxReader::MailboxReader( EventHandler * ev, int64 c )
     }
     ::readers->append( this );
     q = new Query( "select m.id, m.name, m.deleted, m.owner, "
-                   "m.uidnext, m.nextmodseq, m.uidvalidity "
+                   "m.uidnext, m.nextmodseq, m.uidvalidity, m.flag"
                    //"m.change " // better: m.change
                    "from mailboxes m ",
                    //"where change>=$1"
@@ -139,6 +140,8 @@ void MailboxReader::execute() {
         m->setUidnextAndNextModSeq( r->getInt( "uidnext" ),
                                     r->getBigint( "nextmodseq" ),
                                     q->transaction() );
+
+        m->setFlag( r->getEString( "flag" ) );
     }
 
     if ( !q->done() || done )
@@ -587,14 +590,14 @@ Query * Mailbox::create( Transaction * t, User * owner )
 
     if ( deleted() ) {
         q = new Query( "update mailboxes "
-                       "set deleted='f',owner=$2,first_recent=uidnext "
+                       "set deleted='f',owner=$2,first_recent=uidnext,flag=$3 "
                        "where id=$1", 0 );
         q->bind( 1, id() );
     }
     else if ( id() == 0 ) {
         q = new Query( "insert into mailboxes "
-                       "(name,owner,uidnext,uidvalidity,deleted) "
-                       "values ($1,$2,1,1,'f')", 0 );
+                       "(name,owner,uidnext,uidvalidity,deleted,flag) "
+                       "values ($1,$2,1,1,'f',$3)", 0 );
         q->bind( 1, name() );
     }
     else {
@@ -605,6 +608,11 @@ Query * Mailbox::create( Transaction * t, User * owner )
         q->bind( 2, owner->id() );
     else
         q->bindNull( 2 );
+
+    if ( !d->flag.isEmpty() )
+        q->bind( 3, d->flag );
+    else
+        q->bindNull( 3 );
 
     t->enqueue( q );
 
@@ -828,4 +836,24 @@ void Mailbox::abortSessions()
         }
         ++i;
     }
+}
+
+
+/*! Returns the RFC6154 flag for this mailbox, if any, or an empty
+    string if none.
+*/
+
+EString Mailbox::flag() const
+{
+    return d->flag;
+}
+
+
+/*! Records that this Mailbox has \a f. This is stored in the database
+    only by create().
+*/
+
+void Mailbox::setFlag( EString f )
+{
+    d->flag = f;
 }

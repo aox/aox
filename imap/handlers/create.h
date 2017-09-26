@@ -17,6 +17,9 @@ public:
 
 private:
     class CreateData * d;
+
+    void parseCreateParam();
+    void parseUseAttr();
 };
 
 
