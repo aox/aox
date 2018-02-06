@@ -98,7 +98,7 @@ MailboxReader::MailboxReader( EventHandler * ev, int64 c )
     }
     ::readers->append( this );
     q = new Query( "select m.id, m.name, m.deleted, m.owner, "
-                   "m.uidnext, m.nextmodseq, m.uidvalidity, m.flag"
+                   "m.uidnext, m.nextmodseq, m.uidvalidity, m.flag "
                    //"m.change " // better: m.change
                    "from mailboxes m ",
                    //"where change>=$1"
