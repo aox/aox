@@ -114,7 +114,7 @@ EString Capability::capabilities( IMAP * i, bool all )
     if ( all || login ) {
         if ( Configuration::toggle( Configuration::UseImapQuota ) )
             c.append( "QUOTA" );
-        c.append( "QRESYNC" );
+        //c.append( "QRESYNC" );
         c.append( "RIGHTS=ekntx" );
     }
     if ( all || !login )
