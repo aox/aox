@@ -691,8 +691,7 @@ void Postgres::unknown( char type )
             else if ( n == "server_version" ) {
                 bool ok = true;
                 serverVersion = 10000 * v.section( ".", 1 ).number( &ok ) +
-                                100 * v.section( ".", 2 ).number( &ok ) +
-                                v.section( ".", 3 ).number( &ok );
+                                  100 * v.section( ".", 2 ).number( &ok );
                 if ( !ok || version() < 90100 )
                     e = "Archiveopteryx requires PostgreSQL 9.1 or higher: ";
             }
