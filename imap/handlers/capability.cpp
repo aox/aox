@@ -89,7 +89,7 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "COMPRESS=DEFLATE" );
     if ( all || login ) {
         c.append( "CONDSTORE" );
-        c.append( "CREATE-SPECIAL-USE" );
+        //c.append( "CREATE-SPECIAL-USE" );
     }
     c.append( "ENABLE" );
     if ( all || login ) {
