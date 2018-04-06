@@ -52,7 +52,7 @@ void MD5::init()
 
 void MD5::add( const char *str, uint len )
 {
-    register uint32 t;
+    uint32 t;
 
     /* It's not possible to add() data, call hash(), then add more data
        and call hash() again, because hash() destroys the accumulated
@@ -244,7 +244,7 @@ EString MD5::HMAC( const EString &secret, const EString &text )
 
 void MD5::transform()
 {
-    register uint32 a, b, c, d;
+    uint32 a, b, c, d;
     uint32 *inw = (uint32 *)in;
 
     a = buf[0];
