@@ -927,7 +927,7 @@ void checkVersion()
     // anyway.
 
     if ( !d->q ) {
-        d->q = new Query( "select version() as version", d );
+        d->q = new Query( "show server_version_num", d );
         d->q->execute();
     }
 
@@ -940,13 +940,9 @@ void checkVersion()
         return;
     }
 
-    EString v = r->getEString( "version" ).simplified().section( " ", 2 );
-    if ( v.isEmpty() )
-        v = r->getEString( "version" );
+    EString v = r->getEString( "server_version_num" );
     bool ok = true;
-    uint version = 10000 * v.section( ".", 1 ).number( &ok ) +
-                   100 * v.section( ".", 2 ).number( &ok ) +
-                   v.section( ".", 3 ).number( &ok );
+    uint version = v.number( &ok );
     if ( !ok || version < 90100 ) {
         d->error( "Archiveopteryx requires PostgreSQL 9.1.0 or higher "
                   "(found only " + v + ")." );
