@@ -689,9 +689,19 @@ void Postgres::unknown( char type )
                     e = "Unexpected server encoding: ";
             }
             else if ( n == "server_version" ) {
+                // We're forever doomed to parse version strings to
+                // recompute the server_version_num that the server
+                // knows but purposely doesn't send us because:
+                //
+                // "I think this is just a waste of network bandwidth.
+                // No client-side code could safely depend on its being
+                // available for many years yet, therefore they're going
+                // to keep using server_version." (2015-01-09)
                 bool ok = true;
-                serverVersion = 10000 * v.section( ".", 1 ).number( &ok ) +
-                                  100 * v.section( ".", 2 ).number( &ok );
+
+                serverVersion = 10000 * v.section( ".", 1 ).number( &ok );
+                if (ok && version() < 100000)
+                    serverVersion += 100 * v.section( ".", 2 ).number( &ok );
                 if ( !ok || version() < 90100 )
                     e = "Archiveopteryx requires PostgreSQL 9.1 or higher: ";
             }
