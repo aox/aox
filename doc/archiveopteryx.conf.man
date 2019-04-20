@@ -77,6 +77,18 @@ The
 setting should be about as large as the number of CPU cores available,
 perhaps a little larger. We advise asking info@aox.org in unusual
 cases.
+.IP memory-limit
+is the amount of memory each child process is permitted to use, but is not
+a hard limit. If the current memory use is lower, then archiveopteryx will use
+more. If it is higher, then archiveopteryx will take increasingly drastic
+measures to release memory, eventually killing the subprocess.
+.IP
+Among other things, this controls the maximum size of inbound messages,
+which is currently one seventh of
+.I
+memory-limit
+since Archiveopteryx generally needs to allocate several times the message
+size during database injection.
 .SS "Database Access"
 .IP db
 The type of database. The default,
