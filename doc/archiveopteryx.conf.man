@@ -41,7 +41,7 @@ name = value # comment
 For the
 .I *-address
 variables, the value may be either a hostname, an IPv4 or IPv6
-address, the fully-qualified path to a Unix socket. For
+address, or the fully-qualified path to a Unix socket. For
 .I imap-address
 and a few other variables, the empty string is also allowed, meaning
 "all IPv4/6 addresses of this host".
