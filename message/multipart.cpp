@@ -92,21 +92,17 @@ void Multipart::appendMultipart( EString &r, bool avoidUtf8 ) const
 {
     ContentType * ct = header()->contentType();
     EString delim = ct->parameter( "boundary" );
-    if ( ! this )
-        ::log( "Fetch::bodyStructure - FATAL, cannnot determine message", Log::Error );
-    else {
-        if ( this->parent() && this->parent()->isMessage() ) {
-            Message *msg = (Message *)this->parent();
-            if ( msg->hasPGPsignedPart() ) {
-                appendAnyPart( r, children()->first(), ct, avoidUtf8 );
-                return;
-            }
-        } else if ( this->isMessage() ) {
-            Message *msg = (Message *)this;
-            if ( msg->hasPGPsignedPart() ) {
-                appendAnyPart( r, children()->first(), ct, avoidUtf8 );
-                return;
-            }
+    if ( parent() && parent()->isMessage() ) {
+        Message *msg = (Message *)parent();
+        if ( msg->hasPGPsignedPart() ) {
+            appendAnyPart( r, children()->first(), ct, avoidUtf8 );
+            return;
+        }
+    } else if ( isMessage() ) {
+        Message *msg = (Message *)this;
+        if ( msg->hasPGPsignedPart() ) {
+            appendAnyPart( r, children()->first(), ct, avoidUtf8 );
+            return;
         }
     }
     List<Bodypart>::Iterator it( children() );
