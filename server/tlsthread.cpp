@@ -105,17 +105,23 @@ void TlsThread::setup()
 
     SSL_CTX_set_cipher_list( ctx, "kEDH:HIGH:!aNULL:!MD5" );
 
-    EString keyFile( Configuration::text( Configuration::TlsCertFile ) );
-    if ( keyFile.isEmpty() ) {
-        keyFile = Configuration::compiledIn( Configuration::LibDir );
-        keyFile.append( "/automatic-key.pem" );
+    EString certFile( Configuration::text( Configuration::TlsCertFile ) );
+    if ( certFile.isEmpty() ) {
+        certFile = Configuration::compiledIn( Configuration::LibDir );
+        certFile.append( "/automatic-key.pem" );
     }
-    keyFile = File::chrooted( keyFile );
-    if ( !SSL_CTX_use_certificate_chain_file( ctx, keyFile.cstr() ) ||
-         !SSL_CTX_use_RSAPrivateKey_file( ctx, keyFile.cstr(),
+    certFile = File::chrooted( certFile );
+    EString keyFile( Configuration::text( Configuration::TlsKeyFile ) );
+    if ( keyFile.isEmpty() )
+        keyFile = certFile;
+    else
+        keyFile = File::chrooted( keyFile );
+    if ( !SSL_CTX_use_certificate_chain_file( ctx, certFile.cstr() ) )
+        log( "OpenSSL needs the certificate in this file: " + keyFile,
+             Log::Disaster );
+    if ( !SSL_CTX_use_RSAPrivateKey_file( ctx, keyFile.cstr(),
                                           SSL_FILETYPE_PEM ) )
-        log( "OpenSSL needs both the certificate and "
-             "private key in this file: " + keyFile,
+        log( "OpenSSL needs the private key in this file: " + keyFile,
              Log::Disaster );
     // we go on anyway; the disaster will take down the server in
     // a hurry.

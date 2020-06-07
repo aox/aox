@@ -89,6 +89,7 @@ public:
         LmtpAddress,
         SmtpSubmitAddress,
         SmtpsAddress,
+        TlsKeyFile,
         TlsCertFile,
         TlsCertLabel,
         TlsCertSecret,

@@ -320,6 +320,10 @@ static void checkFilePermissions()
             c.append( "/automatic-key.pem" );
         }
         addPath( Path::ReadableFile, Configuration::TlsCertFile );
+        c = Configuration::text( Configuration::TlsKeyFile );
+        if ( !c.isEmpty() ) {
+            addPath( Path::ReadableFile, Configuration::TlsCertFile );
+        }
     }
     addPath( Path::ExistingSocket, Configuration::EntropySource );
     EString lf = Configuration::text( Configuration::LogFile );
@@ -1070,11 +1074,11 @@ bool Stopper::failed() const
 
 static void selfSignCertificate()
 {
-    EString keyFile( Configuration::text( Configuration::TlsCertFile ) );
+    EString keyFile(Configuration::text(Configuration::TlsCertFile));
 
-    if ( keyFile.isEmpty() ) {
-        keyFile = Configuration::compiledIn( Configuration::LibDir );
-        keyFile.append( "/automatic-key.pem" );
+    if (keyFile.isEmpty()) {
+        keyFile = Configuration::compiledIn(Configuration::LibDir);
+        keyFile.append("/automatic-key.pem");
     }
 
     File key( keyFile );

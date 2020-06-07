@@ -199,6 +199,7 @@ static struct {
     { "lmtp-address", Configuration::LmtpAddress, "127.0.0.1" },
     { "smtp-submit-address", Configuration::SmtpSubmitAddress, "" },
     { "smtps-address", Configuration::SmtpsAddress, "" },
+    { "tls-private-key", Configuration::TlsKeyFile, "" },
     { "tls-certificate", Configuration::TlsCertFile, "" },
     { "tls-certificate-label", Configuration::TlsCertLabel, "" },
     { "tls-certificate-secret", Configuration::TlsCertSecret, "secret" },
