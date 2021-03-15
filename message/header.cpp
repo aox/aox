@@ -1733,12 +1733,16 @@ void Header::repair( Multipart * p, const EString & body )
         }
     }
 
-    // If Content-Base or Content-Location is/are bad, we just drop it/them
+    // If Content-Base, Content-Location or Content-Language is/are
+    // bad, we just drop it/them
 
-    if ( field( "Content-Base" ) || field( "Content-Location" ) ) {
+    if ( field( "Content-Base") ||
+         occurrences[(int)HeaderField::ContentLanguage] ||
+         occurrences[(int)HeaderField::ContentLocation] ) {
         List<HeaderField>::Iterator i( d->fields );
         while ( i ) {
             if ( !i->valid() && ( i->name() == "Content-Base" ||
+                                  i->name() == "Content-Language" ||
                                   i->name() == "Content-Location" ) ) {
                 d->fields.take( i );
             }
