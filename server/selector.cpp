@@ -925,7 +925,9 @@ EString Selector::whereHeaderField()
 
     EString jn = fn( ++root()->d->join );
     EString j = " left join header_fields hf" + jn +
-               " on (" + mm() + ".message=hf" + jn + ".message";
+               " on (" + mm() + ".message=hf" + jn + ".message" +
+               " and hf" + jn + ".part=''";
+
     if ( t == HeaderField::MessageId &&
          d->s16.startsWith( "<" ) && d->s16.endsWith( ">" ) ) {
         uint like = placeHolder( q( d->s16 ) );
@@ -984,7 +986,8 @@ EString Selector::whereHeaders( List<Selector> * sl )
 
     EString jn = "hf" + fn( ++root()->d->join );
     EString j = " left join header_fields " + jn +
-                " on (" + mm() + ".message=" + jn + ".message";
+                " on (" + mm() + ".message=" + jn + ".message" +
+                " and hf" + jn + ".part=''";
     EStringList filters;
 
     EStringList::Iterator fi( fields );
@@ -1425,6 +1428,7 @@ EString Selector::whereHeader()
     EString jn = "hf" + fn( ++root()->d->join );
     EString j = " left join header_fields " + jn +
                " on (" + mm() + ".message=" + jn + ".message and " +
+               jn + ".part='' and " +
                jn + ".value ilike " + matchAny( like ) + ")";
     root()->d->leftJoins.append( j );
     List<Selector> dummy;
