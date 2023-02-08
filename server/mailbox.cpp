@@ -141,7 +141,8 @@ void MailboxReader::execute() {
                                     r->getBigint( "nextmodseq" ),
                                     q->transaction() );
 
-        m->setFlag( r->getEString( "flag" ) );
+        if ( !r->isNull( "flag" ) )
+            m->setFlag( r->getEString( "flag" ) );
     }
 
     if ( !q->done() || done )
