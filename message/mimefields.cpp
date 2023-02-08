@@ -740,7 +740,7 @@ void ContentLanguage::parse( const EString &s )
     } while ( p.present( "," ) );
 
     if ( !p.atEnd() || l.count() == 0 )
-        setError( "Unparseable value: " + s.quoted() );
+        setError( "Cannot parse value: " + s.quoted() );
 }
 
 
