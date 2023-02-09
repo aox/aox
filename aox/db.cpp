@@ -189,6 +189,7 @@ void Vacuum::execute()
                     q->bind( 1, Recipient::Unknown );
                     q->bind( 2, Recipient::Delayed );
                     q->execute();
+                    // fall through
             case 1:
                     if (!q->done())
                         return;
@@ -199,6 +200,7 @@ void Vacuum::execute()
                                "where deleted_at<current_timestamp-'" + fn( days ) +
                                " days'::interval", this );
                 q->execute();
+                // fall through
             case 2:
                 if (!q->done())
                     return;
@@ -214,6 +216,7 @@ void Vacuum::execute()
                                    " and d.message is null "
                                    " limit " MSGBLOCKCOUNT ")", this );
                     q->execute();
+                    // fall through
             case 3:
                     if (!q->done())
                         return;
@@ -226,6 +229,7 @@ void Vacuum::execute()
                                    "(b.id=p.bodypart) where bodypart is null "
                                    " limit " MSGBLOCKCOUNT ")", this );
                     q->execute();
+                    // fall through
             case 4:
                     if (!q->done())
                         return;

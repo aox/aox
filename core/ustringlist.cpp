@@ -19,6 +19,14 @@ UStringList::UStringList()
 }
 
 
+/*! Constructs a new list of (pointers to) the UString objects in \a other. */
+
+UStringList::UStringList( const UStringList & other)
+{
+    append( other );
+}
+
+
 /*! \fn void UStringList::append( UString * s )
 
     Appends the UString \a s to this UStringList. (Inline reimplementation

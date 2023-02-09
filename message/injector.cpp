@@ -1579,7 +1579,7 @@ void Injector::insertMessages()
 
         // Now we insert the headers and bodies of every MIME bodypart.
 
-        Bodypart *bp;
+        Bodypart *bp = 0;
         if ( m->hasPGPsignedPart() ) {
             EString pnr( "raw-pgp-signed" );
             bp = m->children()->shift(); // avoid starting pns with 2

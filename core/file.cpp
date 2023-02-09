@@ -13,6 +13,8 @@
 // read
 #include <sys/uio.h>
 #include <unistd.h>
+// memcpy
+#include <string.h>
 // open
 #include <fcntl.h>
 
@@ -20,9 +22,6 @@
 #if !defined(O_LARGEFILE)
 #define O_LARGEFILE 0
 #endif
-
-
-extern "C" void *memcpy(void *, const void *, uint);
 
 
 class FileData

@@ -163,6 +163,7 @@ rule Doc {
 
 actions together RemoveDirectories {
     rm -rf $(TOP)/doc/man/man3 $(TOP)/$(BUILD)
+    mkdir -p $(TOP)/doc/html
     find $(TOP)/doc/html -name udoc.css -prune -o -type f -exec rm {} \;
 }
 

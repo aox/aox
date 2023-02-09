@@ -12,6 +12,7 @@ class UStringList
 {
 public:
     UStringList();
+    UStringList(const UStringList & other);
 
     void append( UString * s ) { List<UString>::append( s ); }
     void append( const UString & );

@@ -15,6 +15,7 @@
 #include "estringlist.h"
 #include "transaction.h"
 
+#include <string.h>
 
 class QueryData
     : public Garbage
@@ -769,11 +770,6 @@ Row::Row( const PgRowDescription * desc, Column * c )
     : data( c ), layout( desc )
 {
 }
-
-
-extern "C" {
-    uint strlen( const char * );
-};
 
 
 /*! This private helper returns the column named \a f, or a null
