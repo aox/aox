@@ -6,6 +6,7 @@
 #include "estringlist.h"
 #include "ustringlist.h"
 #include "endpoint.h"
+#include "punycode.h"
 #include "ustring.h"
 #include "parser.h"
 #include "cache.h"
@@ -125,6 +126,25 @@ public:
 static AddressCache * cache = 0;
 
 
+static UString deACE(const UString & input) {
+    UString result;
+    int n = 0;
+    bool done = false;
+    while ( !done ) {
+        UString s = input.section( ".", n++ );
+        done = s.isEmpty();
+        if ( !done ) {
+            if ( s.startsWith( "xn--" ) )
+                s = Punycode::decode( s.mid( 4 ) );
+            if ( !result.isEmpty() )
+                result.append( "." );
+            result.append( s );
+        }
+    }
+    return result;
+}
+
+
 /*! This private function contains the shared part of the
     constructors, initialising the object with the display-name \a n,
     localpart \a l, and domain \a o and an appropriate type(). Uses a
@@ -137,7 +157,7 @@ void Address::init( const UString &n, const UString &l, const UString &o )
     if ( !::cache )
         ::cache = new AddressCache;
 
-    UString dl( o.titlecased() );
+    UString dl( deACE( o.titlecased() ) );
     UDict< UDict<AddressData> > * step2 = ::cache->step1.find( dl );
     if ( !step2 ) {
         step2 = new UDict< UDict<AddressData> >;

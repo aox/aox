@@ -7,7 +7,7 @@ Build core : global.cpp scope.cpp estring.cpp
     cache.cpp patriciatree.cpp
     ;
 
-Build encodings : ustring.cpp ustringlist.cpp ;
+Build encodings : ustring.cpp ustringlist.cpp punycode.cpp ;
 
 PGUSER ?= "" ;
 
