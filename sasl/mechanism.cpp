@@ -13,6 +13,7 @@
 #include "graph.h"
 #include "query.h"
 #include "user.h"
+#include "ace.h"
 #include "utf.h"
 
 // Supported authentication mechanisms, for create().
@@ -442,6 +443,14 @@ UString SaslMechanism::login() const
 void SaslMechanism::setLogin( const UString &name )
 {
     d->login = name;
+    auto at1 = name.find( "@" );
+    if ( at1 < 0 )
+        return;
+    auto at2 = name.find( "@", at1 + 1 );
+    if ( at2 >= 0 )
+        return;
+    d->login = name.mid( 0, at1 + 1);
+    d->login.append( ACE::decode( name.mid( at1 + 1 ) ) );
 }
 
 
