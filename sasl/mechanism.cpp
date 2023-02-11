@@ -462,7 +462,7 @@ void SaslMechanism::setLogin( const UString &name )
 void SaslMechanism::setLogin( const EString &name )
 {
     Utf8Codec u;
-    d->login = u.toUnicode( name );
+    setLogin( u.toUnicode( name ) );
     if ( u.valid() )
         return;
     d->login.truncate();
