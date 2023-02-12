@@ -236,7 +236,10 @@ UString Punycode::decode(const UString & input) {
            we increase i as we go, then subtract off its starting
            value at the end to obtain delta.  */
 
-        for ( oldi = i, w = 1, k = base; ; k += base ) {
+        oldi = i;
+        w = 1;
+        k = base;
+        while ( true ) {
             digit = decodeDigit( input[in++] );
             if (digit >= base)
                 return input;
@@ -250,6 +253,7 @@ UString Punycode::decode(const UString & input) {
             if (w > UINT_MAX / (base - t))
                 return input;
             w *= (base - t);
+            k += base;
         }
 
         bias = adapt( i - oldi, result.length() + 1, oldi == 0 );
@@ -271,6 +275,7 @@ UString Punycode::decode(const UString & input) {
         result = result.mid( 0, i );
         result.append( n );
         result.append( after );
+        i++;
     }
 
     return result;
