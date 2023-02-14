@@ -10,7 +10,7 @@
 
 #include <time.h> // time()
 
-static bool unicodeSupported = false;
+static bool unicodeSupported = true;
 
 
 /*! \class SmtpHelo smtphelo.h
