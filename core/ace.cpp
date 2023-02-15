@@ -8,7 +8,7 @@
 
 UString ACE::decode(const UString & input) {
     UString result;
-    int n = 0;
+    int n = 1;
     bool done = false;
     while ( !done ) {
         UString s = input.section( ".", n++ );
