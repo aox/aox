@@ -987,7 +987,7 @@ EString Selector::whereHeaders( List<Selector> * sl )
     EString jn = "hf" + fn( ++root()->d->join );
     EString j = " left join header_fields " + jn +
                 " on (" + mm() + ".message=" + jn + ".message" +
-                " and hf" + jn + ".part=''";
+                " and " + jn + ".part=''";
     EStringList filters;
 
     EStringList::Iterator fi( fields );
@@ -1023,7 +1023,8 @@ EString Selector::whereHeaders( List<Selector> * sl )
         while ( si ) {
             if ( fn == si->d->s8.headerCased() ) {
                 if ( fn == "Message-Id" &&
-                     si->d->s16.startsWith( "<" ) && si->d->s16.endsWith( ">" ) ) {
+                     si->d->s16.startsWith( "<" ) &&
+                     si->d->s16.endsWith( ">" ) ) {
                     uint b = placeHolder( si->d->s16.utf8() );
                     orl.append( jn + ".value=$" + ::fn( b ) );
                 }
