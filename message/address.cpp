@@ -98,7 +98,7 @@ Address::Address( const UString &n, const EString &l, const EString &o )
     : d( 0 )
 {
     AsciiCodec a;
-    init( n, a.toUnicode( l ), a.toUnicode( o ) );
+    init( n, a.toUnicode( l ), ACE::decode( a.toUnicode( o ) ) );
 }
 
 
@@ -110,7 +110,7 @@ Address::Address( const UString &n, const EString &l, const EString &o )
 Address::Address( const UString & n, const UString & l, const UString & o )
     : d( 0 )
 {
-    init( n, l, o );
+    init( n, l, ACE::decode( o ) );
 }
 
 
@@ -138,7 +138,7 @@ void Address::init( const UString &n, const UString &l, const UString &o )
     if ( !::cache )
         ::cache = new AddressCache;
 
-    UString dl( ACE::decode( o.titlecased() ) );
+    UString dl( o.titlecased() );
     UDict< UDict<AddressData> > * step2 = ::cache->step1.find( dl );
     if ( !step2 ) {
         step2 = new UDict< UDict<AddressData> >;
