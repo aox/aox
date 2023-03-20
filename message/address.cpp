@@ -1650,7 +1650,7 @@ bool Address::localpartIsSensible() const
         return false;
     uint i = 0;
     while ( i < d->localpart.length() ) {
-        char c = d->localpart[i];
+        uint c = d->localpart[i];
         if ( c == '.' ) {
             if ( d->localpart[i+1] == '.' )
                 return false;
