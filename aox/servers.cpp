@@ -1116,7 +1116,7 @@ static void selfSignCertificate()
     if ( r == -1 )
         error( "Needed to execute openssl req, but failed" );
 
-    // one one hand, File::write() does no checking. On the other,
+    // on one hand, File::write() does no checking. On the other,
     // this does at least not pass user-supplied data to the shell.
     File ossl( "/tmp/aox-ossl.pem" );
     File result( keyFile, File::Write );

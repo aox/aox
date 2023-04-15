@@ -116,9 +116,12 @@ void TlsThread::setup()
         keyFile = certFile;
     else
         keyFile = File::chrooted( keyFile );
-    if ( !SSL_CTX_use_certificate_chain_file( ctx, certFile.cstr() ) )
-        log( "OpenSSL needs the certificate in this file: " + keyFile,
+    if ( !SSL_CTX_use_certificate_chain_file( ctx, certFile.cstr() ) ) {
+        EString reason = ERR_reason_error_string(ERR_peek_error());
+        log( "OpenSSL failed to read the certificate from " + keyFile +
+             ": " + reason,
              Log::Disaster );
+    }
     if ( !SSL_CTX_use_RSAPrivateKey_file( ctx, keyFile.cstr(),
                                           SSL_FILETYPE_PEM ) )
         log( "OpenSSL needs the private key in this file: " + keyFile,
