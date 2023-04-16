@@ -55,7 +55,7 @@ void GetQuota::execute()
     if ( r )
         respond( "QUOTA \"\" ("
                  "STORAGE " + fn( r->getBigint( "s" ) ) + " " + quota + " "
-                 "MESSAGE " + fn( r->getBigint( "c" ) ) + "  " + quota + ")" );
+                 "MESSAGE " + fn( r->getBigint( "c" ) ) + " " + quota + ")" );
     finish();
 }
 
