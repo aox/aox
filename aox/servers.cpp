@@ -1087,8 +1087,6 @@ static void selfSignCertificate()
 
     File osslcf( "/tmp/aox-ossl.conf", File::Write );
     osslcf.write( "[ req ]\n"
-                  " default_bits = 1024\n"
-                  " default_keyfile = privkey.pem\n"
                   " distinguished_name = req_distinguished_name\n"
                   " attributes = req_attributes\n"
                   " x509_extensions = v3_ca\n"
@@ -1102,7 +1100,7 @@ static void selfSignCertificate()
                   "[ req_attributes ]\n"
                   " challengePassword = \"\"\n"
                   "\n"
-                  " [ v3_ca ]\n"
+                  "[ v3_ca ]\n"
                   "\n"
                   " nsCertType = server\n"
                   " nsComment = \"Automatically generated self-signed certificate\"\n"
@@ -1112,7 +1110,7 @@ static void selfSignCertificate()
 
 
 
-    int r = system( "openssl req -config /tmp/aox-ossl.conf -x509 -days 1764 -newkey rsa:1024 -nodes -keyout /tmp/aox-ossl.pem -out /tmp/aox-ossl.pem" );
+    int r = system( "openssl req -config /tmp/aox-ossl.conf -x509 -days 1764 -newkey rsa:2048 -nodes -keyout /tmp/aox-ossl.pem -out /tmp/aox-ossl.pem" );
     if ( r == -1 )
         error( "Needed to execute openssl req, but failed" );
 
