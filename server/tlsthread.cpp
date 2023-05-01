@@ -377,8 +377,10 @@ void TlsThread::start()
         }
     }
 
-    ::close( d->encfd );
-    ::close( d->ctfd );
+    if ( d->encfd >= 0 )
+        ::close( d->encfd );
+    if ( d->ctfd >= 0 )
+        ::close( d->ctfd );
     SSL_free( d->ssl );
     d->ssl = 0;
     pthread_exit( 0 );
@@ -452,9 +454,15 @@ bool TlsThread::broken() const
 
 void TlsThread::close()
 {
+    int encfd = d->encfd;
+    int ctfd = d->ctfd;
     d->broken = true;
-    ::close( d->encfd );
-    ::close( d->ctfd );
+    d->encfd = -1;
+    d->ctfd = -1;
+    if ( encfd >= 0 )
+        ::close( encfd );
+    if ( ctfd >= 0 )
+        ::close( ctfd );
     pthread_cancel( d->thread );
     pthread_join( d->thread, 0 );
 }
