@@ -1466,8 +1466,7 @@ EString Fetch::singlePartStructure( Multipart * mp, bool extended )
 
     if ( bp ) {
         l.append( fn( bp->numEncodedBytes() ) );
-        if ( ct && ct->type() == "message" &&
-             ( ct->subtype() == "rfc822" || ct->subtype() == "global" ) ) {
+        if ( ct && ct->type() == "message" && bp->message() ) {
             // body-type-msg   = media-message SP body-fields SP envelope
             //                   SP body SP body-fld-lines
             l.append( envelope( bp->message() ) );
