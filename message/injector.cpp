@@ -1290,7 +1290,8 @@ void Injector::addBodypartRow( Bodypart * b )
             storeData = true;
             if ( ct->type() == "multipart" && ct->subtype() != "signed" )
                 storeData = false;
-            if ( ct->type() == "message" && ct->subtype() == "rfc822" )
+            if ( ct->type() == "message" &&
+                 ( ct->subtype() == "rfc822" || ct->subtype() == "global" ) )
                 storeData = false;
         }
     }

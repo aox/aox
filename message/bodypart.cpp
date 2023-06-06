@@ -124,7 +124,8 @@ ContentType * Bodypart::contentType() const
         if ( ct->type() == "multipart" ) {
             ct = 0;
         }
-        else if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
+        else if ( ct->type() == "message" &&
+                  ( ct->subtype() == "rfc822" || ct->subtype() == "global" ) ) {
             Bodypart * bp = parent()->children()->firstElement();
             ct = bp->header()->contentType();
         }
@@ -775,7 +776,9 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                         ct->subtype() == "digest",
                         bp->children(), bp );
     }
-    else if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
+    else if ( ct->type() == "message" &&
+              ( ct->subtype() == "rfc822" ||
+                ct->subtype() == "global" ) ) {
         // There are sometimes blank lines before the message.
         while ( rfc2822[start] == 13 || rfc2822[start] == 10 )
             start++;
@@ -797,7 +800,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         body = body.encoded( cte->encoding(), 72 );
     bp->d->numEncodedBytes = body.length();
     if ( bp->d->hasText ||
-         ( ct->type() == "message" && ct->subtype() == "rfc822" ) ) {
+         ( ct->type() == "message" &&
+           ( ct->subtype() == "rfc822" || ct->subtype() == "global" ) ) ) {
         uint n = 0;
         uint i = 0;
         uint l = body.length();

@@ -145,7 +145,9 @@ void Multipart::appendAnyPart( EString &r, const Bodypart * bp,
          ( ct && ct->type() == "multipart" && ct->subtype() == "digest" &&
            !childct ) )
     {
-        if ( childct && childct->subtype() != "rfc822" )
+        if ( childct &&
+             ( childct->subtype() != "rfc822" &&
+               childct->subtype() != "global" ) )
             appendTextPart( r, bp, childct );
         else
             r.append( bp->message()->rfc822( avoidUtf8 ) );
