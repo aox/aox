@@ -1216,20 +1216,14 @@ static EString hf( Header * f, HeaderField::Type t, bool unicodable )
                 eu = HeaderField::encodePhrase( u );
             r.append( Command::imapQuoted( eu, Command::NString ) );
             r.append( " NIL " );
-            if ( unicodable ||
-                 ( it->localpart().isAscii() && it->domain().isAscii() ) ) {
-                r.append( Command::imapQuoted( it->localpart().utf8(),
+            r.append( Command::imapQuoted( it->localpart().utf8(),
+                                           Command::NString ) );
+            r.append( " " );
+            if ( it->domain().isEmpty() )
+                r.append( "\" \"" ); // RFC 3501, page 77 near bottom
+            else
+                r.append( Command::imapQuoted( it->domain().utf8(),
                                                Command::NString ) );
-                r.append( " " );
-                if ( it->domain().isEmpty() )
-                    r.append( "\" \"" ); // RFC 3501, page 77 near bottom
-                else
-                    r.append( Command::imapQuoted( it->domain().utf8(),
-                                                   Command::NString ) );
-            }
-            else {
-                r.append( "noreply unicode-needed.invalid" );
-            }
         }
         r.append( ")" );
         ++it;
