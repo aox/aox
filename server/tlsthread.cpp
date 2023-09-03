@@ -17,6 +17,11 @@
 
 static const int bs = 32768;
 
+template <typename T>
+T max(const T& a, const T& b) {
+    return a > b ? a : b;
+}
+
 
 class TlsThreadData
     : public Garbage
@@ -204,7 +209,7 @@ void TlsThread::start()
     bool ctgone = false;
     bool encgone = false;
     bool finish = false;
-    while ( !finish && !d->broken ) {
+    while ( !finish ) {
         // are our read buffers empty, and select said we can read? if
         // so, try to read
         if ( crct ) {
@@ -295,6 +300,19 @@ void TlsThread::start()
                 d->ctrbo = 0;
                 d->ctrbs = 0;
             }
+        } else if ( d->broken ) {
+            // thread owner wants to close
+            int r = SSL_shutdown( d->ssl );
+            if (r >= 0) {
+                // r==0 is sufficient as the client
+                // won't send any more data and the
+                // socket is closing.
+                d->broken = false;
+                finish = true;
+            }
+            else {
+                finish = TlsThread::sslErrorSeriousness(r);
+            }
         }
         if ( d->ctwbs == 0 ) {
             d->ctwbs = SSL_read( d->ssl, d->ctwb, bs );
@@ -310,36 +328,36 @@ void TlsThread::start()
                 d->encwbs = 0;
         }
 
-        if ( !finish && !d->broken ) {
+        if ( !finish ) {
             bool any = false;
             fd_set r, w;
             FD_ZERO( &r );
             FD_ZERO( &w );
-            if ( d->ctfd >= 0 ) {
+            int maxfd = -1;
+            if ( !ctgone ) {
                 if ( d->ctrbs == 0 ) {
                     FD_SET( d->ctfd, &r );
+                    maxfd = max(maxfd, d->ctfd);
                     any = true;
                 }
                 if ( d->ctwbs ) {
                     any = true;
                     FD_SET( d->ctfd, &w );
+                    maxfd = max(maxfd, d->ctfd);
                 }
             }
             if ( d->encfd >= 0 ) {
                 if ( d->encrbs == 0  ) {
                     any = true;
                     FD_SET( d->encfd, &r );
+                    maxfd = max(maxfd, d->encfd);
                 }
                 if ( d->encwbs ) {
                     any = true;
                     FD_SET( d->encfd, &w );
+                    maxfd = max(maxfd, d->encfd);
                 }
             }
-            int maxfd = -1;
-            if ( maxfd < d->ctfd )
-                maxfd = d->ctfd;
-            if ( maxfd < d->encfd )
-                maxfd = d->encfd;
             struct timeval tv;
             if ( maxfd < 0 ) {
                 // if we don't have any fds yet, we wait for exactly 0.05s.
@@ -448,21 +466,12 @@ bool TlsThread::broken() const
 }
 
 
-/*! Causes this TlsThread object to stop doing anything, in a great
-    hurry and without any attempt at talking to the client.
+/*! Causes this TlsThread object to flush its send buffer and shutdown.
+
 */
 
 void TlsThread::close()
 {
-    int encfd = d->encfd;
-    int ctfd = d->ctfd;
     d->broken = true;
-    d->encfd = -1;
-    d->ctfd = -1;
-    if ( encfd >= 0 )
-        ::close( encfd );
-    if ( ctfd >= 0 )
-        ::close( ctfd );
-    pthread_cancel( d->thread );
     pthread_join( d->thread, 0 );
 }
