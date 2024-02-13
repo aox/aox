@@ -49,8 +49,8 @@ private:
     EString dotLetters( uint, uint );
     EString internalDate( Message * );
     EString envelope( Message * );
-    EString bodyStructure( Multipart *, bool );
-    EString singlePartStructure( Multipart *, bool );
+    EString bodyStructure( Multipart *, bool, bool );
+    EString singlePartStructure( Multipart *, bool, bool );
 
     void pickup();
 

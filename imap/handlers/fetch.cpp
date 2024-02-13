@@ -1111,6 +1111,8 @@ static EString sectionResponse( Section * s, Message * m, bool unicode )
 
 EString Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
 {
+    bool unicode = imap()->clientSupports( IMAP::Unicode );
+
     EStringList l;
     if ( d->uid )
         l.append( "UID " + fn( uid ) );
@@ -1127,9 +1129,9 @@ EString Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
     if ( d->envelope )
         l.append( "ENVELOPE " + envelope( m ) );
     if ( d->body )
-        l.append( "BODY " + bodyStructure( m, false ) );
+        l.append( "BODY " + bodyStructure( m, false, unicode ) );
     if ( d->bodystructure )
-        l.append( "BODYSTRUCTURE " + bodyStructure( m, true ) );
+        l.append( "BODYSTRUCTURE " + bodyStructure( m, true, unicode ) );
     if ( d->annotation )
         l.append( "ANNOTATION " + annotation( imap()->user(), uid,
                                               d->entries, d->attribs ) );
@@ -1140,7 +1142,6 @@ EString Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
     }
 
     List< Section >::Iterator it( d->sections );
-    bool unicode = imap()->clientSupports( IMAP::Unicode );
     while ( it ) {
         l.append( sectionResponse( it, m, unicode ) );
         ++it;
@@ -1340,7 +1341,7 @@ static EString languageEString( ContentLanguage *cl )
     false, BODY.
 */
 
-EString Fetch::bodyStructure( Multipart * m, bool extended )
+EString Fetch::bodyStructure( Multipart * m, bool extended, bool unicodable )
 {
     EString r;
     bool isSigned = false;
@@ -1363,7 +1364,7 @@ EString Fetch::bodyStructure( Multipart * m, bool extended )
         if ( ( m == ancestor ) && isSigned ) {  // if top level, consider raw part
             if ( !extended ) {
                 log( "Fetch::bodyStructure - append raw part", Log::Debug );
-                children.append( bodyStructure( it, extended ) );
+                children.append( bodyStructure( it, extended, unicodable ) );
                 uint i;
                 for ( i = 1; i <= m->children()->count(); i++ )
                     ++it;
@@ -1373,7 +1374,7 @@ EString Fetch::bodyStructure( Multipart * m, bool extended )
             }
         }
         while ( it ) {
-            children.append( bodyStructure( it, extended ) );
+            children.append( bodyStructure( it, extended, unicodable ) );
             ++it;
         }
 
@@ -1396,7 +1397,7 @@ EString Fetch::bodyStructure( Multipart * m, bool extended )
         r.append( ")" );
     }
     else {
-        r = singlePartStructure( (Bodypart*)m, extended );
+        r = singlePartStructure( (Bodypart*)m, extended, unicodable );
     }
     return r;
 }
@@ -1408,7 +1409,8 @@ EString Fetch::bodyStructure( Multipart * m, bool extended )
     included.
 */
 
-EString Fetch::singlePartStructure( Multipart * mp, bool extended )
+EString Fetch::singlePartStructure( Multipart * mp, bool extended,
+                                    bool unicodable )
 {
     EStringList l;
 
@@ -1460,11 +1462,13 @@ EString Fetch::singlePartStructure( Multipart * mp, bool extended )
 
     if ( bp ) {
         l.append( fn( bp->numEncodedBytes() ) );
-        if ( ct && ct->type() == "message" && bp->message() ) {
+        if ( ct && ct->type() == "message" &&
+             ( ct->subtype() == "rfc822" ||
+               ( unicodable && ct->subtype() == "global" ) ) ) {
             // body-type-msg   = media-message SP body-fields SP envelope
             //                   SP body SP body-fld-lines
             l.append( envelope( bp->message() ) );
-            l.append( bodyStructure( bp->message(), extended ) );
+            l.append( bodyStructure( bp->message(), extended, unicodable ) );
             l.append( fn ( bp->numEncodedLines() ) );
         }
         else if ( !ct || ct->type() == "text" ) {
