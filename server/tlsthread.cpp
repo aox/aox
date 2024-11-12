@@ -122,8 +122,8 @@ void TlsThread::setup()
              ": " + reason,
              Log::Disaster );
     }
-    if ( !SSL_CTX_use_RSAPrivateKey_file( ctx, keyFile.cstr(),
-                                          SSL_FILETYPE_PEM ) )
+    if ( !SSL_CTX_use_PrivateKey_file( ctx, keyFile.cstr(),
+                                       SSL_FILETYPE_PEM ) )
         log( "OpenSSL needs the private key in this file: " + keyFile,
              Log::Disaster );
     // we go on anyway; the disaster will take down the server in
