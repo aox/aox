@@ -123,8 +123,6 @@ EString Capability::capabilities( IMAP * i, bool all )
     if ( all || !login )
         c.append( "SASL-IR" );
     if ( all || login ) {
-        c.append( "SORT" );
-        c.append( "SORT=DISPLAY" ); // draft-ietf-morg-sortdisplay
         c.append( "SPECIAL-USE" );
     }
     if ( Configuration::toggle( Configuration::UseTls ) && !i->hasTls() )
