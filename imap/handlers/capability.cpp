@@ -47,7 +47,8 @@
     RFC 6154: SPECIAL-USE,
     RFC 6855: UTF=ACCEPT,
     RFC 7162: QRESYNC,
-    RFC 8474: OBJECTID.
+    RFC 8474: OBJECTID,
+    RFC 9586: UIDONLY.
 */
 
 void Capability::execute()
@@ -132,6 +133,7 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "THREAD=ORDEREDSUBJECT" );
         c.append( "THREAD=REFS" );
         c.append( "THREAD=REFERENCES" );
+        c.append( "UIDONLY" );
         c.append( "UIDPLUS" );
         c.append( "UNSELECT" );
         c.append( "URLAUTH" );

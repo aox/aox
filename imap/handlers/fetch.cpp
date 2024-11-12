@@ -1112,9 +1112,10 @@ static EString sectionResponse( Section * s, Message * m, bool unicode )
 EString Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
 {
     bool unicode = imap()->clientSupports( IMAP::Unicode );
+    bool uidonly = imap()->clientSupports( IMAP::UidOnly );
 
     EStringList l;
-    if ( d->uid )
+    if ( d->uid && !uidonly )
         l.append( "UID " + fn( uid ) );
     if ( d->databaseId )
         l.append( "EMAILID (m" + fn( m->databaseId() ) + ")" );
@@ -1150,8 +1151,13 @@ EString Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
     EString r;
     EString payload = l.join( " " );
     r.reserve( payload.length() + 30 );
-    r.appendNumber( msn );
-    r.append( " FETCH (" );
+    if ( uidonly ) {
+        r.appendNumber( uid );
+        r.append( " UIDFETCH (" );
+    } else {
+        r.appendNumber( msn );
+        r.append( " FETCH (" );
+    }
     r.append( payload );
     r.append( ")" );
     return r;
@@ -1770,6 +1776,8 @@ ImapFetchResponse::ImapFetchResponse( ImapSession * s,
 
 EString ImapFetchResponse::text() const
 {
+    if ( u && imap()->clientSupports( IMAP::UidOnly ) )
+        return f->makeFetchResponse( f->message( u ), u, 0 );
     uint msn = session()->msn( u );
     if ( u && msn )
         return f->makeFetchResponse( f->message( u ), u, msn );

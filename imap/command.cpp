@@ -1106,6 +1106,12 @@ void Command::shrink( IntegerSet * set )
 
 uint Command::msn()
 {
+    if ( imap()->clientSupports( IMAP::UidOnly ) ) {
+        setRespTextCode( "UIDREQUIRED" );
+        error( Bad, "MSN usage disabled by client" );
+        return 1;
+    }
+
     Mailbox *m;
     Session *session = imap()->session();
     if ( !session || ( m = session->mailbox() ) == 0 ) {

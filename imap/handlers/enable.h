@@ -20,6 +20,7 @@ private:
     bool annotate;
     bool utf8;
     bool qresync;
+    bool uidonly;
 };
 
 

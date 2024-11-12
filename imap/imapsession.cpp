@@ -246,7 +246,8 @@ void ImapSession::emitUpdates( Transaction * t )
     e.remove( d->expungesReported );
     if ( !e.isEmpty() ) {
         d->expungesReported.add( e );
-        if ( imap()->clientSupports( IMAP::QResync ) ) {
+        if ( imap()->clientSupports( IMAP::QResync ) ||
+             imap()->clientSupports( IMAP::UidOnly ) ) {
             (void)new ImapVanishedResponse( e, this );
             work = true;
         }
