@@ -46,7 +46,8 @@
     RFC 5465: NOTIFY,
     RFC 6154: SPECIAL-USE,
     RFC 6855: UTF=ACCEPT,
-    RFC 7162: QRESYNC.
+    RFC 7162: QRESYNC,
+    RFC 8474: OBJECTID.
 */
 
 void Capability::execute()
@@ -110,6 +111,7 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "MULTIAPPEND" );
         c.append( "NAMESPACE" );
         //c.append( "NOTIFY" );
+        c.append( "OBJECTID" );
     }
     if ( all || login ) {
         if ( Configuration::toggle( Configuration::UseImapQuota ) )
@@ -130,7 +132,6 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "THREAD=ORDEREDSUBJECT" );
         c.append( "THREAD=REFS" );
         c.append( "THREAD=REFERENCES" );
-        c.append( "THRID" );
         c.append( "UIDPLUS" );
         c.append( "UNSELECT" );
         c.append( "URLAUTH" );

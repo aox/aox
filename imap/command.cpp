@@ -864,8 +864,40 @@ uint Command::nzNumber()
 }
 
 
+/*! Parses a parenthetical object ID in numeric form, assuming it has
+    \a prefix and is numeric. If the object ID lacks the desired
+    prefix or isn't otherwise numeric, this function parses the entire
+    object ID and returns 0 without recording any error. Calls error()
+    if the object ID isn't surrounded by ().
+*/
+
+uint Command::objectId( char prefix )
+{
+    require( "(");
+    uint result = 0;
+    if ( d->args->nextChar() == prefix ) {
+        d->args->step();
+        result = d->args->number();
+    }
+    if ( d->args->ok() ) {
+        char c = nextChar();
+        while ( ( c >= 'A' && c <= 'Z' ) ||
+                ( c >= 'a' && c <= 'z' ) ||
+                ( c >= '0' && c <= '9' ) ||
+                ( c == '-' ) ||
+                ( c == '_' ) ) {
+            result = 0;
+            d->args->step();
+            c = d->args->nextChar();
+        }
+    }
+    require( ")");
+    return result;
+}
+
+
 /*! Parses an IMAP atom and returns it as a string. Calls error() and
-    turns an empty string in case of error.
+    returns an empty string in case of error.
 */
 
 EString Command::atom()

@@ -19,12 +19,12 @@ public:
     StatusData() :
         messages( false ), uidnext( false ), uidvalidity( false ),
         recent( false ), unseen( false ),
-        modseq( false ),
+        modseq( false ), mailboxid( false ),
         mailbox( 0 ),
         unseenCount( 0 ), messageCount( 0 ), recentCount( 0 ),
         cacheState( 0 )
         {}
-    bool messages, uidnext, uidvalidity, recent, unseen, modseq;
+    bool messages, uidnext, uidvalidity, recent, unseen, modseq, mailboxid;
     Mailbox * mailbox;
     Query * unseenCount;
     Query * messageCount;
@@ -154,6 +154,8 @@ void Status::parse()
             d->unseen = true;
         else if ( item == "highestmodseq" )
             d->modseq = true;
+        else if ( item == "mailboxid" )
+            d->mailboxid = true;
         else
             error( Bad, "Unknown STATUS item: " + item );
 
@@ -395,6 +397,9 @@ void Status::execute()
             hms--;
         status.append( "HIGHESTMODSEQ " + fn( hms ) );
     }
+
+    if ( d->mailboxid )
+        status.append( "MAILBOXID (f" + fn( d->mailbox->id() ) + ")" );
 
     respond( "STATUS " + imapQuoted( d->mailbox ) +
              " (" + status.join( " " ) + ")" );

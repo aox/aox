@@ -397,10 +397,10 @@ void Fetch::parseAttribute( bool alsoMacro )
     else if ( keyword == "modseq" ) {
         d->modseq = true;
     }
-    else if ( keyword == "msgid" ) {
+    else if ( keyword == "emailid" ) {
         d->databaseId = true;
     }
-    else if ( keyword == "thrid" ) {
+    else if ( keyword == "threadid" ) {
         d->threadId = true;
     }
     else {
@@ -1117,9 +1117,9 @@ EString Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
     if ( d->uid )
         l.append( "UID " + fn( uid ) );
     if ( d->databaseId )
-        l.append( "MSGID " + fn( m->databaseId() ) );
+        l.append( "EMAILID (m" + fn( m->databaseId() ) + ")" );
     if ( d->threadId )
-        l.append( "THRID " + fn( m->threadId() ) );
+        l.append( "THREADID (t" + fn( m->threadId() ) + ")" );
     if ( d->rfc822size )
         l.append( "RFC822.SIZE " + fn( m->rfc822Size() ) );
     if ( d->flags )

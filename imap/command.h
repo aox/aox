@@ -70,6 +70,7 @@ public:
     void space();
     uint number();
     uint nzNumber();
+    uint objectId( char );
     EString atom();
     EString listChars();
     EString quoted();
