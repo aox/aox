@@ -7,6 +7,7 @@
 #include "mechanism.h"
 #include "buffer.h"
 #include "user.h"
+#include <cerrno>
 
 
 class LdapRelayData
@@ -56,7 +57,32 @@ LdapRelay::LdapRelay( SaslMechanism * mechanism )
 {
     d->mechanism = mechanism;
     setTimeoutAfter( 30 );
+    EString address = Configuration::text( Configuration::LdapServerAddress );
+    uint port = Configuration::scalar( Configuration::LdapServerPort );
+    EString userLdapDn = "";
+    if (d->mechanism->user())
+        userLdapDn = d->mechanism->user()->ldapdn().utf8();
+
+    d->mechanism->log( "Creating LDAP relay with server: " + address + ":" +
+                      EString::fromNumber(port) + ", user LDAP DN: " + userLdapDn, Log::Debug );
+
+    // Check if the socket is valid
+    if (!valid()) {
+        log( "Unable to create a valid socket for LDAP connection", Log::Error );
+        d->state = BindFailed;
+        d->mechanism->execute();
+        return;
+    }
+
+    log( "Connecting to LDAP server at " + address, Log::Debug );
     connect( server() );
+    if (!valid()) {
+        log( "Socket became invalid after connect() call", Log::Error );
+        d->state = BindFailed;
+        d->mechanism->execute();
+        return;
+    }
+
     EventLoop::global()->addConnection( this );
 }
 
@@ -68,11 +94,15 @@ LdapRelay::LdapRelay( SaslMechanism * mechanism )
 
 void LdapRelay::react( Event e )
 {
-    if ( d->state != Working )
+    if ( d->state != Working ) {
+        log( "Not processing event, relay not in Working state (current state: " +
+             EString::fromNumber((int)d->state) + ")", Log::Debug );
         return;
+    }
 
     switch( e ) {
     case Read:
+        log( "LDAP relay processing Read event", Log::Debug );
         parse();
         break;
 
@@ -81,11 +111,12 @@ void LdapRelay::react( Event e )
         break;
 
     case Connect:
+        log( "LDAP relay connected to server, sending bind request", Log::Debug );
         bind();
         break;
 
     case Error:
-        fail( "Unexpected error" );
+        fail( "Unexpected error: " + EString::fromNumber(errno) );
         break;
 
     case Close:
@@ -96,11 +127,13 @@ void LdapRelay::react( Event e )
         break;
     }
 
-    if ( d->state == Working )
-        return;
-
-    setState( Closing );
-    d->mechanism->execute();
+    // Always notify the mechanism if we've finished
+    if ( d->state != Working ) {
+        log( "LDAP relay changing state to Closing and notifying mechanism", Log::Debug );
+        setState( Closing );
+        // Make sure the mechanism gets notified
+        d->mechanism->execute();
+    }
 }
 
 
@@ -264,6 +297,11 @@ void LdapRelay::parse()
 
 void LdapRelay::bind()
 {
+    if (!valid()) {
+        fail("Socket is invalid when trying to send bind request");
+        return;
+    }
+
     // LDAP message
     //     30 -> LDAP message
     //     nn -> number of remaining bytes
@@ -321,6 +359,8 @@ void LdapRelay::bind()
     h.append( (char)s.length() );
     m.append( (char)( id.length() + h.length() + s.length() ) );
 
+    log("Sending LDAP bind request to server", Log::Debug);
+
     enqueue( m );
     enqueue( id );
     enqueue( h );
@@ -352,7 +392,7 @@ void LdapRelay::fail( const EString & error )
         return;
 
     d->state = BindFailed;
-    log( error );
+    log( "LDAP authentication failed: " + error, Log::Error );
 }
 
 
@@ -364,7 +404,7 @@ void LdapRelay::succeed()
         return;
 
     d->state = BindSucceeded;
-    log( "LDAP authentication succeeded" );
+    log( "LDAP authentication succeeded", Log::Debug );
 }
 
 

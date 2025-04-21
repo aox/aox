@@ -325,8 +325,41 @@ void SaslMechanism::execute()
 
         case User::Refreshed:
             setStoredSecret( d->user->secret() );
-            verify();
-            break;
+            // If there's a local secret, try to authenticate with that
+            if (!d->user->secret().isEmpty()) {
+                verify();
+                break;
+            }
+
+            // If there's an LDAP DN and no relay
+            if (!d->user->ldapdn().isEmpty() && !d->ldapRelay) {
+                // Check if we're using a mechanism other than PLAIN
+                // LDAP requires the plaintext password to successfully execute a simple bind
+                bool isNonPlainMechanism = (d->type != Plain);
+
+                if (isNonPlainMechanism) {
+                    log("ERROR: LDAP authentication incompatible with " + name() +
+                        " mechanism", Log::Error);
+                    log("SOLUTION: configure the email client to use PLAIN authentication",
+                        Log::Error);
+                    setState(Failed);
+                    break;
+                }
+
+                // We had no relay, so establish one before continuing
+                try {
+                    d->ldapRelay = new LdapRelay( this );
+                    return;
+                }
+                catch ( ... ) {
+                    setState( Failed );
+                    break;
+                }
+            }
+            else {
+                verify();
+                break;
+            }
         }
 
         tick();
@@ -389,28 +422,30 @@ void SaslMechanism::verify()
             setState( Succeeded );
         else
             setState( Failed );
+        return;
     }
-    else if ( d->ldapRelay ) {
+
+    if ( storedSecret().isEmpty() || storedSecret() == secret() ) {
+        setState( Succeeded );
+        return;
+    }
+
+    if ( d->ldapRelay ) {
         switch ( d->ldapRelay->state() ) {
         case LdapRelay::BindSucceeded:
+            log( "LDAP authentication succeeded", Log::Debug );
             setState( Succeeded );
-            break;
+            return;
         case LdapRelay::BindFailed:
-            setState( Failed );
+            log( "LDAP authentication failed", Log::Debug );
             break;
         case LdapRelay::Working:
+            log( "LDAP relay still working, waiting", Log::Debug );
             break;
         }
     }
-    else if ( d->user && !d->user->ldapdn().isEmpty() ) {
-        d->ldapRelay = new LdapRelay( this );
-    }
-    else if ( storedSecret().isEmpty() || storedSecret() == secret() ) {
-        setState( Succeeded );
-    }
-    else {
-        setState( Failed );
-    }
+
+    setState( Failed );
 }
 
 
