@@ -78,7 +78,7 @@ SmtpMailFrom::SmtpMailFrom( SMTP * s, SmtpParser * p )
     }
 
     if ( server()->dialect() == SMTP::Submit && !server()->accessPermitted() )
-        respond( 501, "Must use encrytion to send mail", "5.7.0" );
+        respond( 501, "Must use encryption to send mail", "5.7.0" );
 }
 
 
