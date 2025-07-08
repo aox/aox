@@ -234,54 +234,39 @@ void Vacuum::execute()
                     if (!q->done())
                         return;
                 } while (q->rows());
+                qstate = 5;
+                log( "vacuum: delete from autoresponses", Log::Significant );
+                do {
+                    q = new Query( "delete from autoresponses "
+                                   "where expires_at<current_timestamp", this );
+                    q->execute();
+                    // fall through
+            case 5:
+                    if (!q->done())
+                        return;
+                } while (q->rows());
+                qstate = 6;
+                log( "vacuum: delete from addresses", Log::Significant );
+                do {
+                    q = new Query( "delete from addresses where id in "
+                                   "(select a.id from addresses a "
+                                   "left join address_fields af on (a.id=af.address) "
+                                   "left join aliases al on (a.id=al.address) "
+                                   "left join deliveries d on (a.id=d.sender) "
+                                   "left join delivery_recipients dr on (a.id=dr.recipient) "
+                                   "left join autoresponses ar on (a.id=ar.sent_from or a.id=ar.sent_to) "
+                                   "where af.message is null and al.id is null "
+                                   "and d.id is null and dr.id is null "
+                                   "and ar.id is null limit 100)", this );
+                    q->execute();
+                    // fall through
+            case 6:
+                    if (!q->done())
+                        return;
+                } while (q->rows());
         }
 
         t = new Transaction( this );
-        if ( opt( 'a' ) > 0 ) {
-            // delete the unnecessary addresses rows. this locks the
-            // database for quite a while (seconds, perhaps even a
-            // minute), so this isn't in the regular vacuum.
-
-            t->enqueue( "create temporary table au "
-                        "( address integer, used boolean )" );
-            // pick some candidates at random
-            t->enqueue( "insert into au (address, used) "
-                        "select id, false from addresses" );
-            // make sure noone can add new references to those rows
-            t->enqueue(
-                "select id from addresses where id in (select id from au) "
-                "for update" );
-            // create an index: the next update and last delete need it
-            t->enqueue(
-                "create index af_a on address_fields using btree(address)" );
-            // mark those addresses that are used by something
-            t->enqueue(
-                "update au set used=true from address_fields "
-                "where au.address=address_fields.address" );
-            t->enqueue(
-                "update au set used=true from aliases "
-                "where au.address=aliases.address" );
-            t->enqueue(
-                "update au set used=true from deliveries "
-                "where au.address=deliveries.sender" );
-            t->enqueue(
-                "update au set used=true from delivery_recipients "
-                "where au.address=delivery_recipients.recipient" );
-            t->enqueue(
-                "update au set used=true from autoresponses "
-                "where au.address=autoresponses.sent_from" );
-            t->enqueue(
-                "update au set used=true from autoresponses "
-                "where au.address=autoresponses.sent_to" );
-            // delete all those we know are unused
-            t->enqueue(
-                "delete from addresses where id in "
-                "(select address from au where not used)" );
-            // the index has to go away again
-            t->enqueue( "drop table au" );
-            t->enqueue( "drop index af_a" );
-        }
-
         Mailbox::setup( this );
         log( "vacuum: RetentionSelector", Log::Significant );
         r = new RetentionSelector( t, this );
