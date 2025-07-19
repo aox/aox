@@ -360,15 +360,15 @@ Selector * Search::parseKey()
         return new Selector( Selector::Rfc822Size, Selector::Smaller,
                              number() );
     }
-    else if ( present( "msgid" ) ) {
+    else if ( present( "emailid" ) ) {
         space();
         return new Selector( Selector::DatabaseId, Selector::Equals,
-                             number() );
+                             objectId( 'm' ) );
     }
-    else if ( present( "thrid" ) ) {
+    else if ( present( "threadid" ) ) {
         space();
         return new Selector( Selector::ThreadId, Selector::Equals,
-                             number() );
+                             objectId( 't' ) );
     }
     else if ( present( "annotation" ) ) {
         space();

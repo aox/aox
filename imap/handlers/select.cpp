@@ -329,6 +329,9 @@ void Select::execute()
     respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]"
              " uid validity" );
 
+    respond( "OK [MAILBOXID (f" + fn( d->mailbox->id() ) + ")]"
+             " stable mailbox ID" );
+
     if ( d->firstUnseen ) {
         if ( !::firstUnseenCache )
             ::firstUnseenCache = new SelectData::FirstUnseenCache;

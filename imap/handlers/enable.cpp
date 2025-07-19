@@ -15,7 +15,8 @@
 
 Enable::Enable()
     : Command(),
-      condstore( false ), annotate( false ), utf8( false ), qresync( false )
+      condstore( false ), annotate( false ), utf8( false ), qresync( false ),
+      uidonly( false )
 {
 }
 
@@ -38,6 +39,9 @@ void Enable::parse()
         }
         else if ( capability == "QRESYNC" ) {
             qresync = true;
+        }
+        else if ( capability == "UIDONLY" ) {
+            uidonly = true;
         }
         else {
             EString all = Capability::capabilities( imap(), true ).upper();
@@ -70,6 +74,10 @@ void Enable::execute()
     if ( qresync ) {
         imap()->setClientSupports( IMAP::QResync );
         r.append( " QRESYNC" );
+    }
+    if ( uidonly ) {
+        imap()->setClientSupports( IMAP::UidOnly );
+        r.append( " UIDONLY" );
     }
     respond( r );
     finish();

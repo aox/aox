@@ -46,7 +46,9 @@
     RFC 5465: NOTIFY,
     RFC 6154: SPECIAL-USE,
     RFC 6855: UTF=ACCEPT,
-    RFC 7162: QRESYNC.
+    RFC 7162: QRESYNC,
+    RFC 8474: OBJECTID,
+    RFC 9586: UIDONLY.
 */
 
 void Capability::execute()
@@ -110,6 +112,7 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "MULTIAPPEND" );
         c.append( "NAMESPACE" );
         //c.append( "NOTIFY" );
+        c.append( "OBJECTID" );
     }
     if ( all || login ) {
         if ( Configuration::toggle( Configuration::UseImapQuota ) )
@@ -120,8 +123,6 @@ EString Capability::capabilities( IMAP * i, bool all )
     if ( all || !login )
         c.append( "SASL-IR" );
     if ( all || login ) {
-        c.append( "SORT" );
-        c.append( "SORT=DISPLAY" ); // draft-ietf-morg-sortdisplay
         c.append( "SPECIAL-USE" );
     }
     if ( Configuration::toggle( Configuration::UseTls ) && !i->hasTls() )
@@ -130,7 +131,7 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "THREAD=ORDEREDSUBJECT" );
         c.append( "THREAD=REFS" );
         c.append( "THREAD=REFERENCES" );
-        c.append( "THRID" );
+        c.append( "UIDONLY" );
         c.append( "UIDPLUS" );
         c.append( "UNSELECT" );
         c.append( "URLAUTH" );

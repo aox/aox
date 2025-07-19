@@ -58,7 +58,7 @@ SmtpMailFrom::SmtpMailFrom( SMTP * s, SmtpParser * p )
     p->whitespace();
     if ( server()->dialect() == SMTP::Submit &&
          d->address->type() != Address::Normal &&
-         d->address->type() != Address::Bounce ) {
+         server()->user() ) {
         respond( 0, "Parse error. Using your primary address instead." );
         d->address = server()->user()->address();
     }
@@ -78,7 +78,7 @@ SmtpMailFrom::SmtpMailFrom( SMTP * s, SmtpParser * p )
     }
 
     if ( server()->dialect() == SMTP::Submit && !server()->accessPermitted() )
-        respond( 501, "Must use encrytion to send mail", "5.7.0" );
+        respond( 501, "Must use encryption to send mail", "5.7.0" );
 }
 
 

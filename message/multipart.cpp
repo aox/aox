@@ -141,9 +141,10 @@ void Multipart::appendAnyPart( EString &r, const Bodypart * bp,
     if ( cte )
         e = cte->encoding();
 
-    if ( ( childct && childct->type() == "message" ) ||
-         ( ct && ct->type() == "multipart" && ct->subtype() == "digest" &&
-           !childct ) )
+    if ( bp->message() &&
+         ( ( childct && childct->type() == "message" ) ||
+           ( ct && ct->type() == "multipart" && ct->subtype() == "digest" &&
+             !childct ) ) )
     {
         if ( childct &&
              ( childct->subtype() != "rfc822" &&

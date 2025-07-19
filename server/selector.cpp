@@ -457,6 +457,11 @@ void Selector::simplify()
         }
         // contains empty string too
     }
+    else if ( d->a == Equals &&
+              d->n == 0 &&
+              ( d->f == ThreadId || d->f == DatabaseId ) ) {
+        d->a = None;
+    }
     else if ( d->a == And ) {
         // zero-element and becomes all, "none and x" becomes none
         List< Selector >::Iterator i( d->children );
@@ -1671,14 +1676,14 @@ EString Selector::whereAge()
 }
 
 
-/*! This implements the msgid search-key. */
+/*! This implements the emailid search-key. */
 
 EString Selector::whereDatabaseId()
 {
     uint i = placeHolder();
     root()->d->query->bind( i, d->n );
 
-    if (action() == Equals )
+    if ( action() == Equals )
         return mm() + ".message=$" + fn( i );
 
     log( "Bad selector", Log::Error );
@@ -1686,14 +1691,14 @@ EString Selector::whereDatabaseId()
 }
 
 
-/*! This implements the thrid search-key. */
+/*! This implements the threadid search-key. */
 
 EString Selector::whereThreadId()
 {
     uint i = placeHolder();
     root()->d->query->bind( i, d->n );
 
-    if (action() == Equals ) {
+    if ( action() == Equals ) {
         root()->d->needMessages = true;
         return m() + ".thread_root=$" + fn( i );
     }

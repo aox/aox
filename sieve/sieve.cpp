@@ -1514,6 +1514,7 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
             return False;
         SieveNotifyMethod * m
             = new SieveNotifyMethod( t->arguments()->takeString( 1 ), 0, t );
+        haystack = new UStringList;
         UString hack;
         switch( m->reachability() ) {
         case SieveNotifyMethod::Immediate:
