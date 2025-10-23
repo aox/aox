@@ -24,10 +24,12 @@ rule DomainList
 
 actions DomainList
 {
-    sed -e 's/;.*//' < $(>) -e 's/\. / /' | \
+    sed -e 's/;.*//' < $(>) -e 's/\.\s/ /' | \
         expand -8 | \
         tr '[A-Z]' '[a-z]' | \
-        awk '/. ns / {print "{ " length($1) ", \"" $1 "\" },\n" }' | \
+        grep '^[a-z0-9-]*\s' \
+	awk '{print $1}' | sort -u | xargs -n1 idn2 --decode | \
+        awk '{print "{ " length($1) ", \"" $1 "\" },\n" }' | \
         sort -u | \
         sort -nrs -k2 > $(<)
 }
@@ -40,7 +42,7 @@ DomainList tld.inc : root.zone ;
 Build message :
     multipart.cpp message.cpp bodypart.cpp header.cpp parser.cpp
     field.cpp mimefields.cpp datefield.cpp addressfield.cpp
-    address.cpp date.cpp flag.cpp
+    address.cpp date.cpp flag.cpp mover.cpp
     injector.cpp fetcher.cpp annotation.cpp
     dsn.cpp recipient.cpp listidfield.cpp
     messagecache.cpp helperrowcreator.cpp
