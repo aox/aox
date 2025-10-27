@@ -435,7 +435,15 @@ void EventLoop::dispatch( Connection * c, bool r, bool w, uint now )
         Scope x( c->log() );
         if ( c->timeout() != 0 && now >= c->timeout() ) {
             c->setTimeout( 0 );
-            c->react( Connection::Timeout );
+            c->react(Connection::Timeout);
+            if ( c->state() == Connection::Closing ) {
+                if ( c->hasTls() && !c->isTlsShuttingDown() ) {
+                    c->stopTls();
+                    c->setTimeoutAfter( 2 );
+                } else {
+                    c->close();
+                }
+            }
         }
 
         if ( c->state() == Connection::Connecting ) {
@@ -487,19 +495,14 @@ void EventLoop::dispatch( Connection * c, bool r, bool w, uint now )
             c->react( Connection::Read );
 
             if ( gone ) {
-                c->setState( Connection::Closing );
+                if ( c->valid() )
+                     c->setState( Connection::Closing );
                 c->react( Connection::Close );
+                c->close();
             }
         }
 
-        uint s = c->writeBuffer()->size();
         c->write();
-        // if we're closing anyway, and we can't write any of what we
-        // want to write, then just forget the buffered data and go on
-        // with the close
-        if ( c->state() == Connection::Closing &&
-             s && s == c->writeBuffer()->size() )
-            c->writeBuffer()->remove( s );
     }
     catch ( const Exception& e ) {
         EString s;
@@ -520,8 +523,6 @@ void EventLoop::dispatch( Connection * c, bool r, bool w, uint now )
             c->close();
     }
 
-    if ( c->state() == Connection::Closing && !c->canWrite() )
-        c->close();
     if ( !c->valid() )
         removeConnection( c );
 }

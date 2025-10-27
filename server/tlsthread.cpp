@@ -17,11 +17,6 @@
 
 static const int bs = 32768;
 
-template <typename T>
-T max(const T& a, const T& b) {
-    return a > b ? a : b;
-}
-
 
 class TlsThreadData
     : public Garbage
@@ -41,7 +36,7 @@ public:
           encwbo( 0 ), encwbs( 0 ),
           encfd( -1 ),
           networkBio( 0 ), sslBio( 0 ), thread( 0 ),
-          broken( false )
+          broken( false ), shutdown( false )
         {}
 
     SSL * ssl;
@@ -75,6 +70,7 @@ public:
 
     pthread_t thread;
     bool broken;
+    bool shutdown;
 };
 
 
@@ -209,7 +205,7 @@ void TlsThread::start()
     bool ctgone = false;
     bool encgone = false;
     bool finish = false;
-    while ( !finish ) {
+    while ( !finish && !d->broken ) {
         // are our read buffers empty, and select said we can read? if
         // so, try to read
         if ( crct ) {
@@ -300,19 +296,9 @@ void TlsThread::start()
                 d->ctrbo = 0;
                 d->ctrbs = 0;
             }
-        } else if ( d->broken ) {
-            // thread owner wants to close
-            int r = SSL_shutdown( d->ssl );
-            if (r >= 0) {
-                // r==0 is sufficient as the client
-                // won't send any more data and the
-                // socket is closing.
-                d->broken = false;
-                finish = true;
-            }
-            else {
-                finish = TlsThread::sslErrorSeriousness(r);
-            }
+        }
+        if ( d->shutdown && d->ctrbo == d->ctrbs ) {
+            finish = ( SSL_shutdown( d->ssl ) > 0 );
         }
         if ( d->ctwbs == 0 ) {
             d->ctwbs = SSL_read( d->ssl, d->ctwb, bs );
@@ -328,36 +314,36 @@ void TlsThread::start()
                 d->encwbs = 0;
         }
 
-        if ( !finish ) {
+        if ( !finish && !d->broken ) {
             bool any = false;
             fd_set r, w;
             FD_ZERO( &r );
             FD_ZERO( &w );
-            int maxfd = -1;
-            if ( !ctgone ) {
+            if ( d->ctfd >= 0 ) {
                 if ( d->ctrbs == 0 ) {
                     FD_SET( d->ctfd, &r );
-                    maxfd = max(maxfd, d->ctfd);
                     any = true;
                 }
                 if ( d->ctwbs ) {
                     any = true;
                     FD_SET( d->ctfd, &w );
-                    maxfd = max(maxfd, d->ctfd);
                 }
             }
             if ( d->encfd >= 0 ) {
                 if ( d->encrbs == 0  ) {
                     any = true;
                     FD_SET( d->encfd, &r );
-                    maxfd = max(maxfd, d->encfd);
                 }
                 if ( d->encwbs ) {
                     any = true;
                     FD_SET( d->encfd, &w );
-                    maxfd = max(maxfd, d->encfd);
                 }
             }
+            int maxfd = -1;
+            if ( maxfd < d->ctfd )
+                maxfd = d->ctfd;
+            if ( maxfd < d->encfd )
+                maxfd = d->encfd;
             struct timeval tv;
             if ( maxfd < 0 ) {
                 // if we don't have any fds yet, we wait for exactly 0.05s.
@@ -368,7 +354,7 @@ void TlsThread::start()
                 // if we think there's something to do, we wait for a
                 // few seconds. not very long, just in case openssl is
                 // acting behind our back.
-                tv.tv_sec = 4;
+                tv.tv_sec = 2;
                 tv.tv_usec = 0;
             }
             else {
@@ -466,12 +452,40 @@ bool TlsThread::broken() const
 }
 
 
-/*! Causes this TlsThread object to flush its send buffer and shutdown.
+/*! Initiates a very orderly shutdown.
+*/
 
+void TlsThread::shutdown()
+{
+    d->shutdown = true;
+}
+
+
+/*! Returns true if this TlsThread has been told to shut down via
+    shutdown(), and false if not.
+*/
+
+bool TlsThread::isShuttingDown() const
+{
+    return d->shutdown;
+}
+
+
+/*! Causes this TlsThread object to stop doing anything, in a great
+    hurry and without any attempt at talking to the client.
 */
 
 void TlsThread::close()
 {
+    int encfd = d->encfd;
+    int ctfd = d->ctfd;
     d->broken = true;
+    d->encfd = -1;
+    d->ctfd = -1;
+    if ( encfd >= 0 )
+        ::close( encfd );
+    if ( ctfd >= 0 )
+        ::close( ctfd );
+    pthread_cancel( d->thread );
     pthread_join( d->thread, 0 );
 }

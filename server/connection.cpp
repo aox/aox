@@ -152,15 +152,26 @@ void Connection::setState( Connection::State st )
 
     Scope x( log() );
     bool internal = hasProperty( Internal );
-    if ( st == Connected  )
+    if ( st == Connected  ) {
         log( "Connected: " + description() + " (" +
              fn( EventLoop::global()->connections()->count() ) + " connections)",
              internal ? Log::Debug : Log::Significant );
-    else if ( st == Invalid && ( d->state == Closing || d->state == Connected ) )
+    }
+    else if ( st == Invalid && ( d->state == Closing || d->state == Connected ) ) {
         log( "Closing: " + description() + " (" +
              fn( EventLoop::global()->connections()->count() ) + " connections)",
              internal ? Log::Debug : Log::Info );
+    }
+    else if ( st == Connection::Closing ) {
+        uint n = (uint)time(0);
+        if ( d->timeout > n + 2 || !d->timeout )
+            d->timeout = n + 2;
+        log( "Preparing to close: " + description() + " (" +
+             fn( EventLoop::global()->connections()->count() ) + " connections)",
+             internal ? Log::Debug : Log::Info );
+    }
     d->state = st;
+
 }
 
 
@@ -652,6 +663,20 @@ void Connection::startTls()
     d->tls = t;
 }
 
+
+/*! Sends a TLS shutdown message to the peer. */
+
+void Connection::stopTls()
+{
+    d->tls->shutdown();
+}
+
+/*! Returns true if stopTls() has been called, and false if not. */
+
+bool Connection::isTlsShuttingDown() const
+{
+    return d->tls && d->tls->isShuttingDown();
+}
 
 /*! Returns true if TLS has been or is being negotiated for this
     connection, and false if not.

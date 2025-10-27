@@ -63,7 +63,9 @@ public:
     virtual EString description() const;
 
     void startTls();
+    void stopTls();
     bool hasTls() const;
+    bool isTlsShuttingDown() const;
 
     virtual void close();
     virtual void read();

@@ -22,6 +22,9 @@ public:
 
     bool broken() const;
 
+    void shutdown();
+    bool isShuttingDown() const;
+
     bool sslErrorSeriousness( int );
     
     void close();
