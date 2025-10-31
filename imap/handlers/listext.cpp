@@ -445,7 +445,8 @@ void Listext::makeResponse( Row * row )
         a.append( "\\hasnochildren" );
 
     // 6154 is easy
-    if ( !mailbox->flag().isEmpty() )
+    if ( !mailbox->flag().isEmpty() &&
+         mailbox->owner() == imap()->user()->id() )
         a.append( mailbox->flag() );
 
     // then there's subscription
