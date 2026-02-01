@@ -236,25 +236,26 @@ void Vacuum::execute()
                 } while (q->rows());
                 qstate = 5;
                 log( "vacuum: delete from autoresponses", Log::Significant );
-                do {
-                    q = new Query( "delete from autoresponses "
-                                   "where expires_at<current_timestamp", this );
-                    q->execute();
-                    // fall through
+                q = new Query( "delete from autoresponses "
+                               "where expires_at<current_timestamp", this );
+                q->execute();
+                // fall through
             case 5:
-                    if (!q->done())
-                        return;
-                } while (q->rows());
+                if (!q->done())
+                    return;
                 qstate = 6;
                 log( "vacuum: delete from addresses", Log::Significant );
                 do {
                     q = new Query( "delete from addresses where id in "
                                    "(select a.id from addresses a "
-                                   "left join address_fields af on (a.id=af.address) "
+                                   "left join address_fields af"
+                                   " on (a.id=af.address) "
                                    "left join aliases al on (a.id=al.address) "
                                    "left join deliveries d on (a.id=d.sender) "
-                                   "left join delivery_recipients dr on (a.id=dr.recipient) "
-                                   "left join autoresponses ar on (a.id=ar.sent_from or a.id=ar.sent_to) "
+                                   "left join delivery_recipients dr"
+                                   " on (a.id=dr.recipient) "
+                                   "left join autoresponses ar"
+                                   " on (a.id=ar.sent_from or a.id=ar.sent_to) "
                                    "where af.message is null and al.id is null "
                                    "and d.id is null and dr.id is null "
                                    "and ar.id is null limit 100)", this );
