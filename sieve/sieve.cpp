@@ -493,8 +493,10 @@ void Sieve::addRecipient( Address * address, EventHandler * user )
                        " (s.owner=m.owner and s.active='t') "
                        "left join users u on (s.owner=u.id) "
                        "left join namespaces n on (u.parentspace=n.id) "
-                       "where m.deleted='f' and "
-                       "a.localpart=$1 and a.domain=$2", this );
+                       "where m.deleted='f' and a.domain=$2 and "
+                       "(a.localpart=$1 or a.localpart='*') "
+                       "order by case when a.localpart=$1 then 0 else 1 end "
+                       "limit 1", this );
     UString localpart( address->localpart() );
     if ( Configuration::toggle( Configuration::UseSubaddressing ) ) {
         EString sep( Configuration::text( Configuration::AddressSeparator ) );
