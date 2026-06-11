@@ -179,7 +179,7 @@ char PgServerMessage::decodeByte()
 
 EString PgServerMessage::decodeByten( uint x )
 {
-    if ( buf->size() < 1 || n+x > l )
+    if ( buf->size() < x || n+x > l )
         throw Syntax;
 
     EString s = buf->string( x );
