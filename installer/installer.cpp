@@ -1937,7 +1937,7 @@ void configFile()
     EString v( Configuration::compiledIn( Configuration::Version ) );
     EString intro(
         "# Archiveopteryx configuration. See archiveopteryx.conf(5) or\n"
-        "# http://aox.org/conf/ for details and other variables.\n"
+        "# https://aox.org/conf/ for details and other variables.\n"
         "# Automatically generated while installing Archiveopteryx "
         + v + ".\n\n"
     );
@@ -2002,7 +2002,7 @@ void configFile()
         "\n"
         "# There are almost a hundred other configuration variables.\n"
         "# The ones above are only what many people will want to change during\n"
-        "# installation. There are full lists at http://aox.org/conf/ and in\n"
+        "# installation. There are full lists at https://aox.org/conf/ and in\n"
         "# the archiveopteryx.conf manual page.\n"
     );
 

@@ -84,7 +84,7 @@ int main( int ac, char ** av )
         fprintf( stderr,
                  "Usage: %s [-vq] [mailbox] [search]\n"
                  "See aoxexport(8) or "
-                 "http://aox.org/aoxexport/ for details.\n", av[0] );
+                 "https://aox.org/aoxexport/ for details.\n", av[0] );
         exit( -1 );
     }
 

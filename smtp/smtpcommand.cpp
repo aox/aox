@@ -286,7 +286,7 @@ SmtpNoop::SmtpNoop( SMTP * s, SmtpParser * )
 SmtpHelp::SmtpHelp( SMTP * s, SmtpParser * )
     : SmtpCommand( s )
 {
-    respond( 250, "See http://aox.org", "2.0.0" );
+    respond( 250, "See https://aox.org", "2.0.0" );
     finish();
 }
 

@@ -4,8 +4,8 @@ Version:        1.11
 Release:        1
 Group:          Productivity/Networking/Email/Servers
 License:        OSL 2.1
-URL:            http://www.archiveopteryx.org/
-Source:         http://www.aox.org/download/%{name}-%{version}.tar.bz2
+URL:            https://www.archiveopteryx.org/
+Source:         https://www.aox.org/download/%{name}-%{version}.tar.bz2
 Vendor:         The Archiveopteryx Developers
 Packager:       info@aox.org
 Requires:       postgresql >= 7.4.2

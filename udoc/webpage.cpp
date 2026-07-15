@@ -321,6 +321,6 @@ void WebPage::startPage( const EString & name, const EString & title )
     output( "</title>\n" );
     output( "<link rel=stylesheet href=\"udoc.css\" type=\"text/css\">\n"
             "<link rel=generator "
-            "href=\"http://archiveopteryx.org/udoc/\">\n"
+            "href=\"https://archiveopteryx.org/udoc/\">\n"
             "</head><body>\n" );
 }

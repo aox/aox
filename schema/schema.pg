@@ -1,10 +1,10 @@
--- See http://archiveopteryx.org/db/ for documentation.
+-- See https://archiveopteryx.org/db/ for documentation.
 
 -- Each table is documented in an eponymous /db/ page. For example,
--- http://archiveopteryx.org/db/addresses describes the addresses
+-- https://archiveopteryx.org/db/addresses describes the addresses
 -- table.
 
--- Finally, http://archiveopteryx.org/schema is a quick overview.
+-- Finally, https://archiveopteryx.org/schema is a quick overview.
 
 
 -- This table contains information internal to the mailstore.

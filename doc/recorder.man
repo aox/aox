@@ -90,10 +90,10 @@ That's it. Now you can send an excellent bug report to info@aox.org.
 The Archiveopteryx Developers, info@aox.org.
 .SH VERSION
 This man page covers Archiveopteryx version 3.2.0, released 2014-03-10,
-http://archiveopteryx.org/3.2.0
+https://archiveopteryx.org/3.2.0
 .SH SEE ALSO
 .BR archiveopteryx (8),
 .BR archiveopteryx.conf (5),
 .BR deliver (8),
 .BR logd (8),
-http://archiveopteryx.org
+https://archiveopteryx.org

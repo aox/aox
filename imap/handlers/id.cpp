@@ -66,7 +66,7 @@ void Id::execute()
              "\"name\" \"Archiveopteryx\" "
              "\"version\" " + v.quoted() + " "
              "\"compile-time\" \"" __DATE__ " " __TIME__ "\" "
-             "\"homepage-url\" \"http://archiveopteryx.org\" "
-             "\"release-url\" \"http://archiveopteryx.org/" + v + "\")" );
+             "\"homepage-url\" \"https://archiveopteryx.org\" "
+             "\"release-url\" \"https://archiveopteryx.org/" + v + "\")" );
     finish();
 }
