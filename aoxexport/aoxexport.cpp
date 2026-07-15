@@ -82,7 +82,7 @@ int main( int ac, char ** av )
 
     if ( bad ) {
         fprintf( stderr,
-                 "Usage: %s [-vq] [mailbox] [search]"
+                 "Usage: %s [-vq] [mailbox] [search]\n"
                  "See aoxexport(8) or "
                  "http://aox.org/aoxexport/ for details.\n", av[0] );
         exit( -1 );
