@@ -264,6 +264,24 @@ void Vacuum::execute()
                     if (!q->done())
                         return;
                 } while (q->rows());
+                qstate = 7;
+                log( "vacuum: delete existing messages from deleted_messages",
+                     Log::Significant );
+                q = new Query( "delete from deleted_messages "
+                               "where (mailbox,message) in "
+                               "(select dm.mailbox, dm.message "
+                               "from deleted_messages dm "
+                               "join mailboxes mb1 on (mb1.id=dm.mailbox) "
+                               "join mailbox_messages mm "
+                               "on (dm.message=mm.message) "
+                               "join mailboxes mb2 on (mb2.id=mm.mailbox) "
+                               "where mb1.owner=mb2.owner)",
+                               this );
+                q->execute();
+                // fall through
+            case 7:
+                if (!q->done())
+                    return;
         }
 
         t = new Transaction( this );
