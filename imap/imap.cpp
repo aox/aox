@@ -531,7 +531,6 @@ void IMAP::runCommands()
              Log::Debug );
 
         // run all currently executing commands once
-        uint n = 0;
         List< Command >::Iterator i( d->commands );
         while ( i ) {
             Command * c = i;
@@ -542,13 +541,11 @@ void IMAP::runCommands()
                     c->execute();
                 else
                     c->finish();
-                n++;
             }
         }
 
         // emit responses for zero or more finished commands and
         // retire them.
-        n = 0;
         i = d->commands.first();
         while ( i && i->state() == Command::Finished ) {
             Command * c = i;
@@ -556,7 +553,6 @@ void IMAP::runCommands()
             if ( d->reader == c )
                 d->reader = 0;
             c->emitResponses();
-            n++;
         }
 
         // slow down the command rate if the client is sending
@@ -885,7 +881,6 @@ void IMAP::emitResponses()
 
     Buffer * w = writeBuffer();
     List<ImapResponse>::Iterator r( d->responses );
-    uint n = 0;
     while ( r ) {
         if ( !r->meaningful() ) {
             r->setSent();
@@ -896,7 +891,6 @@ void IMAP::emitResponses()
                 w->append( "* ", 2 );
                 w->append( t );
                 w->append( "\r\n", 2 );
-                n++;
             }
             r->setSent();
             any = true;
