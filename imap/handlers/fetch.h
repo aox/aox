@@ -21,7 +21,7 @@ class Fetch
 {
 public:
     Fetch( bool = false );
-    Fetch( bool, bool, bool, const IntegerSet &, int64, IMAP *, Transaction * );
+    Fetch( bool, bool, const IntegerSet &, int64, IMAP *, Transaction * );
 
     void parse();
     void execute();
@@ -30,8 +30,6 @@ public:
     static Section * parseSection( ImapParser *, bool = false );
     static EString sectionData( Section *, Message *, bool );
     EString flagList( uint );
-    EString annotation( class User *, uint,
-                       const EStringList &, const EStringList & );
 
     EString makeFetchResponse( Message *, uint, uint );
 
@@ -41,10 +39,8 @@ public:
 private:
     void parseFetchModifier();
     void parseBody( bool );
-    void parseAnnotation();
     void sendFetchQueries();
     void sendFlagQuery();
-    void sendAnnotationsQuery();
     void sendModSeqQuery();
     EString dotLetters( uint, uint );
     EString internalDate( Message * );

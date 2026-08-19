@@ -23,7 +23,7 @@ class SelectData
 {
 public:
     SelectData()
-        : readOnly( false ), annotate( false ), condstore( false ),
+        : readOnly( false ), condstore( false ),
           needFirstUnseen( false ), unicode( false ), qresync( false ),
           firstUnseen( 0 ), allFlags( 0 ), updated( 0 ),
           mailbox( 0 ), session( 0 ), permissions( 0 ),
@@ -32,7 +32,6 @@ public:
     {}
 
     bool readOnly;
-    bool annotate;
     bool condstore;
     bool needFirstUnseen;
     bool unicode;
@@ -132,9 +131,7 @@ void Select::parse()
             // only astring is legal, since we advertise no extension
             // that permits the list.
             EString param = astring().lower();
-            if ( param == "annotate" )
-                d->annotate = true;
-            else if ( param == "condstore" )
+            if ( param == "condstore" )
                 d->condstore = true;
             else if ( param == "utf8" )
                 d->unicode = true;
@@ -201,8 +198,6 @@ void Select::execute()
             imap()->setClientSupports( IMAP::QResync );
         if ( d->condstore )
             imap()->setClientSupports( IMAP::Condstore );
-        if ( d->annotate )
-            imap()->setClientSupports( IMAP::Annotate );
         if ( d->mailbox->deleted() )
             error( No, d->mailbox->name().ascii() + " is deleted" );
 
@@ -303,7 +298,7 @@ void Select::execute()
             s.add( r->getInt( "uid" ) );
         }
         if ( !s.isEmpty() ) {
-            d->firstFetch = new Fetch( true, false, true,
+            d->firstFetch = new Fetch( true, true,
                                        s, d->lastModSeq, imap(),
                                        transaction() );
             d->firstFetch->setState( Command::Executing );
@@ -347,14 +342,6 @@ void Select::execute()
         if ( unseen )
             respond( "OK [UNSEEN " + fn( d->session->msn( unseen ) ) +
                      "] first unseen" );
-    }
-
-    if ( imap()->clientSupports( IMAP::Annotate ) ) {
-        Permissions * p  = d->session->permissions();
-        if ( p && p->allowed( Permissions::WriteSharedAnnotation ) )
-            respond( "OK [ANNOTATIONS 262144] Arbitrary limit" );
-        else
-            respond( "OK [ANNOTATIONS READ-ONLY] Missing 'n' right" );
     }
 
     if ( d->session->readOnly() )

@@ -339,7 +339,7 @@ void ImapSession::emitFlagUpdates( Transaction * t )
             d->ignorable.clear();
     }
 
-    Fetch * f = new Fetch( true, d->i->clientSupports( IMAP::Annotate ), false,
+    Fetch * f = new Fetch( true, false,
                            unannounced().intersection( messages() ),
                            d->cms - 1, d->i, t );
     d->cms = d->nms;

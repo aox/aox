@@ -21,8 +21,11 @@ public:
     The Annotation object doesn't register itself or maintain pointers
     to other objects - it's a simple value.
 
-    Injectee, Selector and Fetch::annotation() are the main
-    users of Annotation.
+    Annotation is now dead; all usage of the ANNOTATE-EXPERIMENT-1
+    extension has been removed. The database support and this is left,
+    though, because it seems conceivable that the substance might
+    return later, just not the RFC5257 syntax.
+
 */
 
 /*! Constructs an empty Annotation. */

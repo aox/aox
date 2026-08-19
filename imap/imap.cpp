@@ -740,7 +740,6 @@ bool IMAP::clientSupports( ClientCapability capability ) const
 
 static const char * clientCapabilityMessages[IMAP::NumClientCapabilities] = {
     "Condstore",
-    "Annotate",
     "Unicode",
     "QResync",
     "UidOnly"

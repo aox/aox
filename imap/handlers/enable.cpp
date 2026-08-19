@@ -15,7 +15,7 @@
 
 Enable::Enable()
     : Command(),
-      condstore( false ), annotate( false ), utf8( false ), qresync( false ),
+      condstore( false ), utf8( false ), qresync( false ),
       uidonly( false )
 {
 }
@@ -30,9 +30,6 @@ void Enable::parse()
         EString capability = atom().upper();
         if ( capability == "CONDSTORE" ) {
             condstore = true;
-        }
-        else if ( capability == "ANNOTATE-EXPERIMENT-1" ) {
-            annotate = true;
         }
         else if ( capability == "UTF8=ACCEPT" ) {
             utf8 = true;
@@ -62,10 +59,6 @@ void Enable::execute()
     if ( condstore ) {
         imap()->setClientSupports( IMAP::Condstore );
         r.append( " CONDSTORE" );
-    }
-    if ( annotate ) {
-        imap()->setClientSupports( IMAP::Annotate );
-        r.append( " ANNOTATE-EXPERIMENT-1" );
     }
     if ( utf8 ) {
         imap()->setClientSupports( IMAP::Unicode );

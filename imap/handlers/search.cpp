@@ -4,7 +4,6 @@
 
 #include "imapsession.h"
 #include "imapparser.h"
-#include "annotation.h"
 #include "integerset.h"
 #include "listext.h"
 #include "mailbox.h"
@@ -16,14 +15,6 @@
 #include "list.h"
 #include "log.h"
 #include "utf.h"
-
-
-static const char * legalAnnotationAttributes[] = {
-    "value",
-    "value.priv",
-    "value.shared",
-    0
-};
 
 
 class SearchData
@@ -374,26 +365,6 @@ Selector * Search::parseKey()
         space();
         return new Selector( Selector::ThreadId, Selector::Equals,
                              objectId( 't' ) );
-    }
-    else if ( present( "annotation" ) ) {
-        space();
-        EString a = parser()->listMailbox();
-        if ( !parser()->ok() )
-            error( Bad, parser()->error() );
-        space();
-        EString b = atom();
-        space();
-        UString c = ustring( NString );
-
-        uint i = 0;
-        while ( ::legalAnnotationAttributes[i] &&
-                b != ::legalAnnotationAttributes[i] )
-            i++;
-        if ( !::legalAnnotationAttributes[i] )
-            error( Bad, "Unknown annotation attribute: " + b );
-
-        return new Selector( Selector::Annotation, Selector::Contains,
-                             a, b, c );
     }
     else if ( present( "modseq" ) ) {
         space();

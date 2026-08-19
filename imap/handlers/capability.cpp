@@ -41,7 +41,6 @@
     RFC 5032: WITHIN,
     RFC 5255: I18NLEVEL=1,
     RFC 5256: SORT,
-    RFC 5257: ANNOTATE-EXPERIMENT-1,
     RFC 5258: LISTEXT,
     RFC 5465: NOTIFY,
     RFC 6154: SPECIAL-USE,
@@ -82,7 +81,6 @@ EString Capability::capabilities( IMAP * i, bool all )
 
     if ( all || login ) {
         c.append( "ACL" );
-        c.append( "ANNOTATE-EXPERIMENT-1" );
         c.append( "BINARY" );
         c.append( "CATENATE" );
         c.append( "CHILDREN" );

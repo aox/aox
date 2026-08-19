@@ -5,7 +5,6 @@
 #include "messagecache.h"
 #include "imapsession.h"
 #include "transaction.h"
-#include "annotation.h"
 #include "integerset.h"
 #include "estringlist.h"
 #include "mimefields.h"
@@ -33,17 +32,6 @@
 
 
 
-static const char * legalAnnotationAttributes[] = {
-    "value",
-    "value.priv",
-    "value.shared",
-    "size",
-    "size.priv",
-    "size.shared",
-    0
-};
-
-
 class FetchData
     : public Garbage
 {
@@ -56,12 +44,12 @@ public:
           flags( false ), envelope( false ),
           body( false ), bodystructure( false ),
           internaldate( false ), rfc822size( false ),
-          annotation( false ), modseq( false ),
+          modseq( false ),
           databaseId( false ), threadId( false ), vanished( false ),
           needsHeader( false ), needsAddresses( false ),
           needsBody( false ), needsPartNumbers( false ),
           seenDeletedFetcher( 0 ), flagFetcher( 0 ),
-          annotationFetcher( 0 ), modseqFetcher( 0 )
+          modseqFetcher( 0 )
     {}
 
     int state;
@@ -85,7 +73,6 @@ public:
     bool bodystructure;
     bool internaldate;
     bool rfc822size;
-    bool annotation;
     bool modseq;
     bool databaseId;
     bool threadId;
@@ -98,9 +85,6 @@ public:
     bool needsBody;
     bool needsPartNumbers;
 
-    EStringList entries;
-    EStringList attribs;
-
     struct DynamicData
         : public Garbage
     {
@@ -108,12 +92,10 @@ public:
         DynamicData(): modseq( 0 ) {}
         int64 modseq;
         Dict<EString> flags;
-        List<Annotation> annotations;
     };
     Map<DynamicData> dynamics;
     Query * seenDeletedFetcher;
     Query * flagFetcher;
-    Query * annotationFetcher;
     Query * modseqFetcher;
 };
 
@@ -146,15 +128,15 @@ Fetch::Fetch( bool u )
 
 /*! Constructs a handler for the implicit fetch which is executed by
     ImapSession for flag updates, etc. If \a f is true the updates
-    will include FLAGS sections and if \a a is true, ANNOTATION. The
-    handler starts fetching those messagges in \a set that have a
-    modseq greater than \a limit. The responses are sent via \a i.
+    will include FLAGS sections. The handler starts fetching those
+    messagges in \a set that have a modseq greater than \a limit. The
+    responses are sent via \a i.
 
     If \a t is non-null, the fetch operates within a subtransaction
     of \a t.
 */
 
-Fetch::Fetch( bool f, bool a, bool v, const IntegerSet & set,
+Fetch::Fetch( bool f, bool v, const IntegerSet & set,
               int64 limit, IMAP * i, Transaction * t )
     : Command( i ), d( new FetchData )
 {
@@ -162,7 +144,6 @@ Fetch::Fetch( bool f, bool a, bool v, const IntegerSet & set,
     Scope x( log() );
     d->uid = true;
     d->flags = f;
-    d->annotation = a;
     d->set = set;
     d->changedSince = limit;
     d->modseq = i->clientSupports( IMAP::Condstore );
@@ -277,8 +258,6 @@ void Fetch::parse()
         l.append( "trivia" );
     if ( d->needsPartNumbers )
         l.append( "bytes/lines" );
-    if ( d->annotation )
-        l.append( "annotations" );
     log( l.join( " " ) );
 }
 
@@ -339,11 +318,6 @@ void Fetch::parseAttribute( bool alsoMacro )
     }
     else if ( keyword == "rfc822.size" ) {
         d->rfc822size = true;
-    }
-    else if ( keyword == "annotation" ) {
-        d->annotation = true;
-        require( " " );
-        parseAnnotation();
     }
     else if ( keyword == "rfc822.text" ) {
         d->peek = false;
@@ -561,110 +535,6 @@ void Fetch::parseBody( bool binary )
 }
 
 
-void record( EStringList & l, Dict<void> & d, const EString & a )
-{
-    if ( !d.contains( a.lower() ) )
-        l.append( new EString( a ) );
-    d.insert( a.lower(), (void *)1 );
-}
-
-
-/*! Parses the entries and attributes from an ANNOTATION fetch-att.
-    Expects the cursor to be on the first parenthesis, and advances
-    it to past the last one.
-*/
-
-void Fetch::parseAnnotation()
-{
-    bool atEnd;
-    bool paren;
-
-    // Simplified ABNF from draft-ietf-imapext-annotate-15:
-    //
-    //  fetch-att =/ "ANNOTATION" SP "(" entries SP attribs ")"
-    //  entries   = list-mailbox /
-    //              "(" list-mailbox *(SP list-mailbox) ")"
-    //  attribs   = astring /
-    //              "(" astring *(SP astring) ")"
-
-    require( "(" );
-
-    paren = false;
-    if ( nextChar() == '(' ) {
-        step();
-        paren = true;
-    }
-
-    atEnd = false;
-    while ( !atEnd ) {
-        d->entries.append( new EString( parser()->listMailbox() ) );
-        if ( !parser()->ok() )
-            error( Bad, parser()->error() );
-
-        if ( paren ) {
-            if ( nextChar() == ')' ) {
-                step();
-                atEnd = true;
-            }
-            else {
-                space();
-            }
-        }
-        else {
-            atEnd = true;
-        }
-    }
-
-    require( " " );
-
-    paren = false;
-    if ( nextChar() == '(' ) {
-        step();
-        paren = true;
-    }
-
-    Dict<void> attribs;
-
-    atEnd = false;
-    while ( !atEnd ) {
-        EString a( astring() );
-
-        // XXX: This check (and the legalAnnotationAttributes table) is
-        // duplicated in Search::parseKey(). But where should a common
-        // attribute-checking function live?
-        uint i = 0;
-        while ( ::legalAnnotationAttributes[i] &&
-                a != ::legalAnnotationAttributes[i] )
-            i++;
-        if ( !::legalAnnotationAttributes[i] )
-            error( Bad, "Unknown annotation attribute: " + a );
-
-        if ( a.endsWith( ".priv" ) || a.endsWith( ".shared" ) ) {
-            record( d->attribs, attribs, a );
-        }
-        else {
-            record( d->attribs, attribs, a + ".priv" );
-            record( d->attribs, attribs, a + ".shared" );
-        }
-
-        if ( paren ) {
-            if ( nextChar() == ')' ) {
-                step();
-                atEnd = true;
-            }
-            else {
-                space();
-            }
-        }
-        else {
-            atEnd = true;
-        }
-    }
-
-    require( ")" );
-}
-
-
 void Fetch::execute()
 {
     if ( state() != Executing )
@@ -678,7 +548,7 @@ void Fetch::execute()
     if ( d->state == 0 ) {
         if ( !transaction() &&
              ( !d->peek ||
-               ( d->modseq && ( d->flags || d->annotation || d->vanished ) ) ) )
+               ( d->modseq && ( d->flags || d->vanished ) ) ) )
             setTransaction( new Transaction( this ) );
 
         if ( d->vanished && d->changedSince > 0 && !d->deleted ) {
@@ -770,7 +640,7 @@ void Fetch::execute()
                     d->messages.insert( uid, m );
                 }
                 m->setDatabaseId( r->getInt( "message" ) );
-                if ( d->modseq || d->flags || d->annotation ) {
+                if ( d->modseq || d->flags ) {
                     FetchData::DynamicData * dd = new FetchData::DynamicData;
                     d->dynamics.insert( uid, dd );
                 }
@@ -840,8 +710,6 @@ void Fetch::execute()
         sendFetchQueries();
         if ( d->flags )
             sendFlagQuery();
-        if ( d->annotation )
-            sendAnnotationsQuery();
         if ( d->modseq )
             sendModSeqQuery();
         if ( transaction() )
@@ -1133,9 +1001,6 @@ EString Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
         l.append( "BODY " + bodyStructure( m, false, unicode ) );
     if ( d->bodystructure )
         l.append( "BODYSTRUCTURE " + bodyStructure( m, true, unicode ) );
-    if ( d->annotation )
-        l.append( "ANNOTATION " + annotation( imap()->user(), uid,
-                                              d->entries, d->attribs ) );
     if ( d->modseq ) {
         FetchData::DynamicData * dd = d->dynamics.find( uid );
         if ( dd && dd->modseq )
@@ -1503,115 +1368,6 @@ EString Fetch::singlePartStructure( Multipart * mp, bool extended,
 }
 
 
-/*! Returns the IMAP ANNOTATION production for the message with \a
-    uid, from the point of view of \a u (0 for no user, only public
-    annotations). \a entrySpecs is a list of the entries to be
-    matched, each of which can contain the * and % wildcards. \a
-    attributes is a list of attributes to be returned (each including
-    the .priv or .shared suffix).
-*/
-
-EString Fetch::annotation( User * u, uint uid,
-                          const EStringList & entrySpecs,
-                          const EStringList & attributes )
-{
-    FetchData::DynamicData * dd = d->dynamics.find( uid );
-    if ( !dd ) {
-        setRespTextCode( "SERVERBUG" );
-        return "()";
-    }
-
-    typedef Dict< EString > AttributeDict;
-    Dict< AttributeDict > entries;
-
-    EStringList entryNames;
-
-    uint user = 0;
-    if ( u )
-        user = u->id();
-    List<Annotation>::Iterator i( dd->annotations );
-    while ( i ) {
-        Annotation * a = i;
-        ++i;
-
-        EString entry( a->entryName() );
-        bool entryWanted = false;
-        EStringList::Iterator e( entrySpecs );
-        while ( e && !entryWanted ) {
-            AsciiCodec c;
-            if ( Mailbox::match( c.toUnicode( *e ), 0,
-                                 c.toUnicode( entry ), 0 ) == 2 ) {
-                if ( !entries.find( entry ) )
-                    entryNames.append( entry );
-                entryWanted = true;
-            }
-            ++e;
-        }
-
-        if ( ( a->ownerId() == 0 || a->ownerId() == user ) &&
-             entryWanted )
-        {
-            AttributeDict * atts = entries.find( entry );
-            if ( !atts ) {
-                atts = new AttributeDict;
-                entries.insert( entry, atts );
-            }
-
-            const char * suffix = ".shared";
-            if ( a->ownerId() )
-                suffix = ".priv";
-
-            EString * v = new EString( a->value() );
-            EString * s = new EString( fn( v->length() ) );
-
-            atts->insert( EString( "value" ) + suffix, v );
-            atts->insert( EString( "size" ) + suffix, s );
-        }
-    }
-
-    EString r( "(" );
-    EStringList::Iterator e( entryNames );
-    while ( e ) {
-        EString entry( *e );
-
-        EStringList l;
-        EStringList::Iterator a( attributes );
-        while ( a ) {
-            EString attrib( *a );
-
-            EString * value = 0;
-            AttributeDict * atts = entries.find( entry );
-            if ( atts )
-                value = atts->find( attrib );
-
-            EString tmp = attrib;
-            tmp.append( " " );
-            if ( value )
-                tmp.append( imapQuoted( *value ) );
-            else if ( attrib.startsWith( "size." ) )
-                tmp.append( "\"0\"" );
-            else
-                tmp.append( "NIL" );
-            ++a;
-            l.append( tmp );
-        }
-
-        r.append( entry );
-        if ( !l.isEmpty() ) {
-            r.append( " (" );
-            r.append( l.join( " " ) );
-            r.append( ")" );
-        }
-
-        ++e;
-        if ( e )
-            r.append( " " );
-    }
-    r.append( ")" );
-    return r;
-}
-
-
 /*! Parses a single RFC 4466 fetch-modifier. At the moment RFC 4551
     and RFC 7162 are supported.
 */
@@ -1679,27 +1435,6 @@ void Fetch::pickup()
         }
     }
 
-    if ( d->annotationFetcher ) {
-        while ( d->annotationFetcher->hasResults() ) {
-            Row * r = d->annotationFetcher->nextRow();
-            uint uid = r->getInt( "uid" );
-            FetchData::DynamicData * dd = d->dynamics.find( uid );
-            if ( !dd ) {
-                dd = new FetchData::DynamicData;
-                d->dynamics.insert( uid, dd );
-            }
-
-            EString n = r->getEString( "name" );
-            EString v( r->getEString( "value" ) );
-
-            uint owner = 0;
-            if ( !r->isNull( "owner" ) )
-                owner = r->getInt( "owner" );
-
-            dd->annotations.append( new Annotation( n, v, owner ) );
-        }
-    }
-
     if ( d->modseqFetcher ) {
         while ( d->modseqFetcher->hasResults() ) {
             Row * r = d->modseqFetcher->nextRow();
@@ -1717,9 +1452,6 @@ void Fetch::pickup()
         return;
 
     if ( d->flagFetcher && !d->flagFetcher->done() )
-        return;
-
-    if ( d->annotationFetcher && !d->annotationFetcher->done() )
         return;
 
     if ( d->modseqFetcher && !d->modseqFetcher->done() )
@@ -1843,24 +1575,6 @@ void Fetch::sendFlagQuery()
     d->flagFetcher->bind( 1, session()->mailbox()->id() );
     d->flagFetcher->bind( 2, d->set );
     enqueue( d->flagFetcher );
-}
-
-
-/*! Sends a query to retrieve all annotations. */
-
-void Fetch::sendAnnotationsQuery()
-{
-    d->annotationFetcher = new Query(
-        "select a.uid, "
-        "a.owner, a.value, an.name "
-        "from annotations a "
-        "join annotation_names an on (a.name=an.id) "
-        "where a.mailbox=$1 and a.uid=any($2) "
-        "order by an.name",
-        this );
-    d->annotationFetcher->bind( 1, session()->mailbox()->id() );
-    d->annotationFetcher->bind( 2, d->set );
-    enqueue( d->annotationFetcher );
 }
 
 

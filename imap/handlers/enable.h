@@ -17,7 +17,6 @@ public:
 
 private:
     bool condstore;
-    bool annotate;
     bool utf8;
     bool qresync;
     bool uidonly;

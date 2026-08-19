@@ -26,7 +26,6 @@ public:
         Size,
         Subject,
         To,
-        Annotation,
         Unknown
     };
 
@@ -34,15 +33,10 @@ public:
         : public Garbage {
     public:
         SortCriterion()
-            : t( Unknown ), reverse( false ),
-              priv( false ), b1( 0 ), b2( 0 ) {}
+            : t( Unknown ), reverse( false ) {}
 
         SortCriterionType t;
         bool reverse;
-        // the rest applies only to annotation
-        EString annotationEntry;
-        bool priv;
-        uint b1, b2;
     };
 
     List<SortCriterion> c;
@@ -125,18 +119,6 @@ void Sort::parse()
         else if ( s == "to" ) {
             c->t = SortData::To;
         }
-        else if ( s == "annotation" ) {
-            c->t = SortData::Annotation;
-            space();
-            c->annotationEntry = astring();
-            space();
-            if ( present( "value.priv" ) )
-                c->priv = true;
-            else if ( !present( "value.shared" ) )
-                error( Bad,
-                       "Annotation attribute must be "
-                       "value.priv or value.shared" );
-        }
         if ( ok() && c->t != SortData::Unknown ) {
             if ( !d->usingCriterionType( c->t ) )
                 d->c.append( c );
@@ -186,14 +168,6 @@ void Sort::execute()
         EString t = d->q->string();
         List<SortData::SortCriterion>::Iterator c( d->c );
         while ( c ) {
-            if ( c->t == SortData::Annotation ) {
-                c->b1 = d->s->placeHolder();
-                d->q->bind( c->b1, c->annotationEntry );
-                if ( c->priv ) {
-                    c->b2 = d->s->placeHolder();
-                    d->q->bind( c->b2, imap()->user()->id() );
-                }
-            }
             d->addCondition( t, c );
             ++c;
         }
@@ -298,26 +272,6 @@ void SortData::addCondition( EString & t, class SortData::SortCriterion * c )
                  "left join addresses sta on (staf.address=sta.id) ",
                  "sta.localpart",
                  c->reverse );
-        break;
-    case Annotation:
-        if ( c->priv )
-            addJoin( t,
-                     "left join annotations saa on "
-                     "(mm.mailbox=saa.mailbox and mm.uid=saa.uid and"
-                     " owner=$" + fn( c->b2 ) + " and name="
-                     "(select id from annotation_names where lower(name)=$" +
-                     fn( c->b1 ) + ")) ",
-                     "saa.value",
-                     c->reverse );
-        else
-            addJoin( t,
-                     "left join annotations saa on "
-                     "(mm.mailbox=saa.mailbox and mm.uid=saa.uid and"
-                     " owner is null and name="
-                     "(select id from annotation_names where lower(name)=$" +
-                     fn( c->b1 ) + ")) ",
-                     "saa.value",
-                     c->reverse );
         break;
     case Unknown:
         break;
