@@ -1,0 +1,77 @@
+#!/bin/sh
+
+# this script sets up the standard database with all the users and
+# other things whip presupposes.
+
+DB=`aox show cf db-name | sed 's/.*= *//'`
+
+# allow whip to obliterate
+
+su - postgres "psql $DB -c 'alter table mailstore add allow_obliteration boolean default true'"
+
+# one named user, one anonymous
+
+aox add user script script script@test.oryx.com
+aox add user anonymous anonymous anonymous@test.oryx.com
+
+# create three shared mailboxes
+
+aox add mailbox /ernest/bojangles
+aox add mailbox /ernest/kiki
+aox add mailbox /ernest/mja
+
+echo "allowing anonymous access to kiki only."
+aox setacl /ernest/kiki anonymous lr
+
+echo "allowing anyone (including anonymous) access to bojangles."
+aox setacl /ernest/bojangles anyone lr
+
+# whip also needs quite a few variables in archiveopteryx.conf. should
+# we set those here, or just check?
+
+F=/tmp/mkwhippee-$$
+
+( aox show cf use-imap ; \
+  aox show cf use-pop ; \
+  aox show cf use-sieve ; \
+  aox show cf use-smtp ; \
+  aox show cf use-lmtp ; \
+  aox show cf use-smtp-submit ; \
+  aox show cf use-tls ; \
+  aox show cf submit-copy-to-sender ; \
+  aox show cf auth-anonymous ; \
+  aox show cf auth-digest-md5 ; \
+  aox show cf auth-login ; \
+  aox show cf entropy-source ; \
+  aox show cf hostname ; \
+  aox show cf lmtp-port ; \
+  aox show cf smarthost-port ; ) > ${F}-a
+
+cat <<EORIGHT > ${F}-b
+use-imap = on
+use-pop = on
+use-sieve = on
+use-smtp = off
+use-lmtp = on
+use-smtp-submit = on
+use-tls = on
+submit-copy-to-sender = on
+auth-anonymous = on
+auth-digest-md5 = on
+auth-login = on
+entropy-source = /dev/zero
+hostname = imapscript.test.oryx.com
+lmtp-port = 2026
+smarthost-port = 9925
+server-processes = 1
+EORIGHT
+
+if cmp -q ${F}-a ${F}-b ; then
+    echo config is okay
+else
+    echo "archivopteryx.conf is bad. Diff (-right +actual):"
+    diff -u ${F}-b ${F}-a
+    echo
+    echo Necessary settings according to ${F}-b:
+    cat ${F}-b
+fi

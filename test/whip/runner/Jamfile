@@ -1,0 +1,10 @@
+SubDir TOP test whip runner ;
+
+SubInclude TOP server ;
+
+Build whip : tester.cpp script.cpp client.cpp runner.cpp obliterator.cpp ;
+
+Executable whip :
+    whip core server database occlient mailbox encodings message user
+    extractors abnf ;
+MakeLocate whip : $(SUBDIR) ;
