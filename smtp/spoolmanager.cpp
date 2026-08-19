@@ -15,8 +15,12 @@
 #include "allocator.h"
 #include "scope.h"
 
+// this is how often we try any single message
 #define SPOOLINTERVAL    900
 #define SSPOOLINTERVAL  "900"  /* Keep this in sync with SPOOLINTERVAL */
+// this is how often we try again if no message needs a quicker pass,
+// typically if there's an exception during delivery
+#define MAXSPOOLDELAY   7200
 
 
 static SpoolManager * sm;
@@ -72,7 +76,7 @@ void SpoolManager::execute()
     // Fetch a list of spooled messages, and the next time we can try
     // to deliver each of them.
 
-    uint delay = UINT_MAX;
+    uint delay = MAXSPOOLDELAY;
 
     if ( !d->q ) {
         IntegerSet have;
@@ -140,11 +144,9 @@ void SpoolManager::execute()
             else if ( delay > deliverableAt )
                 delay = deliverableAt;
         }
-        if ( delay < UINT_MAX ) {
-            log( "Will process the queue again in " +
-                 fn( delay ) + " seconds" );
-            d->t = new Timer( this, delay );
-        }
+        log( "Will process the queue again in " +
+             fn( delay ) + " seconds" );
+        d->t = new Timer( this, delay );
         d->q = 0;
     }
 
