@@ -61,7 +61,7 @@ public:
     static bool allowed( Type, bool );
     static EString allowedMechanisms( const EString &, bool );
 
-    void log( const EString &, Log::Severity = Log::Info );
+    void log( const EString &, Log::Severity = Log::Info ) const;
 
     void tick();
 

@@ -582,7 +582,7 @@ void SaslMechanism::setChallenge( const EString & )
 /*! Logs message \a m with severity \a s.
 */
 
-void SaslMechanism::log( const EString &m, Log::Severity s )
+void SaslMechanism::log( const EString &m, Log::Severity s ) const
 {
     d->l->log( m, s );
 }
