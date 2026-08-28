@@ -165,6 +165,7 @@ Creates an alias that instructs the server to accept mail to the given
 .I address
 and deliver it to the specified
 .IR mailbox .
+An address of '*@example.com' will behave as a wildcard or catch-all address.
 .IP "aox delete alias <address>"
 Deletes an alias, if one exists, for the given
 .IR address .
