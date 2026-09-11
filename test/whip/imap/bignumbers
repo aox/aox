@@ -1,0 +1,52 @@
+depends empty-inbox
+# check that we can send UIDs bigger than pgsql accepts
+send 3
+a uid fetch 4294967290:4294967294 flags
+b search uid 4294967290:4294967294 unseen
+c search uid 4294967290:4294967295 unseen
+receive 5
+a OK done
+* SEARCH
+b OK done
+* SEARCH
+c OK done
+# check that we can even send a lot of them, without killing off any
+# database handles
+send 10
+c0 search uid 4294967290:4294967295 unseen
+c1 search uid 4294967290:4294967295 unseen
+c2 search uid 4294967290:4294967295 unseen
+c3 search uid 4294967290:4294967295 unseen
+c4 search uid 4294967290:4294967295 unseen
+c5 search uid 4294967290:4294967295 unseen
+c6 search uid 4294967290:4294967295 unseen
+c7 search uid 4294967290:4294967295 unseen
+c8 search uid 4294967290:4294967295 unseen
+c9 search uid 4294967290:4294967295 unseen
+receive 20
+* SEARCH
+c0 OK done
+* SEARCH
+c1 OK done
+* SEARCH
+c2 OK done
+* SEARCH
+c3 OK done
+* SEARCH
+c4 OK done
+* SEARCH
+c5 OK done
+* SEARCH
+c6 OK done
+* SEARCH
+c7 OK done
+* SEARCH
+c8 OK done
+* SEARCH
+c9 OK done
+# and finally, check that the limit is respected
+send 1
+d search uid 4294967290:4294967296 unseen
+receive 1
+d BAD Expected a number, but saw: 4294967296unseen
+end

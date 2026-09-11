@@ -1,0 +1,212 @@
+depends empty-inbox
+send 44
+a append INBOX () {1986+}
+Return-Path: <owner-mailstore-users@oryx.com>
+Received: from 127.0.0.1 (HELO fugue.toroid.org) by archives.oryx.com with lmtp id 1197475685-29807-21; Wed, 12 Dec 2007 16:08:05 +0000
+Received: from kalyani.oryx.com (kalyani.oryx.com [195.30.37.30])
+	by fugue.toroid.org (Postfix) with ESMTP id 3FEF65580A7
+	for <mailstore-users@toroid.org>; Wed, 12 Dec 2007 17:08:04 +0100 (CET)
+Received: by kalyani.oryx.com (Postfix, from userid 65534)
+	id 12F994AC7F; Wed, 12 Dec 2007 17:07:58 +0100 (CET)
+Received: from libertango.oryx.com (libertango.oryx.com [195.30.37.9])
+	by kalyani.oryx.com (Postfix) with ESMTP id 93DF04AC59
+	for <mailstore-users@oryx.com>; Wed, 12 Dec 2007 17:07:57 +0100 (CET)
+Message-Id: <grS3djPu3d63R09qgPnxMw.md5@libertango.oryx.com>
+Date: Wed, 12 Dec 2007 17:06:52 +0100
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: mailstore-users@oryx.com
+Subject: Re: shared mailbox with Apple mail client
+References: <F496127F-0278-4DFA-9212-E712F9D48A86@Chaos1.DE>
+ <20071209122119.GA6163@toroid.org>
+In-Reply-To: <20071209122119.GA6163@toroid.org>
+Content-Type: text/plain; format=flowed
+Mime-Version: 1.0
+List-Id: <mailstore-users.oryx.com>
+List-Post: <mailto:mailstore-users@oryx.com>
+List-Help: <mailto:info@oryx.com>
+List-Owner: <mailto:info@oryx.com>
+List-Unsubscribe: <mailto:mailstore-users-request@oryx.com?subject=unsubscribe>
+
+Abhijit Menon-Sen writes:
+> At 2007-12-06 13:07:32 +0100, Axel.Rau@Chaos1.DE wrote:
+>> - Do you have an idea for a workaround?
+>
+> I'm afraid not.
+
+But I do. Make a per-user drop folder (for the affected users) and use a 
+command-line tool to move mail from the per-user folders to the shared 
+one. "mailutil move", I think. I think mailutil needs to be run as a 
+separate user with the right to read and delete mail in he per-user 
+spam folders.
+
+This is an evil workaround, and like most evil workarounds, compliant 
+with RFC 1925. In this case: You can ALWAYS add another level of 
+indirection.
+
+Arnt
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 57
+a append INBOX () {2191+}
+Return-Path: <refund@irs.gov>
+Received: from 127.0.0.1 (HELO fugue.toroid.org) by archives.oryx.com with lmtp id 1197664290-29807-30; Fri, 14 Dec 2007 20:31:30 +0000
+Received: from server.IDENTITYAPPAREL.LOCAL (mail.libertymanagements.com [68.236.211.212])
+        by fugue.toroid.org (Postfix) with ESMTP id 693315580A7
+        for <mailstore-users@toroid.org>; Fri, 14 Dec 2007 21:31:30 +0100 (CET)
+Received: from User ([67.37.18.250]) by server.IDENTITYAPPAREL.LOCAL with Microsoft SMTPSVC(6.0.3790.1830);
+         Fri, 14 Dec 2007 15:30:46 -0500
+Reply-To: do-not-reply@irs.gov
+From: Internal Revenue Service <refund@irs.gov>
+Subject: After the last annual calculations of your fiscal activity we have
+ determined that you are eligible to receive a tax refund of $259.30.
+Date: Fri, 14 Dec 2007 15:31:28 -0500
+Mime-Version: 1.0
+Content-Type: text/plain; charset=windows-1251
+Content-Transfer-Encoding: quoted-printable
+X-Priority: 1
+X-Msmail-Priority: High
+X-Mailer: Microsoft Outlook Express 6.00.2800.1081
+X-Mimeole: Produced By Microsoft MimeOLE V6.00.2800.1081
+Message-Id: <SERVERaaskjeo4lB4Bw00001a8e@server.IDENTITYAPPAREL.LOCAL>
+X-Originalarrivaltime: 14 Dec 2007 20:30:46.0812 (UTC) FILETIME=[352885C0:01C83E90]
+To: undisclosed-recipients:;
+
+
+> Notification of Tax Refund on your VISA or MasterCard Now,
+
+=20
+
+> After the last annual calculations of your fiscal activity we have =
+determined that you are eligible to receive a tax refund of $259.30.=20
+
+
+>A refund can be delayed for a variety of reasons.=20
+
+  Fox example submitting invalid records or applying after the deadline.=20
+
+> Sorry for any inconvenience this may cause and thank you for your =
+patience.=20
+
+> To access the form for your tax refund please copy/paste  the link =
+below in your browser (or click the link below)
+
+
+http://www.tc-sarft.com/IRS.gov/Refunds.php=20
+
+> Note: For security reasons, we will record your ip-address, the date =
+and time.=20
+Deliberate wrong inputs are criminally pursued and indicated.=20
+
+Regards,=20
+
+Internal Revenue Service
+
+=A9 Copyright 2007, Internal Revenue Service U.S.A.
+=20
+QFHEVHJKRGNLQPFDPXYCMTUSJFYKZZOKCMJURF
+receive 4
+* 2 EXISTS
+* 2 RECENT
+* OK [UIDNEXT 3] next uid
+a OK [APPENDUID 1 2] done
+send 30
+a append INBOX () {1406+}
+Return-Path: <owner-mailstore-users@oryx.com>
+Received: from 127.0.0.1 (HELO fugue.toroid.org) by archives.oryx.com with lmtp id 1197764294-29807-31; Sun, 16 Dec 2007 00:18:14 +0000
+Received: from kalyani.oryx.com (kalyani.oryx.com [195.30.37.30])
+        by fugue.toroid.org (Postfix) with ESMTP id 7AF865580A7
+        for <mailstore-users@toroid.org>; Sun, 16 Dec 2007 01:18:14 +0100 (CET)
+Received: by kalyani.oryx.com (Postfix, from userid 65534)
+        id CD6844AC84; Sun, 16 Dec 2007 01:18:04 +0100 (CET)
+Received: from libertango.oryx.com (libertango.oryx.com [195.30.37.9])
+        by kalyani.oryx.com (Postfix) with ESMTP id 552214AC81
+        for <mailstore-users@oryx.com>; Sun, 16 Dec 2007 01:18:04 +0100 (CET)
+Message-Id: <IO94vQqXXLuudAkHc4/9ZA.md5@libertango.oryx.com>
+Date: Sun, 16 Dec 2007 01:16:33 +0100
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: mailstore-users@oryx.com
+Subject: 2.06 delay
+Content-Type: text/plain; format=flowed
+Mime-Version: 1.0
+List-Id: <mailstore-users.oryx.com>
+List-Post: <mailto:mailstore-users@oryx.com>
+List-Help: <mailto:info@oryx.com>
+List-Owner: <mailto:info@oryx.com>
+List-Unsubscribe: <mailto:mailstore-users-request@oryx.com?subject=unsubscribe>
+
+There are still much code to write before 2.06 is ready, and we want to 
+relax and enjoy our vacations. So we're delaying the 2.06 release by 
+two weeks, until 2008-01-28.
+
+Arnt
+
+receive 4
+* 3 EXISTS
+* 3 RECENT
+* OK [UIDNEXT 4] next uid
+a OK [APPENDUID 1 3] done
+send 35
+a append INBOX () {1614+}
+Return-Path: <owner-mailstore-users@oryx.com>
+Received: from 127.0.0.1 (HELO fugue.toroid.org) by archives.oryx.com with lmtp id 1197814944-29807-32; Sun, 16 Dec 2007 14:22:24 +0000
+Received: from kalyani.oryx.com (kalyani.oryx.com [195.30.37.30])
+        by fugue.toroid.org (Postfix) with ESMTP id 7413C5580A7
+        for <mailstore-users@toroid.org>; Sun, 16 Dec 2007 15:22:23 +0100 (CET)
+Received: by kalyani.oryx.com (Postfix, from userid 65534)
+        id 58A174AC83; Sun, 16 Dec 2007 15:22:15 +0100 (CET)
+Received: from libertango.oryx.com (libertango.oryx.com [195.30.37.9])
+        by kalyani.oryx.com (Postfix) with ESMTP id D1C204AC73
+        for <mailstore-users@oryx.com>; Sun, 16 Dec 2007 15:22:14 +0100 (CET)
+Message-Id: <FvuYk02hDajIiyAwnO+zMw.md5@libertango.oryx.com>
+Date: Sun, 16 Dec 2007 15:20:39 +0100
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: mailstore-users@oryx.com
+Subject: Re: 2.06 delay
+References: <IO94vQqXXLuudAkHc4/9ZA.md5@libertango.oryx.com>
+In-Reply-To: <IO94vQqXXLuudAkHc4/9ZA.md5@libertango.oryx.com>
+Content-Type: text/plain; format=flowed
+Mime-Version: 1.0
+List-Id: <mailstore-users.oryx.com>
+List-Post: <mailto:mailstore-users@oryx.com>
+List-Help: <mailto:info@oryx.com>
+List-Owner: <mailto:info@oryx.com>
+List-Unsubscribe: <mailto:mailstore-users-request@oryx.com?subject=unsubscribe>
+
+I wrote:
+> There are still much code to write before 2.06 is ready, and we want 
+> to relax and enjoy our vacations. So we're delaying the 2.06 release 
+> by two weeks, until 2008-01-28.
+
+I wish Christmas could be delayed as easily.
+
+Arnt
+(late as usual)
+receive 4
+* 4 EXISTS
+* 4 RECENT
+* OK [UIDNEXT 5] next uid
+a OK [APPENDUID 1 4] done
+send 1
+s1 uid search header "list-id" ""
+receive 2
+* SEARCH 1 3 4
+s1 OK done
+send 1
+s2 uid search not header "list-id" ""
+receive 2
+* SEARCH 2
+s2 OK done
+send 1
+s3 uid search header "list-id" "mailstore-users"
+receive 2
+* SEARCH 1 3 4
+s3 OK done
+send 1
+s3 uid search not header "list-id" "mailstore-users"
+receive 2
+* SEARCH 2
+s3 OK done
+end

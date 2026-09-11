@@ -1,0 +1,35 @@
+# RFC 2180:
+#   COPY is the only IMAP4 sequence number command that is safe to allow
+#   an EXPUNGE response on.  This is because a client is not permitted to
+#   cascade several COPY commands together. A client is required to wait
+#   and confirm that the copy worked before issuing another one.
+#
+# 4.4.2 The server MAY allow the COPY of messages in a multi-access
+#       mailbox that contains expunged messages.
+#
+#   Pending EXPUNGE response(s) MUST be returned to the COPY command.
+#   Messages that are copied are messages corresponding to sequence
+#   numbers before any EXPUNGE response.
+depends 2180base
+send 1
+a create other
+receive 1
+a OK done
+send 1
+a store 1:2 +flags.silent \deleted
+receive 1
+a OK done
+send 1
+a uid expunge 1:2
+receive 3
+* 1 EXPUNGE
+* 1 EXPUNGE
+a OK done
+use watcher
+send 1
+a copy 1:3 other
+receive 3
+* 1 EXPUNGE
+* 1 EXPUNGE
+a OK [COPYUID 1 3 1] done
+end

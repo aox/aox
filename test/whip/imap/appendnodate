@@ -1,0 +1,59 @@
+depends empty-inbox
+# checks that if a message is appended without a Date field, then the
+# supplied internaldate is converted to UTC and shows up as a Date.
+# this is a little pointless were it not for a $#@!$#@!$@#
+# out-of-scope rule in RFC 5256.
+send 39
+a append INBOX () "26-May-2004 12:41:11 +0200" {1411+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Abhijit Menon-Sen <ams@oryx.com>
+Message-Id: <oWCXxOQwWEbLpq0CbqsS0A.md5@libertango.oryx.com>
+Subject: Re: good morning
+In-Reply-To: <20040526051933.A583@lustre.dyn.wiw.org>
+References: <20040524120528.A20211@lustre.dyn.wiw.org>
+ <1oVc2bWKwhUzCIuRDoUJcQ.md5@prosecco.oryx.com>
+ <20040524131541.F18784@lustre.dyn.wiw.org>
+ <CFRHwCwKnZkw1NyGRX1FXg.md5@libertango.oryx.com>
+ <20040526051933.A583@lustre.dyn.wiw.org>
+Mime-Version: 1.0
+Content-Type: text/plain; format=flowed
+
+Abhijit Menon-Sen writes:
+>>  find( const String & ) depends on the casting operator from T to 
+>>  String to deliver a search key.
+>
+> That is not how I intended it to work (though I might have 
+> misunderstood things, and it actually does work that way). I wanted 
+> to rely on classes that want this behavious defining an operator !=( 
+> const String & ), and leaving casting entirely out of the picture.
+>
+> Can't it work that way?
+
+Sure. In that case, operator!=() gets the, ah, innovative semantics. Our 
+style guide says we don't do that.
+
+>>  What are the three first places in which we'd use them?
+>
+> Mapping mailbox names to IDs (and thence via a Map to an object)?
+
+Two more?
+
+Btw, do we want to keep a tree of mailboxes, or a flat list? If a tree, 
+then using LIST the way RFC2683 says works well, but we pay for that 
+with some complexity.
+
+Arnt
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+b fetch 1 body.peek[header.fields (date)]
+receive 5
+* 1 FETCH (BODY[HEADER.FIELDS (Date)] {41}
+Date: Wed, 26 May 2004 10:41:11 +0000
+
+)
+b OK done
+end

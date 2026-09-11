@@ -1,0 +1,43 @@
+depends empty-inbox
+send 13
+a append INBOX () {273+}
+From: ams@toroid.org
+To: ams@wiw.org
+Cc: ams@oryx.com
+Bcc: arnt@oryx.com
+Subject: test
+Date: Fri, 13 Oct 2006 18:33:01 +0530
+Sender: ams@oryx.com
+Reply-To: hassath@gmail.com
+Message-Id: <message.foo@bar.com>
+In-Reply-To: <some.other.foo@bar.com>
+
+this is a test.
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+x fetch 1 envelope
+receive 2
+* 1 FETCH (ENVELOPE ("Fri, 13 Oct 2006 18:33:01 +0530" "test" ((NIL NIL "ams" "toroid.org")) ((NIL NIL "ams" "oryx.com")) ((NIL NIL "hassath" "gmail.com")) ((NIL NIL "ams" "wiw.org")) ((NIL NIL "ams" "oryx.com")) ((NIL NIL "arnt" "oryx.com")) "<some.other.foo@bar.com>" "<message.foo@bar.com>"))
+x OK done
+send 1
+y fetch 1 rfc822.header
+receive 14
+* 1 FETCH (RFC822.HEADER {258}
+From: ams@toroid.org
+To: ams@wiw.org
+Cc: ams@oryx.com
+Bcc: arnt@oryx.com
+Subject: test
+Date: Fri, 13 Oct 2006 18:33:01 +0530
+Sender: ams@oryx.com
+Reply-To: hassath@gmail.com
+Message-Id: <message.foo@bar.com>
+In-Reply-To: <some.other.foo@bar.com>
+
+)
+y OK done
+end

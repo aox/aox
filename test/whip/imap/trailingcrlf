@@ -1,0 +1,59 @@
+depends empty-inbox
+send 16
+a append INBOX () {257+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Abhijit Menon-Sen <ams@oryx.com>
+Subject: Message with trailing CRLF
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=A
+Date: Thu, 20 May 2004 14:28:51 +0200
+
+--A
+
+Foobar.
+--A
+
+Foobar.
+--A--
+
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 15
+b append INBOX () {255+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Abhijit Menon-Sen <ams@oryx.com>
+Subject: Message with trailing CRLF
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=A
+Date: Thu, 20 May 2004 14:28:51 +0200
+
+--A
+
+Foobar.
+--A
+
+Foobar.
+--A--
+receive 4
+* 2 EXISTS
+* 2 RECENT
+* OK [UIDNEXT 3] next uid
+b OK [APPENDUID 1 2] done
+send 1
+c fetch 1:2 (body.peek[1] body.peek[2])
+receive 11
+* 1 FETCH (BODY[1] {9}
+Foobar.
+ BODY[2] {9}
+Foobar.
+)
+* 2 FETCH (BODY[1] {9}
+Foobar.
+ BODY[2] {9}
+Foobar.
+)
+c OK done
+end

@@ -1,0 +1,5 @@
+obliterate script
+protocol imap main
+receive 1
+* OK [CAPABILITY IMAP4rev1 AUTH=ANONYMOUS AUTH=CRAM-MD5 AUTH=DIGEST-MD5 AUTH=PLAIN AUTH=LOGIN COMPRESS=DEFLATE ENABLE ID LITERAL+ SASL-IR STARTTLS] imapscript.test.oryx.com Archiveopteryx IMAP Server (security checking disabled)
+end

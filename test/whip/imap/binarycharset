@@ -1,0 +1,27 @@
+depends empty-inbox
+#
+# check that FETCH BINARY converts to the right charset
+#
+send 9
+a append INBOX () {256+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0
+
+Mit freundlichen Gr=FC=DFen
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+b fetch 1 (body binary.peek[1])
+receive 4
+* 1 FETCH (BODY ("text" "plain" ("charset" "iso-8859-1") NIL NIL "QUOTED-PRINTABLE" 29 1) BINARY[1] {25}
+Mit freundlichen Grüßen
+)
+b OK done
+end

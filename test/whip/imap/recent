@@ -1,0 +1,109 @@
+depends append
+send 1
+0 search recent
+receive 2
+* SEARCH 1 2 3 4
+0 OK done
+send 1
+a fetch 1:* flags
+receive 5
+* 1 FETCH (FLAGS (\Recent))
+* 2 FETCH (FLAGS (\Recent \Seen))
+* 3 FETCH (FLAGS (\Recent))
+* 4 FETCH (FLAGS (\Recent))
+a OK done
+send 1
+b search recent
+receive 2
+* SEARCH 1 2 3 4
+b OK done
+send 1
+c unselect
+receive 2
+* OK [CLOSED] I, missa est
+c OK done
+send 1
+d select inbox
+receive 8
+* 4 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 5] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+d OK [READ-WRITE] done
+send 1
+e close
+receive 2
+* OK [CLOSED] I, missa est
+e OK done
+send 6
+f append /users/script/INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 20 May 2004 14:28:51 +0200
+
+asdf
+receive 1
+f OK [APPENDUID 1 5] done
+send 1
+g examine inbox
+receive 8
+* 5 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 6] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+g OK [READ-ONLY] done
+send 1
+h close
+receive 2
+* OK [CLOSED] I, missa est
+h OK done
+send 1
+i examine inbox
+receive 8
+* 5 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 6] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+i OK [READ-ONLY] done
+send 1
+j close
+receive 2
+* OK [CLOSED] I, missa est
+j OK done
+send 1
+l select inbox
+receive 8
+* 5 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 6] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+l OK [READ-WRITE] done
+send 1
+m close
+receive 2
+* OK [CLOSED] I, missa est
+m OK done
+send 1
+n examine inbox
+receive 8
+* 5 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 6] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+n OK [READ-ONLY] done
+end

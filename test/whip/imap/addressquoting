@@ -1,0 +1,28 @@
+depends empty-inbox
+send 7
+a append INBOX () {162+}
+From: =?utf-8?q?B=C3=B8r_Boer_B=E2=82=ACsign?= <boereuro@example.com>
+To: boereuro@example.com
+Date: Wed, 26 May 2004 12:41:11 +0200
+Mime-Version: 1.0
+
+asdf
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+b fetch 1 envelope
+receive 2
+* 1 FETCH (ENVELOPE ("Wed, 26 May 2004 12:41:11 +0200" NIL (("=?ISO-8859-1?q?B=F8r?= Boer =?ISO-8859-15?q?B=A4sign?=" NIL "boereuro" "example.com")) NIL NIL ((NIL NIL "boereuro" "example.com")) NIL NIL NIL NIL))
+b OK done
+send 1
+c fetch 1 body.peek[header.fields (from)]
+receive 5
+* 1 FETCH (BODY[HEADER.FIELDS (From)] {87}
+From: =?ISO-8859-1?q?B=F8r?= Boer =?ISO-8859-15?q?B=A4sign?= <boereuro@example.com>
+
+)
+c OK done
+end

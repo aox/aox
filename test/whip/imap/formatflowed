@@ -1,0 +1,47 @@
+depends empty-inbox
+send 15
+a append INBOX () {555+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 20 May 2004 14:28:51 +0200
+Content-Type: text/plain; format=flowed
+Mime-Version: 1.0
+
+x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x 
+x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x xx
+x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x 
+x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x xx
+x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x 
+
+xx
+
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+a uid fetch 1 (body.peek[header.fields (content-type)])
+receive 5
+* 1 FETCH (UID 1 BODY[HEADER.FIELDS (Content-Type)] {43}
+Content-Type: text/plain; format=flowed
+
+)
+a OK done
+send 1
+a uid fetch 1 (body.peek[header.fields (content-type)] body.peek[1] bodystructure)
+receive 13
+* 1 FETCH (UID 1 BODYSTRUCTURE ("text" "plain" ("format" "flowed") NIL NIL "7BIT" 376 7 NIL NIL NIL NIL) BODY[HEADER.FIELDS (Content-Type)] {43}
+Content-Type: text/plain; format=flowed
+
+ BODY[1] {376}
+x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x 
+x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x xx
+x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x 
+x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x xx
+x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x 
+
+xx
+)
+a OK done
+end

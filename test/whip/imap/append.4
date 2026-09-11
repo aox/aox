@@ -1,0 +1,16 @@
+depends login
+send 11
+a append INBOX (foo bar baz \Seen \Draft) ANNOTATION (/foo (value.priv "foo") /bar (value.shared "bar")) {264+}
+From: Some New Person <somenew@person.oryx.com>
+To: Another New Person <ams@oryx.com>
+Cc: Arnt in disguise Gulbrandsen <arnt@oryx.com>
+Date: 20 June 2008 14:28:51 +0200
+Subject: this is a test.
+X-Foo-Bar: barf
+X-Bar-Baz: quux
+
+asdf blah de blah
+foo de bar
+receive 1
+a OK [APPENDUID 1 1] done
+end

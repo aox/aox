@@ -1,0 +1,13 @@
+depends 20
+send 1
+a select inbox
+receive 8
+* 20 EXISTS
+* 20 RECENT
+* OK [UIDNEXT 21] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+a OK [READ-WRITE] done
+end

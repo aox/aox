@@ -1,0 +1,25 @@
+depends append
+send 6
+a append INBOX (weirdflag) {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 20 May 2004 14:28:51 +0200
+
+asdf
+receive 4
+* 5 EXISTS
+* 5 RECENT
+* OK [UIDNEXT 6] next uid
+a OK [APPENDUID 1 5] done
+send 1
+b fetch 1:* flags
+receive 8
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen weirdflag)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen weirdflag \*)] permanent flags
+* 1 FETCH (FLAGS (\Recent))
+* 2 FETCH (FLAGS (\Recent \Seen))
+* 3 FETCH (FLAGS (\Recent))
+* 4 FETCH (FLAGS (\Recent))
+* 5 FETCH (FLAGS (\Recent weirdflag))
+b OK done
+end

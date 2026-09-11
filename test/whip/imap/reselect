@@ -1,0 +1,39 @@
+# check that selecting a nonempty mailbox picks up all messages
+depends preparebody
+send 1
+a unselect
+receive 2
+* OK [CLOSED] I, missa est
+a OK done
+send 1
+c select inbox
+receive 8
+* 32 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 33] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+c OK [READ-WRITE] done
+send 1
+d1 noop
+receive 1
+d1 OK done
+send 1
+d2 noop
+receive 1
+d2 OK done
+send 1
+d3 noop
+receive 1
+d3 OK done
+send 1
+d4 noop
+receive 1
+d4 OK done
+send 1
+d5 noop
+receive 1
+d5 OK done
+end

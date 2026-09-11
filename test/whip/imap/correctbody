@@ -1,0 +1,104 @@
+# appends 32 messages and checks that the message-body link works
+# correctly in all 32 cases.
+depends preparebody
+send 1
+b fetch 1:32 body.peek[1]
+receive 97
+* 1 FETCH (BODY[1] {6}
+0001
+)
+* 2 FETCH (BODY[1] {6}
+0002
+)
+* 3 FETCH (BODY[1] {6}
+0003
+)
+* 4 FETCH (BODY[1] {6}
+0004
+)
+* 5 FETCH (BODY[1] {6}
+0005
+)
+* 6 FETCH (BODY[1] {6}
+0006
+)
+* 7 FETCH (BODY[1] {6}
+0007
+)
+* 8 FETCH (BODY[1] {6}
+0008
+)
+* 9 FETCH (BODY[1] {6}
+0009
+)
+* 10 FETCH (BODY[1] {6}
+0010
+)
+* 11 FETCH (BODY[1] {6}
+0011
+)
+* 12 FETCH (BODY[1] {6}
+0012
+)
+* 13 FETCH (BODY[1] {6}
+0013
+)
+* 14 FETCH (BODY[1] {6}
+0014
+)
+* 15 FETCH (BODY[1] {6}
+0015
+)
+* 16 FETCH (BODY[1] {6}
+0016
+)
+* 17 FETCH (BODY[1] {6}
+0017
+)
+* 18 FETCH (BODY[1] {6}
+0018
+)
+* 19 FETCH (BODY[1] {6}
+0019
+)
+* 20 FETCH (BODY[1] {6}
+0020
+)
+* 21 FETCH (BODY[1] {6}
+0021
+)
+* 22 FETCH (BODY[1] {6}
+0022
+)
+* 23 FETCH (BODY[1] {6}
+0023
+)
+* 24 FETCH (BODY[1] {6}
+0024
+)
+* 25 FETCH (BODY[1] {6}
+0025
+)
+* 26 FETCH (BODY[1] {6}
+0026
+)
+* 27 FETCH (BODY[1] {6}
+0027
+)
+* 28 FETCH (BODY[1] {6}
+0028
+)
+* 29 FETCH (BODY[1] {6}
+0029
+)
+* 30 FETCH (BODY[1] {6}
+0030
+)
+* 31 FETCH (BODY[1] {6}
+0031
+)
+* 32 FETCH (BODY[1] {6}
+0032
+)
+b OK done
+end

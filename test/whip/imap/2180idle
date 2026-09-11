@@ -1,0 +1,49 @@
+depends 2180base
+use watcher
+send 1
+i idle
+receive 1
++ idling
+use main
+send 1
+a store 1:2 +flags.silent \deleted
+receive 1
+a OK done
+use watcher
+receive 2
+* 1 FETCH (UID 1 FLAGS (\Deleted))
+* 2 FETCH (UID 2 FLAGS (\Deleted \Seen))
+use main
+send 1
+a uid expunge 1
+receive 2
+* 1 EXPUNGE
+a OK done
+use watcher
+receive 1
+* 1 EXPUNGE
+use main
+send 6
+a append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+asdf
+receive 4
+* 4 EXISTS
+* 3 RECENT
+* OK [UIDNEXT 6] next uid
+a OK [APPENDUID 1 5] done
+use watcher
+receive 3
+* 4 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 6] next uid
+send 1
+done
+receive 1
+i OK done
+send 1
+i idle
+end

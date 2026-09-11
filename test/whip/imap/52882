@@ -1,0 +1,30 @@
+# checks that we send the right envelope, as described in change 52882
+depends empty-inbox
+send 8
+a append INBOX () {164+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+Sender: arnt@b.cd
+Reply-To: e@oryx.com
+
+asdf
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+b fetch 1 (body.peek[] envelope)
+receive 10
+* 1 FETCH (ENVELOPE ("Thu, 13 May 2004 14:28:51 +0200" NIL (("Arnt Gulbrandsen" NIL "arnt" "oryx.com")) ((NIL NIL "arnt" "b.cd")) ((NIL NIL "e" "oryx.com")) (("Arnt Gulbrandsen" NIL "arnt" "oryx.com")) NIL NIL NIL NIL) BODY[] {166}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+Sender: arnt@b.cd
+Reply-To: e@oryx.com
+
+asdf
+)
+b OK done
+end

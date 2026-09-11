@@ -1,0 +1,20 @@
+# set up two connections for use in the RFC 2180 tests.
+depends append
+protocol imap watcher
+receive 1
+* OK [CAPABILITY IMAP4rev1 AUTH=ANONYMOUS AUTH=CRAM-MD5 AUTH=DIGEST-MD5 AUTH=PLAIN AUTH=LOGIN COMPRESS=DEFLATE ENABLE ID LITERAL+ SASL-IR STARTTLS] imapscript.test.oryx.com Archiveopteryx IMAP Server (security checking disabled)
+send 2
+a login script script
+b select inbox
+receive 9
+a OK [CAPABILITY IMAP4rev1 ACL BINARY CATENATE CHILDREN COMPRESS=DEFLATE CONDSTORE ENABLE ESEARCH I18NLEVEL=1 ID IDLE LIST-EXTENDED LITERAL+ MOVE MULTIAPPEND NAMESPACE OBJECTID QUOTA RIGHTS=ekntx SPECIAL-USE STARTTLS THREAD=ORDEREDSUBJECT THREAD=REFS THREAD=REFERENCES UIDONLY UIDPLUS UNSELECT URLAUTH UTF8=ACCEPT WITHIN] done
+* 4 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 5] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+b OK [READ-WRITE] done
+use main
+end

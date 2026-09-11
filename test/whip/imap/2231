@@ -1,0 +1,37 @@
+depends empty-inbox
+#
+# check that we unmangle MIME parameters as demanded by RFC 2231 section 6
+#
+send 8
+a append INBOX () {204+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+Content-Type: text/plain; x-blah*0=a; x-blah*1=b; x-blah*2=c
+Mime-Version: 1.0
+
+asdf
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+b fetch 1 bodystructure
+receive 2
+* 1 FETCH (BODYSTRUCTURE ("text" "plain" ("x-blah" "abc") NIL NIL "7BIT" 6 1 NIL NIL NIL NIL))
+b OK done
+send 1
+c fetch 1 body.peek[]
+receive 10
+* 1 FETCH (BODY[] {182}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+Content-Type: text/plain; x-blah=abc
+Mime-Version: 1.0
+
+asdf
+)
+c OK done
+end

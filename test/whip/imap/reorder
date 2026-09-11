@@ -1,0 +1,48 @@
+depends messagemix
+send 1
+b search recent
+receive 2
+* SEARCH 1 2 3
+b OK done
+send 2
+a fetch 1 flags
+b search recent
+receive 4
+* 1 FETCH (FLAGS (\Recent))
+a OK done
+* SEARCH 1 2 3
+b OK done
+send 2
+c fetch 2 flags
+d fetch 1 flags
+receive 4
+* 2 FETCH (FLAGS (\Recent))
+c OK done
+* 1 FETCH (FLAGS (\Recent))
+d OK done
+send 3
+e fetch 3 flags
+f noop
+g fetch 1 flags
+receive 5
+* 3 FETCH (FLAGS (\Recent))
+e OK done
+f OK done
+* 1 FETCH (FLAGS (\Recent))
+g OK done
+send 2
+h store 1 +flags.silent \seen
+i uid store 4 +flags.silent \seen
+receive 2
+h OK done
+i OK done
+send 3
+j fetch 1 flags
+k noop asdf
+l asdf
+receive 4
+l BAD No such command: asdf
+* 1 FETCH (FLAGS (\Recent \Seen))
+j OK done
+k BAD More text follows end of input: asdf
+end

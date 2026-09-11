@@ -1,0 +1,58 @@
+# checks that we can insert a message containing a null byte
+depends empty-inbox
+send 9
+a append INBOX () {230+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0
+
+a=00b
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+# we store 0 as the private-use codepoint U+ED00, so check that U+ED00 is
+# mapped to 0
+send 9
+a append INBOX () {236+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0
+
+a=EE=B4=80b
+receive 4
+* 2 EXISTS
+* 2 RECENT
+* OK [UIDNEXT 3] next uid
+a OK [APPENDUID 1 2] done
+send 1
+b fetch 1 body.peek[]
+receive 11
+* 1 FETCH (BODY[] {231}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0
+
+a=00b
+)
+b OK done
+send 1
+c search charset utf8 body {3}
+receive 1
++ reading literal
+send 1
+
+receive 2
+* SEARCH 1 2
+c OK done
+end

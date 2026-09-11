@@ -1,0 +1,81 @@
+depends append
+send 1
+a search sentsince 14-mAy-2004
+receive 2
+* SEARCH 2 3 4
+a OK done
+send 1
+b search sentbefore 14-may-2004
+receive 2
+* SEARCH 1
+b OK done
+send 1
+c search senton 14-may-2004
+receive 2
+* SEARCH
+c OK done
+send 1
+d search senton 20-may-2004
+receive 2
+* SEARCH 2 4
+d OK done
+send 1
+e search senton 27-may-2004
+receive 2
+* SEARCH 3
+e OK done
+send 1
+f search sentbefore 28-may-2004 sentsince 10-MAY-2004
+receive 2
+* SEARCH 1 2 3 4
+f OK done
+send 1
+g search sentbefore 28-may-2004 sentsince 9-MAY-2004
+receive 2
+* SEARCH 1 2 3 4
+g OK done
+send 1
+h search sentsince 13-may-2004
+receive 2
+* SEARCH 1 2 3 4
+h OK done
+send 1
+i search sentbefore 13-may-2004
+receive 2
+* SEARCH
+i OK done
+send 1
+f search sentbefore 32-may-2004
+receive 1
+f BAD Invalid date: 32-may-2004
+send 1
+7 UID SEARCH uid 3:* BEFORE 13-Sep-2006
+receive 2
+* SEARCH 3 4
+7 OK done
+send 1
+8 UID SEARCH uid 3:* BEFORE 9-Feb-2002
+receive 2
+* SEARCH 4
+8 OK done
+send 1
+9 UID SEARCH uid 3:* SINCE 12-Feb-2005
+receive 2
+* SEARCH 3
+9 OK done
+send 1
+0 UID SEARCH uid 3:* SINCE 9-Feb-2002
+receive 2
+* SEARCH 3 4
+0 OK done
+send 1
+1 UID SEARCH uid 3:* SINCE 10-Feb-2002
+receive 2
+* SEARCH 3
+1 OK done
+send 1
+2 UID SEARCH uid 3:* BEFORE 09-Feb-2002
+receive 2
+* SEARCH 4
+2 OK done
+end

@@ -1,0 +1,197 @@
+depends empty-inbox
+send 6
+a append INBOX () {105+}
+From: weber@example.com
+To: LIESCHEN.WEBER@EXAMPLE.COM.QA
+Date: Thu, 20 May 2004 14:28:51 +0200
+
+asdf
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 7
+a append INBOX () {139+}
+From: weber@example.com, weber@example.org
+Sender: weber@example.org
+To: weber@example.com
+Date: Thu, 20 May 2004 14:28:51 +0200
+
+asdf
+receive 4
+* 2 EXISTS
+* 2 RECENT
+* OK [UIDNEXT 3] next uid
+a OK [APPENDUID 1 2] done
+send 6
+a append INBOX () {125+}
+From: weber@example.com.sg
+To: Lieschen Weber <lieschen.weber@example.com.qa>
+Date: Thu, 20 May 2004 14:28:51 +0200
+
+asdf
+receive 4
+* 3 EXISTS
+* 3 RECENT
+* OK [UIDNEXT 4] next uid
+a OK [APPENDUID 1 3] done
+send 6
+a append INBOX () {116+}
+From: "weber@example.org" <weber@example.com>
+To: anyone@example.com
+Date: Thu, 20 May 2004 14:28:51 +0200
+
+asdf
+receive 4
+* 4 EXISTS
+* 4 RECENT
+* OK [UIDNEXT 5] next uid
+a OK [APPENDUID 1 4] done
+send 7
+a append INBOX () {121+}
+From: weber@example.org
+To: weber@example.org
+Date: Thu, 20 May 2004 14:28:51 +0200
+Comment: weber@example.com
+
+asdf
+receive 4
+* 5 EXISTS
+* 5 RECENT
+* OK [UIDNEXT 6] next uid
+a OK [APPENDUID 1 5] done
+send 7
+a append INBOX () {126+}
+From: anyone@example.org
+To: caramba@beispiel.de
+Date: Thu, 20 May 2004 14:28:51 +0200
+Comment: <weber@example.com>
+
+asdf
+receive 4
+* 6 EXISTS
+* 6 RECENT
+* OK [UIDNEXT 7] next uid
+a OK [APPENDUID 1 6] done
+send 1
+a search from weber@example.com
+receive 2
+* SEARCH 1 2 3 4
+a OK done
+send 1
+a search from weber@example
+receive 2
+* SEARCH 1 2 3 4 5
+a OK done
+send 1
+a search from <weber@example.com>
+receive 2
+* SEARCH 1 2 4
+a OK done
+send 1
+a search header sender weber@example.org
+receive 2
+* SEARCH 2
+a OK done
+send 1
+a search from "<weber@"
+receive 2
+* SEARCH 1 2 3 4 5
+a OK done
+send 1
+a search to "<weber@"
+receive 2
+* SEARCH 2 5
+a OK done
+send 1
+a search from weber@example.org
+receive 2
+* SEARCH 2 5
+a OK done
+send 1
+a search from <weber@example.org>
+receive 2
+* SEARCH 2 5
+a OK done
+send 1
+a search to <weber@example
+receive 2
+* SEARCH 2 5
+a OK done
+send 1
+a search to weber@example
+receive 2
+* SEARCH 1 2 3 5
+a OK done
+send 1
+a search to <weber@example.com>
+receive 2
+* SEARCH 2
+a OK done
+send 1
+a search to weber@
+receive 2
+* SEARCH 1 2 3 5
+a OK done
+send 1
+a search to lieschen.weber
+receive 2
+* SEARCH 1 3
+a OK done
+send 1
+a search to lieschen
+receive 2
+* SEARCH 1 3
+a OK done
+send 1
+a search from example.org
+receive 2
+* SEARCH 2 4 5 6
+a OK done
+send 1
+a search from "@example.org>"
+receive 2
+* SEARCH 2 5 6
+a OK done
+send 1
+a search text "@example.org>"
+receive 2
+* SEARCH 2 5 6
+a OK done
+send 1
+b search or from "<weber@example.com>" to "<weber@example.com>"
+receive 2
+* SEARCH 1 2 4
+b OK done
+send 1
+b search or from "<w%r@example.com>" to "<weber@%.com>"
+receive 2
+* SEARCH
+b OK done
+send 1
+b search or from "<\\weber@example.com>" to "<weber@e_ample.com>"
+receive 2
+* SEARCH
+b OK done
+send 1
+b search or or or from "<weber@example.com>" header "Resent-From" "<weber@example.com>" or header Sender "<weber@example.com>" header "Resent-Sender" "<weber@example.com>" or or or header "Return-Path" "<weber@example.com>" header "Reply-To" "<weber@example.com>" or To "<weber@example.com>" Cc "<weber@example.com>" or or header Bcc "<weber@example.com>" header "Resent-To" "<weber@example.com>" or header "Resent-Cc" "<weber@example.com>" header "Resent-Bcc" "<weber@example.com>"
+receive 2
+* SEARCH 1 2 4
+b OK done
+send 1
+b search header "" "<weber@example.com>"
+receive 2
+* SEARCH 1 2 4 6
+b OK done
+send 1
+b search header "" "weber@example.com"
+receive 2
+* SEARCH 1 2 3 4 5 6
+b OK done
+send 1
+b search or header "" "weber@example.com" header "" "<faber@example.com>"
+receive 2
+* SEARCH 1 2 3 4 5 6
+b OK done
+end

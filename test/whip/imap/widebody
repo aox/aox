@@ -1,0 +1,1989 @@
+# appends a message with lots of bodyparts and checks that we can retrieve
+# the parts.
+depends empty-inbox
+send 725
+a append INBOX () {15624+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 20 May 2004 14:28:51 +0200
+Content-Type: multipart/mixed; boundary=-
+Mime-Version: 1.0
+
+---
+Content-Type: text/plain; charset=437; real=IBM437
+
+Type is IBM437
+---
+Content-Type: text/plain; charset=850; real=IBM850
+
+Type is IBM850
+---
+Content-Type: text/plain; charset=852; real=IBM852
+
+Type is IBM852
+---
+Content-Type: text/plain; charset=855; real=IBM855
+
+Type is IBM855
+---
+Content-Type: text/plain; charset=857; real=IBM857
+
+Type is IBM857
+---
+Content-Type: text/plain; charset=860; real=IBM860
+
+Type is IBM860
+---
+Content-Type: text/plain; charset=861; real=IBM861
+
+Type is IBM861
+---
+Content-Type: text/plain; charset=862; real=IBM862
+
+Type is IBM862
+---
+Content-Type: text/plain; charset=863; real=IBM863
+
+Type is IBM863
+---
+Content-Type: text/plain; charset=865; real=IBM865
+
+Type is IBM865
+---
+Content-Type: text/plain; charset=866; real=IBM866
+
+Type is IBM866
+---
+Content-Type: text/plain; charset=869; real=IBM869
+
+Type is IBM869
+---
+Content-Type: text/plain; charset=ansi_x3.4-1968; real=US-ASCII
+
+Type is US-ASCII
+---
+Content-Type: text/plain; charset=ansi_x3.4-1986; real=US-ASCII
+
+Type is US-ASCII
+---
+Content-Type: text/plain; charset=arabic; real=ISO-8859-6
+
+Type is ISO-8859-6
+---
+Content-Type: text/plain; charset=ascii; real=US-ASCII
+
+Type is US-ASCII
+---
+Content-Type: text/plain; charset=asmo-708; real=ISO-8859-6
+
+Type is ISO-8859-6
+---
+Content-Type: text/plain; charset=cp-gr; real=IBM869
+
+Type is IBM869
+---
+Content-Type: text/plain; charset=cp-is; real=IBM861
+
+Type is IBM861
+---
+Content-Type: text/plain; charset=cp367; real=US-ASCII
+
+Type is US-ASCII
+---
+Content-Type: text/plain; charset=cp437; real=IBM437
+
+Type is IBM437
+---
+Content-Type: text/plain; charset=cp775; real=IBM775
+
+Type is IBM775
+---
+Content-Type: text/plain; charset=cp819; real=ISO-8859-1
+
+Type is ISO-8859-1
+---
+Content-Type: text/plain; charset=cp850; real=IBM850
+
+Type is IBM850
+---
+Content-Type: text/plain; charset=cp852; real=IBM852
+
+Type is IBM852
+---
+Content-Type: text/plain; charset=cp855; real=IBM855
+
+Type is IBM855
+---
+Content-Type: text/plain; charset=cp857; real=IBM857
+
+Type is IBM857
+---
+Content-Type: text/plain; charset=cp860; real=IBM860
+
+Type is IBM860
+---
+Content-Type: text/plain; charset=cp861; real=IBM861
+
+Type is IBM861
+---
+Content-Type: text/plain; charset=cp862; real=IBM862
+
+Type is IBM862
+---
+Content-Type: text/plain; charset=cp863; real=IBM863
+
+Type is IBM863
+---
+Content-Type: text/plain; charset=cp864; real=IBM864
+
+Type is IBM864
+---
+Content-Type: text/plain; charset=cp865; real=IBM865
+
+Type is IBM865
+---
+Content-Type: text/plain; charset=cp866; real=IBM866
+
+Type is IBM866
+---
+Content-Type: text/plain; charset=cp869; real=IBM869
+
+Type is IBM869
+---
+Content-Type: text/plain; charset=csascii; real=US-ASCII
+
+Type is US-ASCII
+---
+Content-Type: text/plain; charset=csibm855; real=IBM855
+
+Type is IBM855
+---
+Content-Type: text/plain; charset=csibm857; real=IBM857
+
+Type is IBM857
+---
+Content-Type: text/plain; charset=csibm860; real=IBM860
+
+Type is IBM860
+---
+Content-Type: text/plain; charset=csibm861; real=IBM861
+
+Type is IBM861
+---
+Content-Type: text/plain; charset=csibm863; real=IBM863
+
+Type is IBM863
+---
+Content-Type: text/plain; charset=csibm864; real=IBM864
+
+Type is IBM864
+---
+Content-Type: text/plain; charset=csibm865; real=IBM865
+
+Type is IBM865
+---
+Content-Type: text/plain; charset=csibm866; real=IBM866
+
+Type is IBM866
+---
+Content-Type: text/plain; charset=csibm869; real=IBM869
+
+Type is IBM869
+---
+Content-Type: text/plain; charset=csisolatin1; real=ISO-8859-1
+
+Type is ISO-8859-1
+---
+Content-Type: text/plain; charset=csisolatin2; real=ISO-8859-2
+
+Type is ISO-8859-2
+---
+Content-Type: text/plain; charset=csisolatin3; real=ISO-8859-3
+
+Type is ISO-8859-3
+---
+Content-Type: text/plain; charset=csisolatin4; real=ISO-8859-4
+
+Type is ISO-8859-4
+---
+Content-Type: text/plain; charset=csisolatin5; real=ISO-8859-9
+
+Type is ISO-8859-9
+---
+Content-Type: text/plain; charset=csisolatin6; real=ISO-8859-10
+
+Type is ISO-8859-10
+---
+Content-Type: text/plain; charset=csisolatinarabic; real=ISO-8859-6
+
+Type is ISO-8859-6
+---
+Content-Type: text/plain; charset=csisolatincyrillic; real=ISO-8859-5
+
+Type is ISO-8859-5
+---
+Content-Type: text/plain; charset=csisolatingreek; real=ISO-8859-7
+
+Type is ISO-8859-7
+---
+Content-Type: text/plain; charset=csisolatinhebrew; real=ISO-8859-8
+
+Type is ISO-8859-8
+---
+Content-Type: text/plain; charset=cskoi8r; real=KOI8-R
+
+Type is KOI8-R
+---
+Content-Type: text/plain; charset=csmacintosh; real=macintosh
+
+Type is macintosh
+---
+Content-Type: text/plain; charset=cspc775baltic; real=IBM775
+
+Type is IBM775
+---
+Content-Type: text/plain; charset=cspc850multilingual; real=IBM850
+
+Type is IBM850
+---
+Content-Type: text/plain; charset=cspc862latinhebrew; real=IBM862
+
+Type is IBM862
+---
+Content-Type: text/plain; charset=cspc8codepage437; real=IBM437
+
+Type is IBM437
+---
+Content-Type: text/plain; charset=cspcp852; real=IBM852
+
+Type is IBM852
+---
+Content-Type: text/plain; charset=csunknown8bit; real=UNKNOWN-8BIT
+
+Type is UNKNOWN-8BIT
+---
+Content-Type: text/plain; charset=cyrillic; real=ISO-8859-5
+
+Type is ISO-8859-5
+---
+Content-Type: text/plain; charset=ecma-114; real=ISO-8859-6
+
+Type is ISO-8859-6
+---
+Content-Type: text/plain; charset=ecma-118; real=ISO-8859-7
+
+Type is ISO-8859-7
+---
+Content-Type: text/plain; charset=elot_928; real=ISO-8859-7
+
+Type is ISO-8859-7
+---
+Content-Type: text/plain; charset=greek; real=ISO-8859-7
+
+Type is ISO-8859-7
+---
+Content-Type: text/plain; charset=greek8; real=ISO-8859-7
+
+Type is ISO-8859-7
+---
+Content-Type: text/plain; charset=hebrew; real=ISO-8859-8
+
+Type is ISO-8859-8
+---
+Content-Type: text/plain; charset=ibm367; real=US-ASCII
+
+Type is US-ASCII
+---
+Content-Type: text/plain; charset=ibm437; real=IBM437
+
+Type is IBM437
+---
+Content-Type: text/plain; charset=ibm775; real=IBM775
+
+Type is IBM775
+---
+Content-Type: text/plain; charset=ibm819; real=ISO-8859-1
+
+Type is ISO-8859-1
+---
+Content-Type: text/plain; charset=ibm850; real=IBM850
+
+Type is IBM850
+---
+Content-Type: text/plain; charset=ibm852; real=IBM852
+
+Type is IBM852
+---
+Content-Type: text/plain; charset=ibm855; real=IBM855
+
+Type is IBM855
+---
+Content-Type: text/plain; charset=ibm857; real=IBM857
+
+Type is IBM857
+---
+Content-Type: text/plain; charset=ibm860; real=IBM860
+
+Type is IBM860
+---
+Content-Type: text/plain; charset=ibm861; real=IBM861
+
+Type is IBM861
+---
+Content-Type: text/plain; charset=ibm862; real=IBM862
+
+Type is IBM862
+---
+Content-Type: text/plain; charset=ibm863; real=IBM863
+
+Type is IBM863
+---
+Content-Type: text/plain; charset=ibm864; real=IBM864
+
+Type is IBM864
+---
+Content-Type: text/plain; charset=ibm865; real=IBM865
+
+Type is IBM865
+---
+Content-Type: text/plain; charset=ibm866; real=IBM866
+
+Type is IBM866
+---
+Content-Type: text/plain; charset=ibm869; real=IBM869
+
+Type is IBM869
+---
+Content-Type: text/plain; charset=iso-8859-1; real=ISO-8859-1
+
+Type is ISO-8859-1
+---
+Content-Type: text/plain; charset=iso-8859-10; real=ISO-8859-10
+
+Type is ISO-8859-10
+---
+Content-Type: text/plain; charset=iso-8859-13; real=ISO-8859-13
+
+Type is ISO-8859-13
+---
+Content-Type: text/plain; charset=iso-8859-14; real=ISO-8859-14
+
+Type is ISO-8859-14
+---
+Content-Type: text/plain; charset=iso-8859-15; real=ISO-8859-15
+
+Type is ISO-8859-15
+---
+Content-Type: text/plain; charset=iso-8859-16; real=ISO-8859-16
+
+Type is ISO-8859-16
+---
+Content-Type: text/plain; charset=iso-8859-2; real=ISO-8859-2
+
+Type is ISO-8859-2
+---
+Content-Type: text/plain; charset=iso-8859-3; real=ISO-8859-3
+
+Type is ISO-8859-3
+---
+Content-Type: text/plain; charset=iso-8859-4; real=ISO-8859-4
+
+Type is ISO-8859-4
+---
+Content-Type: text/plain; charset=iso-8859-5; real=ISO-8859-5
+
+Type is ISO-8859-5
+---
+Content-Type: text/plain; charset=iso-8859-6; real=ISO-8859-6
+
+Type is ISO-8859-6
+---
+Content-Type: text/plain; charset=iso-8859-7; real=ISO-8859-7
+
+Type is ISO-8859-7
+---
+Content-Type: text/plain; charset=iso-8859-8; real=ISO-8859-8
+
+Type is ISO-8859-8
+---
+Content-Type: text/plain; charset=iso-8859-9; real=ISO-8859-9
+
+Type is ISO-8859-9
+---
+Content-Type: text/plain; charset=iso-celtic; real=ISO-8859-14
+
+Type is ISO-8859-14
+---
+Content-Type: text/plain; charset=iso-ir-100; real=ISO-8859-1
+
+Type is ISO-8859-1
+---
+Content-Type: text/plain; charset=iso-ir-101; real=ISO-8859-2
+
+Type is ISO-8859-2
+---
+Content-Type: text/plain; charset=iso-ir-109; real=ISO-8859-3
+
+Type is ISO-8859-3
+---
+Content-Type: text/plain; charset=iso-ir-110; real=ISO-8859-4
+
+Type is ISO-8859-4
+---
+Content-Type: text/plain; charset=iso-ir-126; real=ISO-8859-7
+
+Type is ISO-8859-7
+---
+Content-Type: text/plain; charset=iso-ir-127; real=ISO-8859-6
+
+Type is ISO-8859-6
+---
+Content-Type: text/plain; charset=iso-ir-138; real=ISO-8859-8
+
+Type is ISO-8859-8
+---
+Content-Type: text/plain; charset=iso-ir-144; real=ISO-8859-5
+
+Type is ISO-8859-5
+---
+Content-Type: text/plain; charset=iso-ir-148; real=ISO-8859-9
+
+Type is ISO-8859-9
+---
+Content-Type: text/plain; charset=iso-ir-157; real=ISO-8859-10
+
+Type is ISO-8859-10
+---
+Content-Type: text/plain; charset=iso-ir-199; real=ISO-8859-14
+
+Type is ISO-8859-14
+---
+Content-Type: text/plain; charset=iso-ir-226; real=ISO-8859-16
+
+Type is ISO-8859-16
+---
+Content-Type: text/plain; charset=iso-ir-6; real=US-ASCII
+
+Type is US-ASCII
+---
+Content-Type: text/plain; charset=iso646-us; real=US-ASCII
+
+Type is US-ASCII
+---
+Content-Type: text/plain; charset="iso_646.irv:1991"; real=US-ASCII
+
+Type is US-ASCII
+---
+Content-Type: text/plain; charset=iso_8859-1; real=ISO-8859-1
+
+Type is ISO-8859-1
+---
+Content-Type: text/plain; charset="iso_8859-10:1992"; real=ISO-8859-10
+
+Type is ISO-8859-10
+---
+Content-Type: text/plain; charset=iso_8859-14; real=ISO-8859-14
+
+Type is ISO-8859-14
+---
+Content-Type: text/plain; charset="iso_8859-14:1998"; real=ISO-8859-14
+
+Type is ISO-8859-14
+---
+Content-Type: text/plain; charset=iso_8859-15; real=ISO-8859-15
+
+Type is ISO-8859-15
+---
+Content-Type: text/plain; charset=iso_8859-16; real=ISO-8859-16
+
+Type is ISO-8859-16
+---
+Content-Type: text/plain; charset="iso_8859-16:2001"; real=ISO-8859-16
+
+Type is ISO-8859-16
+---
+Content-Type: text/plain; charset="iso_8859-1:1987"; real=ISO-8859-1
+
+Type is ISO-8859-1
+---
+Content-Type: text/plain; charset=iso_8859-2; real=ISO-8859-2
+
+Type is ISO-8859-2
+---
+Content-Type: text/plain; charset="iso_8859-2:1987"; real=ISO-8859-2
+
+Type is ISO-8859-2
+---
+Content-Type: text/plain; charset=iso_8859-3; real=ISO-8859-3
+
+Type is ISO-8859-3
+---
+Content-Type: text/plain; charset="iso_8859-3:1988"; real=ISO-8859-3
+
+Type is ISO-8859-3
+---
+Content-Type: text/plain; charset=iso_8859-4; real=ISO-8859-4
+
+Type is ISO-8859-4
+---
+Content-Type: text/plain; charset="iso_8859-4:1988"; real=ISO-8859-4
+
+Type is ISO-8859-4
+---
+Content-Type: text/plain; charset=iso_8859-5; real=ISO-8859-5
+
+Type is ISO-8859-5
+---
+Content-Type: text/plain; charset="iso_8859-5:1988"; real=ISO-8859-5
+
+Type is ISO-8859-5
+---
+Content-Type: text/plain; charset=iso_8859-6; real=ISO-8859-6
+
+Type is ISO-8859-6
+---
+Content-Type: text/plain; charset="iso_8859-6:1987"; real=ISO-8859-6
+
+Type is ISO-8859-6
+---
+Content-Type: text/plain; charset=iso_8859-7; real=ISO-8859-7
+
+Type is ISO-8859-7
+---
+Content-Type: text/plain; charset="iso_8859-7:1987"; real=ISO-8859-7
+
+Type is ISO-8859-7
+---
+Content-Type: text/plain; charset=iso_8859-8; real=ISO-8859-8
+
+Type is ISO-8859-8
+---
+Content-Type: text/plain; charset="iso_8859-8:1988"; real=ISO-8859-8
+
+Type is ISO-8859-8
+---
+Content-Type: text/plain; charset=iso_8859-9; real=ISO-8859-9
+
+Type is ISO-8859-9
+---
+Content-Type: text/plain; charset="iso_8859-9:1989"; real=ISO-8859-9
+
+Type is ISO-8859-9
+---
+Content-Type: text/plain; charset=koi8-r; real=KOI8-R
+
+Type is KOI8-R
+---
+Content-Type: text/plain; charset=koi8-u; real=KOI8-U
+
+Type is KOI8-U
+---
+Content-Type: text/plain; charset=l1; real=ISO-8859-1
+
+Type is ISO-8859-1
+---
+Content-Type: text/plain; charset=l10; real=ISO-8859-16
+
+Type is ISO-8859-16
+---
+Content-Type: text/plain; charset=l2; real=ISO-8859-2
+
+Type is ISO-8859-2
+---
+Content-Type: text/plain; charset=l3; real=ISO-8859-3
+
+Type is ISO-8859-3
+---
+Content-Type: text/plain; charset=l4; real=ISO-8859-4
+
+Type is ISO-8859-4
+---
+Content-Type: text/plain; charset=l5; real=ISO-8859-9
+
+Type is ISO-8859-9
+---
+Content-Type: text/plain; charset=l6; real=ISO-8859-10
+
+Type is ISO-8859-10
+---
+Content-Type: text/plain; charset=l8; real=ISO-8859-14
+
+Type is ISO-8859-14
+---
+Content-Type: text/plain; charset=latin-9; real=ISO-8859-15
+
+Type is ISO-8859-15
+---
+Content-Type: text/plain; charset=latin1; real=ISO-8859-1
+
+Type is ISO-8859-1
+---
+Content-Type: text/plain; charset=latin10; real=ISO-8859-16
+
+Type is ISO-8859-16
+---
+Content-Type: text/plain; charset=latin2; real=ISO-8859-2
+
+Type is ISO-8859-2
+---
+Content-Type: text/plain; charset=latin3; real=ISO-8859-3
+
+Type is ISO-8859-3
+---
+Content-Type: text/plain; charset=latin4; real=ISO-8859-4
+
+Type is ISO-8859-4
+---
+Content-Type: text/plain; charset=latin5; real=ISO-8859-9
+
+Type is ISO-8859-9
+---
+Content-Type: text/plain; charset=latin6; real=ISO-8859-10
+
+Type is ISO-8859-10
+---
+Content-Type: text/plain; charset=latin8; real=ISO-8859-14
+
+Type is ISO-8859-14
+---
+Content-Type: text/plain; charset=mac; real=macintosh
+
+Type is macintosh
+---
+Content-Type: text/plain; charset=macintosh; real=macintosh
+
+Type is macintosh
+---
+Content-Type: text/plain; charset=tis-620; real=TIS-620
+
+Type is TIS-620
+---
+Content-Type: text/plain; charset=unknown-8bit; real=UNKNOWN-8BIT
+
+Type is UNKNOWN-8BIT
+---
+Content-Type: text/plain; charset=us; real=US-ASCII
+
+Type is US-ASCII
+---
+Content-Type: text/plain; charset=us-ascii; real=US-ASCII
+
+Type is US-ASCII
+---
+Content-Type: text/plain; charset=utf-8; real=UTF-8
+
+Type is UTF-8
+---
+Content-Type: text/plain; charset=windows-1250; real=windows-1250
+
+Type is windows-1250
+---
+Content-Type: text/plain; charset=windows-1251; real=windows-1251
+
+Type is windows-1251
+---
+Content-Type: text/plain; charset=windows-1252; real=windows-1252
+
+Type is windows-1252
+---
+Content-Type: text/plain; charset=windows-1253; real=windows-1253
+
+Type is windows-1253
+---
+Content-Type: text/plain; charset=windows-1254; real=windows-1254
+
+Type is windows-1254
+---
+Content-Type: text/plain; charset=windows-1255; real=windows-1255
+
+Type is windows-1255
+---
+Content-Type: text/plain; charset=windows-1256; real=windows-1256
+
+Type is windows-1256
+---
+Content-Type: text/plain; charset=windows-1257; real=windows-1257
+
+Type is windows-1257
+---
+Content-Type: text/plain; charset=windows-1258; real=windows-1258
+
+Type is windows-1258
+---
+Content-Type: text/plain; charset=windows_1258; real=windows-1258
+
+Type is windows-1258
+---
+Content-Type: text/plain; charset="iso_8859_1"; real=ISO-8859-1
+
+Type is ISO-8859-1
+---
+Content-Type: text/plain; charset="iso 8859-1"; real=ISO-8859-1
+
+Type is ISO-8859-1
+---
+Content-Type: text/plain; charset="iso-8859_1"; real=ISO-8859-1
+
+Type is ISO-8859-1
+-----
+
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+f1 fetch 1 body.peek[1]
+receive 4
+* 1 FETCH (BODY[1] {16}
+Type is IBM437
+)
+f1 OK done
+send 1
+f2 fetch 1 body.peek[2]
+receive 4
+* 1 FETCH (BODY[2] {16}
+Type is IBM850
+)
+f2 OK done
+send 1
+f3 fetch 1 body.peek[3]
+receive 4
+* 1 FETCH (BODY[3] {16}
+Type is IBM852
+)
+f3 OK done
+send 1
+f4 fetch 1 body.peek[4]
+receive 4
+* 1 FETCH (BODY[4] {16}
+Type is IBM855
+)
+f4 OK done
+send 1
+f5 fetch 1 body.peek[5]
+receive 4
+* 1 FETCH (BODY[5] {16}
+Type is IBM857
+)
+f5 OK done
+send 1
+f6 fetch 1 body.peek[6]
+receive 4
+* 1 FETCH (BODY[6] {16}
+Type is IBM860
+)
+f6 OK done
+send 1
+f7 fetch 1 body.peek[7]
+receive 4
+* 1 FETCH (BODY[7] {16}
+Type is IBM861
+)
+f7 OK done
+send 1
+f8 fetch 1 body.peek[8]
+receive 4
+* 1 FETCH (BODY[8] {16}
+Type is IBM862
+)
+f8 OK done
+send 1
+f9 fetch 1 body.peek[9]
+receive 4
+* 1 FETCH (BODY[9] {16}
+Type is IBM863
+)
+f9 OK done
+send 1
+f10 fetch 1 body.peek[10]
+receive 4
+* 1 FETCH (BODY[10] {16}
+Type is IBM865
+)
+f10 OK done
+send 1
+f11 fetch 1 body.peek[11]
+receive 4
+* 1 FETCH (BODY[11] {16}
+Type is IBM866
+)
+f11 OK done
+send 1
+f12 fetch 1 body.peek[12]
+receive 4
+* 1 FETCH (BODY[12] {16}
+Type is IBM869
+)
+f12 OK done
+send 1
+f13 fetch 1 body.peek[13]
+receive 4
+* 1 FETCH (BODY[13] {18}
+Type is US-ASCII
+)
+f13 OK done
+send 1
+f14 fetch 1 body.peek[14]
+receive 4
+* 1 FETCH (BODY[14] {18}
+Type is US-ASCII
+)
+f14 OK done
+send 1
+f15 fetch 1 body.peek[15]
+receive 4
+* 1 FETCH (BODY[15] {20}
+Type is ISO-8859-6
+)
+f15 OK done
+send 1
+f16 fetch 1 body.peek[16]
+receive 4
+* 1 FETCH (BODY[16] {18}
+Type is US-ASCII
+)
+f16 OK done
+send 1
+f17 fetch 1 body.peek[17]
+receive 4
+* 1 FETCH (BODY[17] {20}
+Type is ISO-8859-6
+)
+f17 OK done
+send 1
+f18 fetch 1 body.peek[18]
+receive 4
+* 1 FETCH (BODY[18] {16}
+Type is IBM869
+)
+f18 OK done
+send 1
+f19 fetch 1 body.peek[19]
+receive 4
+* 1 FETCH (BODY[19] {16}
+Type is IBM861
+)
+f19 OK done
+send 1
+f20 fetch 1 body.peek[20]
+receive 4
+* 1 FETCH (BODY[20] {18}
+Type is US-ASCII
+)
+f20 OK done
+send 1
+f21 fetch 1 body.peek[21]
+receive 4
+* 1 FETCH (BODY[21] {16}
+Type is IBM437
+)
+f21 OK done
+send 1
+f22 fetch 1 body.peek[22]
+receive 4
+* 1 FETCH (BODY[22] {16}
+Type is IBM775
+)
+f22 OK done
+send 1
+f23 fetch 1 body.peek[23]
+receive 4
+* 1 FETCH (BODY[23] {20}
+Type is ISO-8859-1
+)
+f23 OK done
+send 1
+f24 fetch 1 body.peek[24]
+receive 4
+* 1 FETCH (BODY[24] {16}
+Type is IBM850
+)
+f24 OK done
+send 1
+f25 fetch 1 body.peek[25]
+receive 4
+* 1 FETCH (BODY[25] {16}
+Type is IBM852
+)
+f25 OK done
+send 1
+f26 fetch 1 body.peek[26]
+receive 4
+* 1 FETCH (BODY[26] {16}
+Type is IBM855
+)
+f26 OK done
+send 1
+f27 fetch 1 body.peek[27]
+receive 4
+* 1 FETCH (BODY[27] {16}
+Type is IBM857
+)
+f27 OK done
+send 1
+f28 fetch 1 body.peek[28]
+receive 4
+* 1 FETCH (BODY[28] {16}
+Type is IBM860
+)
+f28 OK done
+send 1
+f29 fetch 1 body.peek[29]
+receive 4
+* 1 FETCH (BODY[29] {16}
+Type is IBM861
+)
+f29 OK done
+send 1
+f30 fetch 1 body.peek[30]
+receive 4
+* 1 FETCH (BODY[30] {16}
+Type is IBM862
+)
+f30 OK done
+send 1
+f31 fetch 1 body.peek[31]
+receive 4
+* 1 FETCH (BODY[31] {16}
+Type is IBM863
+)
+f31 OK done
+send 1
+f32 fetch 1 body.peek[32]
+receive 4
+* 1 FETCH (BODY[32] {16}
+Type is IBM864
+)
+f32 OK done
+send 1
+f33 fetch 1 body.peek[33]
+receive 4
+* 1 FETCH (BODY[33] {16}
+Type is IBM865
+)
+f33 OK done
+send 1
+f34 fetch 1 body.peek[34]
+receive 4
+* 1 FETCH (BODY[34] {16}
+Type is IBM866
+)
+f34 OK done
+send 1
+f35 fetch 1 body.peek[35]
+receive 4
+* 1 FETCH (BODY[35] {16}
+Type is IBM869
+)
+f35 OK done
+send 1
+f36 fetch 1 body.peek[36]
+receive 4
+* 1 FETCH (BODY[36] {18}
+Type is US-ASCII
+)
+f36 OK done
+send 1
+f37 fetch 1 body.peek[37]
+receive 4
+* 1 FETCH (BODY[37] {16}
+Type is IBM855
+)
+f37 OK done
+send 1
+f38 fetch 1 body.peek[38]
+receive 4
+* 1 FETCH (BODY[38] {16}
+Type is IBM857
+)
+f38 OK done
+send 1
+f39 fetch 1 body.peek[39]
+receive 4
+* 1 FETCH (BODY[39] {16}
+Type is IBM860
+)
+f39 OK done
+send 1
+f40 fetch 1 body.peek[40]
+receive 4
+* 1 FETCH (BODY[40] {16}
+Type is IBM861
+)
+f40 OK done
+send 1
+f41 fetch 1 body.peek[41]
+receive 4
+* 1 FETCH (BODY[41] {16}
+Type is IBM863
+)
+f41 OK done
+send 1
+f42 fetch 1 body.peek[42]
+receive 4
+* 1 FETCH (BODY[42] {16}
+Type is IBM864
+)
+f42 OK done
+send 1
+f43 fetch 1 body.peek[43]
+receive 4
+* 1 FETCH (BODY[43] {16}
+Type is IBM865
+)
+f43 OK done
+send 1
+f44 fetch 1 body.peek[44]
+receive 4
+* 1 FETCH (BODY[44] {16}
+Type is IBM866
+)
+f44 OK done
+send 1
+f45 fetch 1 body.peek[45]
+receive 4
+* 1 FETCH (BODY[45] {16}
+Type is IBM869
+)
+f45 OK done
+send 1
+f46 fetch 1 body.peek[46]
+receive 4
+* 1 FETCH (BODY[46] {20}
+Type is ISO-8859-1
+)
+f46 OK done
+send 1
+f47 fetch 1 body.peek[47]
+receive 4
+* 1 FETCH (BODY[47] {20}
+Type is ISO-8859-2
+)
+f47 OK done
+send 1
+f48 fetch 1 body.peek[48]
+receive 4
+* 1 FETCH (BODY[48] {20}
+Type is ISO-8859-3
+)
+f48 OK done
+send 1
+f49 fetch 1 body.peek[49]
+receive 4
+* 1 FETCH (BODY[49] {20}
+Type is ISO-8859-4
+)
+f49 OK done
+send 1
+f50 fetch 1 body.peek[50]
+receive 4
+* 1 FETCH (BODY[50] {20}
+Type is ISO-8859-9
+)
+f50 OK done
+send 1
+f51 fetch 1 body.peek[51]
+receive 4
+* 1 FETCH (BODY[51] {21}
+Type is ISO-8859-10
+)
+f51 OK done
+send 1
+f52 fetch 1 body.peek[52]
+receive 4
+* 1 FETCH (BODY[52] {20}
+Type is ISO-8859-6
+)
+f52 OK done
+send 1
+f53 fetch 1 body.peek[53]
+receive 4
+* 1 FETCH (BODY[53] {20}
+Type is ISO-8859-5
+)
+f53 OK done
+send 1
+f54 fetch 1 body.peek[54]
+receive 4
+* 1 FETCH (BODY[54] {20}
+Type is ISO-8859-7
+)
+f54 OK done
+send 1
+f55 fetch 1 body.peek[55]
+receive 4
+* 1 FETCH (BODY[55] {20}
+Type is ISO-8859-8
+)
+f55 OK done
+send 1
+f56 fetch 1 body.peek[56]
+receive 4
+* 1 FETCH (BODY[56] {16}
+Type is KOI8-R
+)
+f56 OK done
+send 1
+f57 fetch 1 body.peek[57]
+receive 4
+* 1 FETCH (BODY[57] {19}
+Type is macintosh
+)
+f57 OK done
+send 1
+f58 fetch 1 body.peek[58]
+receive 4
+* 1 FETCH (BODY[58] {16}
+Type is IBM775
+)
+f58 OK done
+send 1
+f59 fetch 1 body.peek[59]
+receive 4
+* 1 FETCH (BODY[59] {16}
+Type is IBM850
+)
+f59 OK done
+send 1
+f60 fetch 1 body.peek[60]
+receive 4
+* 1 FETCH (BODY[60] {16}
+Type is IBM862
+)
+f60 OK done
+send 1
+f61 fetch 1 body.peek[61]
+receive 4
+* 1 FETCH (BODY[61] {16}
+Type is IBM437
+)
+f61 OK done
+send 1
+f62 fetch 1 body.peek[62]
+receive 4
+* 1 FETCH (BODY[62] {16}
+Type is IBM852
+)
+f62 OK done
+send 1
+f63 fetch 1 body.peek[63]
+receive 4
+* 1 FETCH (BODY[63] {22}
+Type is UNKNOWN-8BIT
+)
+f63 OK done
+send 1
+f64 fetch 1 body.peek[64]
+receive 4
+* 1 FETCH (BODY[64] {20}
+Type is ISO-8859-5
+)
+f64 OK done
+send 1
+f65 fetch 1 body.peek[65]
+receive 4
+* 1 FETCH (BODY[65] {20}
+Type is ISO-8859-6
+)
+f65 OK done
+send 1
+f66 fetch 1 body.peek[66]
+receive 4
+* 1 FETCH (BODY[66] {20}
+Type is ISO-8859-7
+)
+f66 OK done
+send 1
+f67 fetch 1 body.peek[67]
+receive 4
+* 1 FETCH (BODY[67] {20}
+Type is ISO-8859-7
+)
+f67 OK done
+send 1
+f68 fetch 1 body.peek[68]
+receive 4
+* 1 FETCH (BODY[68] {20}
+Type is ISO-8859-7
+)
+f68 OK done
+send 1
+f69 fetch 1 body.peek[69]
+receive 4
+* 1 FETCH (BODY[69] {20}
+Type is ISO-8859-7
+)
+f69 OK done
+send 1
+f70 fetch 1 body.peek[70]
+receive 4
+* 1 FETCH (BODY[70] {20}
+Type is ISO-8859-8
+)
+f70 OK done
+send 1
+f71 fetch 1 body.peek[71]
+receive 4
+* 1 FETCH (BODY[71] {18}
+Type is US-ASCII
+)
+f71 OK done
+send 1
+f72 fetch 1 body.peek[72]
+receive 4
+* 1 FETCH (BODY[72] {16}
+Type is IBM437
+)
+f72 OK done
+send 1
+f73 fetch 1 body.peek[73]
+receive 4
+* 1 FETCH (BODY[73] {16}
+Type is IBM775
+)
+f73 OK done
+send 1
+f74 fetch 1 body.peek[74]
+receive 4
+* 1 FETCH (BODY[74] {20}
+Type is ISO-8859-1
+)
+f74 OK done
+send 1
+f75 fetch 1 body.peek[75]
+receive 4
+* 1 FETCH (BODY[75] {16}
+Type is IBM850
+)
+f75 OK done
+send 1
+f76 fetch 1 body.peek[76]
+receive 4
+* 1 FETCH (BODY[76] {16}
+Type is IBM852
+)
+f76 OK done
+send 1
+f77 fetch 1 body.peek[77]
+receive 4
+* 1 FETCH (BODY[77] {16}
+Type is IBM855
+)
+f77 OK done
+send 1
+f78 fetch 1 body.peek[78]
+receive 4
+* 1 FETCH (BODY[78] {16}
+Type is IBM857
+)
+f78 OK done
+send 1
+f79 fetch 1 body.peek[79]
+receive 4
+* 1 FETCH (BODY[79] {16}
+Type is IBM860
+)
+f79 OK done
+send 1
+f80 fetch 1 body.peek[80]
+receive 4
+* 1 FETCH (BODY[80] {16}
+Type is IBM861
+)
+f80 OK done
+send 1
+f81 fetch 1 body.peek[81]
+receive 4
+* 1 FETCH (BODY[81] {16}
+Type is IBM862
+)
+f81 OK done
+send 1
+f82 fetch 1 body.peek[82]
+receive 4
+* 1 FETCH (BODY[82] {16}
+Type is IBM863
+)
+f82 OK done
+send 1
+f83 fetch 1 body.peek[83]
+receive 4
+* 1 FETCH (BODY[83] {16}
+Type is IBM864
+)
+f83 OK done
+send 1
+f84 fetch 1 body.peek[84]
+receive 4
+* 1 FETCH (BODY[84] {16}
+Type is IBM865
+)
+f84 OK done
+send 1
+f85 fetch 1 body.peek[85]
+receive 4
+* 1 FETCH (BODY[85] {16}
+Type is IBM866
+)
+f85 OK done
+send 1
+f86 fetch 1 body.peek[86]
+receive 4
+* 1 FETCH (BODY[86] {16}
+Type is IBM869
+)
+f86 OK done
+send 1
+f87 fetch 1 body.peek[87]
+receive 4
+* 1 FETCH (BODY[87] {20}
+Type is ISO-8859-1
+)
+f87 OK done
+send 1
+f88 fetch 1 body.peek[88]
+receive 4
+* 1 FETCH (BODY[88] {21}
+Type is ISO-8859-10
+)
+f88 OK done
+send 1
+f89 fetch 1 body.peek[89]
+receive 4
+* 1 FETCH (BODY[89] {21}
+Type is ISO-8859-13
+)
+f89 OK done
+send 1
+f90 fetch 1 body.peek[90]
+receive 4
+* 1 FETCH (BODY[90] {21}
+Type is ISO-8859-14
+)
+f90 OK done
+send 1
+f91 fetch 1 body.peek[91]
+receive 4
+* 1 FETCH (BODY[91] {21}
+Type is ISO-8859-15
+)
+f91 OK done
+send 1
+f92 fetch 1 body.peek[92]
+receive 4
+* 1 FETCH (BODY[92] {21}
+Type is ISO-8859-16
+)
+f92 OK done
+send 1
+f93 fetch 1 body.peek[93]
+receive 4
+* 1 FETCH (BODY[93] {20}
+Type is ISO-8859-2
+)
+f93 OK done
+send 1
+f94 fetch 1 body.peek[94]
+receive 4
+* 1 FETCH (BODY[94] {20}
+Type is ISO-8859-3
+)
+f94 OK done
+send 1
+f95 fetch 1 body.peek[95]
+receive 4
+* 1 FETCH (BODY[95] {20}
+Type is ISO-8859-4
+)
+f95 OK done
+send 1
+f96 fetch 1 body.peek[96]
+receive 4
+* 1 FETCH (BODY[96] {20}
+Type is ISO-8859-5
+)
+f96 OK done
+send 1
+f97 fetch 1 body.peek[97]
+receive 4
+* 1 FETCH (BODY[97] {20}
+Type is ISO-8859-6
+)
+f97 OK done
+send 1
+f98 fetch 1 body.peek[98]
+receive 4
+* 1 FETCH (BODY[98] {20}
+Type is ISO-8859-7
+)
+f98 OK done
+send 1
+f99 fetch 1 body.peek[99]
+receive 4
+* 1 FETCH (BODY[99] {20}
+Type is ISO-8859-8
+)
+f99 OK done
+send 1
+f100 fetch 1 body.peek[100]
+receive 4
+* 1 FETCH (BODY[100] {20}
+Type is ISO-8859-9
+)
+f100 OK done
+send 1
+f101 fetch 1 body.peek[101]
+receive 4
+* 1 FETCH (BODY[101] {21}
+Type is ISO-8859-14
+)
+f101 OK done
+send 1
+f102 fetch 1 body.peek[102]
+receive 4
+* 1 FETCH (BODY[102] {20}
+Type is ISO-8859-1
+)
+f102 OK done
+send 1
+f103 fetch 1 body.peek[103]
+receive 4
+* 1 FETCH (BODY[103] {20}
+Type is ISO-8859-2
+)
+f103 OK done
+send 1
+f104 fetch 1 body.peek[104]
+receive 4
+* 1 FETCH (BODY[104] {20}
+Type is ISO-8859-3
+)
+f104 OK done
+send 1
+f105 fetch 1 body.peek[105]
+receive 4
+* 1 FETCH (BODY[105] {20}
+Type is ISO-8859-4
+)
+f105 OK done
+send 1
+f106 fetch 1 body.peek[106]
+receive 4
+* 1 FETCH (BODY[106] {20}
+Type is ISO-8859-7
+)
+f106 OK done
+send 1
+f107 fetch 1 body.peek[107]
+receive 4
+* 1 FETCH (BODY[107] {20}
+Type is ISO-8859-6
+)
+f107 OK done
+send 1
+f108 fetch 1 body.peek[108]
+receive 4
+* 1 FETCH (BODY[108] {20}
+Type is ISO-8859-8
+)
+f108 OK done
+send 1
+f109 fetch 1 body.peek[109]
+receive 4
+* 1 FETCH (BODY[109] {20}
+Type is ISO-8859-5
+)
+f109 OK done
+send 1
+f110 fetch 1 body.peek[110]
+receive 4
+* 1 FETCH (BODY[110] {20}
+Type is ISO-8859-9
+)
+f110 OK done
+send 1
+f111 fetch 1 body.peek[111]
+receive 4
+* 1 FETCH (BODY[111] {21}
+Type is ISO-8859-10
+)
+f111 OK done
+send 1
+f112 fetch 1 body.peek[112]
+receive 4
+* 1 FETCH (BODY[112] {21}
+Type is ISO-8859-14
+)
+f112 OK done
+send 1
+f113 fetch 1 body.peek[113]
+receive 4
+* 1 FETCH (BODY[113] {21}
+Type is ISO-8859-16
+)
+f113 OK done
+send 1
+f114 fetch 1 body.peek[114]
+receive 4
+* 1 FETCH (BODY[114] {18}
+Type is US-ASCII
+)
+f114 OK done
+send 1
+f115 fetch 1 body.peek[115]
+receive 4
+* 1 FETCH (BODY[115] {18}
+Type is US-ASCII
+)
+f115 OK done
+send 1
+f116 fetch 1 body.peek[116]
+receive 4
+* 1 FETCH (BODY[116] {18}
+Type is US-ASCII
+)
+f116 OK done
+send 1
+f117 fetch 1 body.peek[117]
+receive 4
+* 1 FETCH (BODY[117] {20}
+Type is ISO-8859-1
+)
+f117 OK done
+send 1
+f118 fetch 1 body.peek[118]
+receive 4
+* 1 FETCH (BODY[118] {21}
+Type is ISO-8859-10
+)
+f118 OK done
+send 1
+f119 fetch 1 body.peek[119]
+receive 4
+* 1 FETCH (BODY[119] {21}
+Type is ISO-8859-14
+)
+f119 OK done
+send 1
+f120 fetch 1 body.peek[120]
+receive 4
+* 1 FETCH (BODY[120] {21}
+Type is ISO-8859-14
+)
+f120 OK done
+send 1
+f121 fetch 1 body.peek[121]
+receive 4
+* 1 FETCH (BODY[121] {21}
+Type is ISO-8859-15
+)
+f121 OK done
+send 1
+f122 fetch 1 body.peek[122]
+receive 4
+* 1 FETCH (BODY[122] {21}
+Type is ISO-8859-16
+)
+f122 OK done
+send 1
+f123 fetch 1 body.peek[123]
+receive 4
+* 1 FETCH (BODY[123] {21}
+Type is ISO-8859-16
+)
+f123 OK done
+send 1
+f124 fetch 1 body.peek[124]
+receive 4
+* 1 FETCH (BODY[124] {20}
+Type is ISO-8859-1
+)
+f124 OK done
+send 1
+f125 fetch 1 body.peek[125]
+receive 4
+* 1 FETCH (BODY[125] {20}
+Type is ISO-8859-2
+)
+f125 OK done
+send 1
+f126 fetch 1 body.peek[126]
+receive 4
+* 1 FETCH (BODY[126] {20}
+Type is ISO-8859-2
+)
+f126 OK done
+send 1
+f127 fetch 1 body.peek[127]
+receive 4
+* 1 FETCH (BODY[127] {20}
+Type is ISO-8859-3
+)
+f127 OK done
+send 1
+f128 fetch 1 body.peek[128]
+receive 4
+* 1 FETCH (BODY[128] {20}
+Type is ISO-8859-3
+)
+f128 OK done
+send 1
+f129 fetch 1 body.peek[129]
+receive 4
+* 1 FETCH (BODY[129] {20}
+Type is ISO-8859-4
+)
+f129 OK done
+send 1
+f130 fetch 1 body.peek[130]
+receive 4
+* 1 FETCH (BODY[130] {20}
+Type is ISO-8859-4
+)
+f130 OK done
+send 1
+f131 fetch 1 body.peek[131]
+receive 4
+* 1 FETCH (BODY[131] {20}
+Type is ISO-8859-5
+)
+f131 OK done
+send 1
+f132 fetch 1 body.peek[132]
+receive 4
+* 1 FETCH (BODY[132] {20}
+Type is ISO-8859-5
+)
+f132 OK done
+send 1
+f133 fetch 1 body.peek[133]
+receive 4
+* 1 FETCH (BODY[133] {20}
+Type is ISO-8859-6
+)
+f133 OK done
+send 1
+f134 fetch 1 body.peek[134]
+receive 4
+* 1 FETCH (BODY[134] {20}
+Type is ISO-8859-6
+)
+f134 OK done
+send 1
+f135 fetch 1 body.peek[135]
+receive 4
+* 1 FETCH (BODY[135] {20}
+Type is ISO-8859-7
+)
+f135 OK done
+send 1
+f136 fetch 1 body.peek[136]
+receive 4
+* 1 FETCH (BODY[136] {20}
+Type is ISO-8859-7
+)
+f136 OK done
+send 1
+f137 fetch 1 body.peek[137]
+receive 4
+* 1 FETCH (BODY[137] {20}
+Type is ISO-8859-8
+)
+f137 OK done
+send 1
+f138 fetch 1 body.peek[138]
+receive 4
+* 1 FETCH (BODY[138] {20}
+Type is ISO-8859-8
+)
+f138 OK done
+send 1
+f139 fetch 1 body.peek[139]
+receive 4
+* 1 FETCH (BODY[139] {20}
+Type is ISO-8859-9
+)
+f139 OK done
+send 1
+f140 fetch 1 body.peek[140]
+receive 4
+* 1 FETCH (BODY[140] {20}
+Type is ISO-8859-9
+)
+f140 OK done
+send 1
+f141 fetch 1 body.peek[141]
+receive 4
+* 1 FETCH (BODY[141] {16}
+Type is KOI8-R
+)
+f141 OK done
+send 1
+f142 fetch 1 body.peek[142]
+receive 4
+* 1 FETCH (BODY[142] {16}
+Type is KOI8-U
+)
+f142 OK done
+send 1
+f143 fetch 1 body.peek[143]
+receive 4
+* 1 FETCH (BODY[143] {20}
+Type is ISO-8859-1
+)
+f143 OK done
+send 1
+f144 fetch 1 body.peek[144]
+receive 4
+* 1 FETCH (BODY[144] {21}
+Type is ISO-8859-16
+)
+f144 OK done
+send 1
+f145 fetch 1 body.peek[145]
+receive 4
+* 1 FETCH (BODY[145] {20}
+Type is ISO-8859-2
+)
+f145 OK done
+send 1
+f146 fetch 1 body.peek[146]
+receive 4
+* 1 FETCH (BODY[146] {20}
+Type is ISO-8859-3
+)
+f146 OK done
+send 1
+f147 fetch 1 body.peek[147]
+receive 4
+* 1 FETCH (BODY[147] {20}
+Type is ISO-8859-4
+)
+f147 OK done
+send 1
+f148 fetch 1 body.peek[148]
+receive 4
+* 1 FETCH (BODY[148] {20}
+Type is ISO-8859-9
+)
+f148 OK done
+send 1
+f149 fetch 1 body.peek[149]
+receive 4
+* 1 FETCH (BODY[149] {21}
+Type is ISO-8859-10
+)
+f149 OK done
+send 1
+f150 fetch 1 body.peek[150]
+receive 4
+* 1 FETCH (BODY[150] {21}
+Type is ISO-8859-14
+)
+f150 OK done
+send 1
+f151 fetch 1 body.peek[151]
+receive 4
+* 1 FETCH (BODY[151] {21}
+Type is ISO-8859-15
+)
+f151 OK done
+send 1
+f152 fetch 1 body.peek[152]
+receive 4
+* 1 FETCH (BODY[152] {20}
+Type is ISO-8859-1
+)
+f152 OK done
+send 1
+f153 fetch 1 body.peek[153]
+receive 4
+* 1 FETCH (BODY[153] {21}
+Type is ISO-8859-16
+)
+f153 OK done
+send 1
+f154 fetch 1 body.peek[154]
+receive 4
+* 1 FETCH (BODY[154] {20}
+Type is ISO-8859-2
+)
+f154 OK done
+send 1
+f155 fetch 1 body.peek[155]
+receive 4
+* 1 FETCH (BODY[155] {20}
+Type is ISO-8859-3
+)
+f155 OK done
+send 1
+f156 fetch 1 body.peek[156]
+receive 4
+* 1 FETCH (BODY[156] {20}
+Type is ISO-8859-4
+)
+f156 OK done
+send 1
+f157 fetch 1 body.peek[157]
+receive 4
+* 1 FETCH (BODY[157] {20}
+Type is ISO-8859-9
+)
+f157 OK done
+send 1
+f158 fetch 1 body.peek[158]
+receive 4
+* 1 FETCH (BODY[158] {21}
+Type is ISO-8859-10
+)
+f158 OK done
+send 1
+f159 fetch 1 body.peek[159]
+receive 4
+* 1 FETCH (BODY[159] {21}
+Type is ISO-8859-14
+)
+f159 OK done
+send 1
+f160 fetch 1 body.peek[160]
+receive 4
+* 1 FETCH (BODY[160] {19}
+Type is macintosh
+)
+f160 OK done
+send 1
+f161 fetch 1 body.peek[161]
+receive 4
+* 1 FETCH (BODY[161] {19}
+Type is macintosh
+)
+f161 OK done
+send 1
+f162 fetch 1 body.peek[162]
+receive 4
+* 1 FETCH (BODY[162] {17}
+Type is TIS-620
+)
+f162 OK done
+send 1
+f163 fetch 1 body.peek[163]
+receive 4
+* 1 FETCH (BODY[163] {22}
+Type is UNKNOWN-8BIT
+)
+f163 OK done
+send 1
+f164 fetch 1 body.peek[164]
+receive 4
+* 1 FETCH (BODY[164] {18}
+Type is US-ASCII
+)
+f164 OK done
+send 1
+f165 fetch 1 body.peek[165]
+receive 4
+* 1 FETCH (BODY[165] {18}
+Type is US-ASCII
+)
+f165 OK done
+send 1
+f166 fetch 1 body.peek[166]
+receive 4
+* 1 FETCH (BODY[166] {15}
+Type is UTF-8
+)
+f166 OK done
+send 1
+f167 fetch 1 body.peek[167]
+receive 4
+* 1 FETCH (BODY[167] {22}
+Type is windows-1250
+)
+f167 OK done
+send 1
+f168 fetch 1 body.peek[168]
+receive 4
+* 1 FETCH (BODY[168] {22}
+Type is windows-1251
+)
+f168 OK done
+send 1
+f169 fetch 1 body.peek[169]
+receive 4
+* 1 FETCH (BODY[169] {22}
+Type is windows-1252
+)
+f169 OK done
+send 1
+f170 fetch 1 body.peek[170]
+receive 4
+* 1 FETCH (BODY[170] {22}
+Type is windows-1253
+)
+f170 OK done
+send 1
+f171 fetch 1 body.peek[171]
+receive 4
+* 1 FETCH (BODY[171] {22}
+Type is windows-1254
+)
+f171 OK done
+send 1
+f172 fetch 1 body.peek[172]
+receive 4
+* 1 FETCH (BODY[172] {22}
+Type is windows-1255
+)
+f172 OK done
+send 1
+f173 fetch 1 body.peek[173]
+receive 4
+* 1 FETCH (BODY[173] {22}
+Type is windows-1256
+)
+f173 OK done
+send 1
+f174 fetch 1 body.peek[174]
+receive 4
+* 1 FETCH (BODY[174] {22}
+Type is windows-1257
+)
+f174 OK done
+send 1
+f175 fetch 1 body.peek[175]
+receive 4
+* 1 FETCH (BODY[175] {22}
+Type is windows-1258
+)
+f175 OK done
+send 1
+f176 fetch 1 body.peek[176]
+receive 4
+* 1 FETCH (BODY[176] {22}
+Type is windows-1258
+)
+f176 OK done
+send 1
+f177 fetch 1 body.peek[177]
+receive 4
+* 1 FETCH (BODY[177] {20}
+Type is ISO-8859-1
+)
+f177 OK done
+send 1
+f178 fetch 1 body.peek[178]
+receive 4
+* 1 FETCH (BODY[178] {20}
+Type is ISO-8859-1
+)
+f178 OK done
+send 1
+f179 fetch 1 body.peek[179]
+receive 4
+* 1 FETCH (BODY[179] {20}
+Type is ISO-8859-1
+)
+f179 OK done
+end
+

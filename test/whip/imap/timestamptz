@@ -1,0 +1,71 @@
+# we should not get any timestamptz error for this
+depends empty-inbox
+send 62
+a append INBOX () {2866+}
+Return-Path: toyotafeedback.com@richardjean.com
+Received: from 127.0.0.1 (HELO fri.gulbrandsen.priv.no) by fri.gulbrandsen.priv.no with lmtp id 1166457644-97471-4349; Mon, 18 Dec 2006 17:00:44 +0100
+Received: from localhost (host157-152.pool8252.interbusiness.it [82.52.152.157])
+	by fri.gulbrandsen.priv.no (Postfix) with SMTP id 896E854A4
+	for <postmaster@gulbrandsen.priv.no>; Mon, 18 Dec 2006 17:00:43 +0100 (CET)
+Message-ID: <000001c722bd$5135eb80$0100007f@localhost>
+From: "Elias Butler" <toyotafeedback.com@richardjean.com>
+To: <postmaster@gulbrandsen.priv.no>
+Subject: Beware of fake pills
+Date: lun, 18 dic 2006 17:00:44 +0100
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+    boundary="----=_NextPart_000_0001_01C722BD.5135EB80"
+X-Priority: 3
+X-MSMail-Priority: Normal
+X-Mailer: Microsoft Outlook Express 6.00.2900.2180
+X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2900.2180
+
+------=_NextPart_000_0001_01C722BD.5135EB80
+Content-Type: text/plain;
+        charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+
+Hey man, check out the discounts these guys are offering on enlarge patches!
+
+Steel Package: 10 Patches reg $79.95 Now $49.95 ! Free shipping too!
+
+Silver Package: 25 Patches reg $129.95, Now $99.95! Free shipping and free exercise manual included!
+
+Gold Package: 40 Patches reg $189.95, Now $149.95! Free shipping and free exercise manual included!
+
+Platinum Package: 65 Patches reg $259.95, Now $199.95! Free shipping and free exercise manual included!
+
+Millions of men are taking advantage of this revolutionary new product - Don't be left behind!
+
+Click here!
+
+
+------=_NextPart_000_0001_01C722BD.5135EB80
+Content-Type: text/html;
+        charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML><HEAD>
+<META http-equiv=3DContent-Type content=3D"text/html; =
+charset=3Diso-8859-1">
+<META content=3D"MSHTML 6.00.2900.2180" name=3DGENERATOR>
+<STYLE></STYLE>
+</HEAD>
+<body bgcolor=3D"#FFFFFF">
+Hey man, check out the discounts these guys are offering on enlarge patches!<br><br>
+Steel Package: 10 Patches reg $79.95 <b>Now $49.95</b> ! Free shipping too!<br><br>
+Silver Package: 25 Patches reg $129.95, <b>Now $99.95!</b> Free shipping and free exercise manual included!<br><br>
+
+Gold Package: 40 Patches reg $189.95, <b>Now $149.95!</b> Free shipping and free exercise manual included!<br><br>
+Platinum Package: 65 Patches reg $259.95, <b>Now $199.95!</b> Free shipping and free exercise manual included!<br><br>
+Millions of men are taking advantage of this revolutionary new product - <b>Don't be left behind!</b><br><br>
+<center><b><font size=3D"4"><a href=3D"http://www.sermonide.com/?189&acyr">Click here!</a></font></b></BODY></HTML>
+
+------=_NextPart_000_0001_01C722BD.5135EB80--
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+end

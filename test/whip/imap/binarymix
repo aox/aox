@@ -1,0 +1,71 @@
+depends messagemix
+send 1
+a fetch 3 (binary.size[1] binary.size[2] binary.size[3])
+receive 2
+* 3 FETCH (BINARY.SIZE[1] 58 BINARY.SIZE[2] 10049 BINARY.SIZE[3] 1487)
+a OK done
+send 1
+b fetch 3 (binary.peek[1] binary.peek[3])
+receive 49
+* 3 FETCH (BINARY[1] {58}
+Appended is one html file and one French lesson.
+
+Arnt
+ BINARY[3] {1487}
+<form name="Form1" id="Form1" method="post"
+action="http://reservation.rja.com.jo/flt_exe/load.asp">
+<b>Departure City:</b>
+<SELECT class="Select2" size="1" name="OCITY" ID="Select1">
+<OPTION value="AMM">Amman (AMM)</OPTION>
+<OPTION value="DEL" selected>Delhi (DEL)</OPTION>
+<OPTION value="MUC">Munich(MUC)</OPTION>
+</SELECT>
+<b>Arrival City:</b>
+<SELECT class="Select2" size="1" name="DCITY" ID="Select3">
+<OPTION value="AMM" selected>Amman (AMM)</OPTION>
+<OPTION value="BER">Berlin (BER)</OPTION>
+<OPTION value="DEL">Delhi (DEL)</OPTION>
+<OPTION value="FRA">Frankfurt (FRA)</OPTION>
+<OPTION value="MUC">Munich(MUC)</OPTION>
+</SELECT>
+<br>
+<b>Day:</b>
+<SELECT class="SelectSmall" size="1" name="DAY" ID="Select2">
+<OPTION value="02" selected>02</OPTION>
+<OPTION value="04">04</OPTION>
+<OPTION value="21">21</OPTION>
+<OPTION value="22">22</OPTION>
+</SELECT>
+<b>Month:</b>
+<SELECT class="SelectSmall" size="1" name="MONTH" ID="Select4">
+<OPTION value="JAN">JAN</OPTION>
+<OPTION value="FEB">FEB</OPTION>
+<OPTION value="MAR">MAR</OPTION>
+<OPTION value="APR">APR</OPTION>
+<OPTION value="MAY">MAY</OPTION>
+<OPTION value="JUN">JUN</OPTION>
+<OPTION value="JUL">JUL</OPTION>
+<OPTION value="AUG" selected>AUG</OPTION>
+<OPTION value="SEP">SEP</OPTION>
+<OPTION value="OCT">OCT</OPTION>
+<OPTION value="NOV">NOV</OPTION>
+<OPTION value="DEC">DEC</OPTION>
+</SELECT>
+<br>
+<input type="submit" name="Submit1"  value="Submit" ID="Submit1" class="button">
+</form>
+)
+b OK done
+send 1
+c fetch 3 (binary.peek[1]<12.8> binary.peek[2]<6.4> binary.peek[3]<686.11> binary.peek[2]<24.5>)
+receive 2
+* 3 FETCH (BINARY[1]<12> "one html" BINARY[2]<6> "JFIF" BINARY[3]<686> "SelectSmall" BINARY[2]<24> "Ducky")
+c OK done
+send 1
+d fetch 1:3 (binary.size[] rfc822.size)
+receive 4
+* 1 FETCH (RFC822.SIZE 1452 BINARY.SIZE[] 1452)
+* 2 FETCH (RFC822.SIZE 619 BINARY.SIZE[] 619)
+* 3 FETCH (RFC822.SIZE 16668 BINARY.SIZE[] 16668)
+d OK done
+end

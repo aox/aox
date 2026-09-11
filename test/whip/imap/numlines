@@ -1,0 +1,10 @@
+depends append
+send 1
+a fetch 1:4 bodystructure
+receive 5
+* 1 FETCH (BODYSTRUCTURE ("text" "plain" NIL NIL NIL "7BIT" 6 1 NIL NIL NIL NIL))
+* 2 FETCH (BODYSTRUCTURE ("text" "plain" NIL NIL NIL "7BIT" 6 1 NIL NIL NIL NIL))
+* 3 FETCH (BODYSTRUCTURE ("text" "plain" NIL NIL NIL "7BIT" 9 2 NIL NIL NIL NIL))
+* 4 FETCH (BODYSTRUCTURE ("text" "plain" NIL NIL NIL "7BIT" 8 2 NIL NIL NIL NIL))
+a OK done
+end

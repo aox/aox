@@ -1,0 +1,9 @@
+depends login
+send 2
+a logout
+b login script script
+receive 3
+* BYE logout
+a OK done
+b NO Not permitted during logout
+end

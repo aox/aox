@@ -1,0 +1,117 @@
+depends empty-inbox
+# checks that we don't show an error when we get bad input, but can make
+# sense of it.
+send 52
+a append INBOX () {2220+}
+Return-Path: pauleze7@tutopia.com
+Received: from 127.0.0.1 (HELO kalyani.oryx.com) by kalyani.oryx.com with lmtp id 1172690246-13191-1926; Wed, 28 Feb 2007 20:17:26 +0100
+Received: from cg.ifxnetworks.com (frontend03.cg.ifxnetworks.com [200.62.58.13])
+	by kalyani.oryx.com (Postfix) with ESMTP id D97624AC22
+	for <info@oryx.com>; Wed, 28 Feb 2007 20:17:24 +0100 (CET)
+Received: by frontend03.cg.ifxnetworks.com (CommuniGate Pro PIPE 4.3.8)
+  with PIPE id 242414438; Wed, 28 Feb 2007 14:14:01 -0500
+X-Mimer-ProcessedID: 1172690030
+X-SpamScan-3: SUBMITTED
+X-VirusScan-2: SUBMITTED
+Received: from [200.62.58.19] (HELO webmail03.cg.ifxnetworks.com)
+  by frontend03.cg.ifxnetworks.com (CommuniGate Pro SMTP 4.3.8)
+  with ESMTP id 242413893; Wed, 28 Feb 2007 14:11:27 -0500
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+From:  <pauleze7@tutopia.com>
+To: pauleze7@tutopia.com
+Subject: contact my secretary 
+Reply-To: pauleze7@tutopia.com
+X-Origin: 41.223.251.72
+Date: Wed, 28 Feb 2007 14:11:25 -0500
+X-Uidl: 1172689885187425509
+X-Mailer: AtMail 4.11
+Message-ID: <auto-000242413893@frontend03.cg.ifxnetworks.com>
+
+  Dear Friend, =0D
+ =0D
+I wish to inform you about my success in getting those funds transferred un=
+der the cooperation of a new partner from Japan. Now I am in Japan for inve=
+stment projects with my partner. Therefore contact my secretary in Cotonou =
+Benin Republic his name is;=0D
+ =0D
+MR.JOHN   OKEKE=0D
+Phone: 229 -93028754=0D
+Email: johnokeke_2006@myway.com=0D
+ =0D
+He will send you a CERTIFIED BANK CHECK of ($800.000.00 ) compensation whic=
+h I kept for all the past efforts and attempts you made to assist me in tha=
+t transaction.Most importantly, send to him your current Contact Address an=
+d your Telephone Numbers to enable him send you the consignment box without=
+ delay. Please let me know immediately you receive it so that I can share t=
+he joy with you.=0D
+=0D
+Thanks and God bless you.=0D
+ =0D
+MR. PAUL  EZE =0D
+______________________________
+Visita http://www.tutopia.com y comienza a navegar m=E1s r=E1pido en Intern=
+et. Tutopia es Internet para todos.
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+b fetch 1 body.peek[]
+receive 52
+* 1 FETCH (BODY[] {2142}
+Return-Path: <pauleze7@tutopia.com>
+Received: from 127.0.0.1 (HELO kalyani.oryx.com) by kalyani.oryx.com with lmtp id 1172690246-13191-1926; Wed, 28 Feb 2007 20:17:26 +0100
+Received: from cg.ifxnetworks.com (frontend03.cg.ifxnetworks.com [200.62.58.13])
+	by kalyani.oryx.com (Postfix) with ESMTP id D97624AC22
+	for <info@oryx.com>; Wed, 28 Feb 2007 20:17:24 +0100 (CET)
+Received: by frontend03.cg.ifxnetworks.com (CommuniGate Pro PIPE 4.3.8)
+  with PIPE id 242414438; Wed, 28 Feb 2007 14:14:01 -0500
+X-Mimer-Processedid: 1172690030
+X-Spamscan-3: SUBMITTED
+X-Virusscan-2: SUBMITTED
+Received: from [200.62.58.19] (HELO webmail03.cg.ifxnetworks.com)
+  by frontend03.cg.ifxnetworks.com (CommuniGate Pro SMTP 4.3.8)
+  with ESMTP id 242413893; Wed, 28 Feb 2007 14:11:27 -0500
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
+Mime-Version: 1.0
+From: pauleze7@tutopia.com
+To: pauleze7@tutopia.com
+Subject: contact my secretary
+X-Origin: 41.223.251.72
+Date: Wed, 28 Feb 2007 14:11:25 -0500
+X-Uidl: 1172689885187425509
+X-Mailer: AtMail 4.11
+Message-Id: <auto-000242413893@frontend03.cg.ifxnetworks.com>
+
+  Dear Friend,=20
+=20
+I wish to inform you about my success in getting those funds transferred =
+under the cooperation of a new partner from Japan. Now I am in Japan for =
+investment projects with my partner. Therefore contact my secretary in =
+Cotonou Benin Republic his name is;
+=20
+MR.JOHN   OKEKE
+Phone: 229 -93028754
+Email: johnokeke_2006@myway.com
+=20
+He will send you a CERTIFIED BANK CHECK of ($800.000.00 ) compensation =
+which I kept for all the past efforts and attempts you made to assist me =
+in that transaction.Most importantly, send to him your current Contact =
+Address and your Telephone Numbers to enable him send you the consignment=
+ box without delay. Please let me know immediately you receive it so =
+that I can share the joy with you.
+
+Thanks and God bless you.
+=20
+MR. PAUL  EZE=20
+______________________________
+Visita http://www.tutopia.com y comienza a navegar m=EF=BF=BDs r=EF=BF=BD=
+pido en Internet. Tutopia es Internet para todos.
+)
+b OK done
+end

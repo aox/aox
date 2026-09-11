@@ -1,0 +1,279 @@
+depends empty-inbox
+send 107
+a append INBOX () {2192+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Abhijit Menon-Sen <ams@oryx.com>
+Subject: RFC 3501: MIME body part numbers
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=X
+Date: Thu, 20 May 2004 14:28:51 +0200
+Content-Length: 1476
+Lines: 75
+X-Imapbase: 1102647763 1
+Status: RO
+X-Status: 
+X-Keywords: 
+X-Uid: 1
+
+--X
+Content-Type: text/plain
+Content-Description: Part number 1
+
+111111.
+--X
+Content-Type: application/octet-stream
+Content-Description: Part number 2
+Content-Disposition: attachment; filename=foo.bar; size=8
+Content-Md5: qWXKy9s0ny8E1/5/uzNhpg==
+Content-Transfer-Encoding: base64
+
+Rm9vYmFyLg==
+
+--X
+Content-Type: message/rfc822
+Content-Description: Part number 3
+
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Abhijit Menon-Sen <ams@oryx.com>
+Subject: embedded rfc822 message
+Date: Thu, 20 May 2004 14:28:50 +0200
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=Y
+Content-Description: Part number 3.TEXT
+
+--Y
+Content-Type: text/plain
+Content-Language: en, no, de
+Content-Description: Part number 3.1
+Content-Disposition: inline
+
+bp-3.1.
+--Y
+Content-Type: application/octet-stream
+Content-Description: Part number 3.2
+Content-Transfer-Encoding: base64
+
+Rm9vYmFyLg==
+
+--Y--
+
+--X
+Content-Type: multipart/mixed; boundary=Z
+Content-Description: Part number 4
+
+--Z
+Content-Type: image/gif
+Content-Description: Part number 4.1
+Content-Transfer-Encoding: base64
+
+
+--Z
+Content-Type: message/rfc822
+Content-Description: Part number 4.2
+
+From: Abhijit Menon-Sen <ams@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Subject: second embedded rfc822 message
+Date: Thu, 20 May 2004 14:28:50 +0200
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=A
+Content-Description: Part number 4.2.TEXT
+
+--A
+Content-Type: text/plain
+Content-Description: Part number 4.2.1
+
+b4.2.1.
+--A
+Content-Type: multipart/alternative; boundary=B
+Content-Description: Part number 4.2.2
+
+--B
+Content-Type: text/plain
+Content-Description: Part number 4.2.2.1
+Content-Language: en
+
+bp4221.
+--B
+Content-Type: text/richtext
+Content-Description: Part number 4.2.2.2
+
+bp4222.
+--B--
+
+--A--
+
+--Z--
+
+--X--
+
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+b fetch 1 (body.peek[1] body.peek[2] body.peek[3.1] body.peek[3.2] body.peek[4.2.1] body.peek[4.2.2.1] body.peek[4.2.2.2])
+receive 16
+* 1 FETCH (BODY[1] {9}
+111111.
+ BODY[2] {14}
+Rm9vYmFyLg==
+ BODY[3.1] {9}
+bp-3.1.
+ BODY[3.2] {14}
+Rm9vYmFyLg==
+ BODY[4.2.1] {9}
+b4.2.1.
+ BODY[4.2.2.1] {9}
+bp4221.
+ BODY[4.2.2.2] {9}
+bp4222.
+)
+b OK done
+send 1
+c fetch 1 bodystructure
+receive 2
+* 1 FETCH (BODYSTRUCTURE (("text" "plain" NIL NIL "Part number 1" "7BIT" 9 1 NIL NIL NIL NIL)("application" "octet-stream" NIL NIL "Part number 2" "BASE64" 14 "qWXKy9s0ny8E1/5/uzNhpg==" ("attachment" ("filename" "foo.bar" "size" "8")) NIL NIL)("message" "rfc822" NIL NIL "Part number 3" "7BIT" 540 ("Thu, 20 May 2004 14:28:50 +0200" "embedded rfc822 message" (("Arnt Gulbrandsen" NIL "arnt" "oryx.com")) NIL NIL (("Abhijit Menon-Sen" NIL "ams" "oryx.com")) NIL NIL NIL NIL) (("text" "plain" NIL NIL "Part number 3.1" "7BIT" 9 1 NIL ("inline" NIL) ("en" "no" "de") NIL)("application" "octet-stream" NIL NIL "Part number 3.2" "BASE64" 14 NIL NIL NIL NIL) "mixed" ("boundary" "Y") NIL NIL NIL) 24 NIL NIL NIL NIL)(("image" "gif" NIL NIL "Part number 4.1" "BASE64" 0 NIL NIL NIL NIL)("message" "rfc822" NIL NIL "Part number 4.2" "7BIT" 658 ("Thu, 20 May 2004 14:28:50 +0200" "second embedded rfc822 message" (("Abhijit Menon-Sen" NIL "ams" "oryx.com")) NIL NIL (("Arnt Gulbrandsen" NIL "arnt" "oryx.com")) NIL NIL NIL NIL) (("text" "plain" NIL NIL "Part number 4.2.1" "7BIT" 9 1 NIL NIL NIL NIL)(("text" "plain" NIL NIL "Part number 4.2.2.1" "7BIT" 9 1 NIL NIL "en" NIL)("text" "richtext" NIL NIL "Part number 4.2.2.2" "7BIT" 9 1 NIL NIL NIL NIL) "alternative" ("boundary" "B") NIL NIL NIL) "mixed" ("boundary" "A") NIL NIL NIL) 34 NIL NIL NIL NIL) "mixed" ("boundary" "Z") NIL NIL NIL) "mixed" ("boundary" "X") NIL NIL NIL))
+c OK done
+send 1
+c fetch 1 body.peek[3.text]
+receive 19
+* 1 FETCH (BODY[3.TEXT] {284}
+--Y
+Content-Type: text/plain
+Content-Language: en, no, de
+Content-Description: Part number 3.1
+Content-Disposition: inline
+
+bp-3.1.
+
+--Y
+Content-Type: application/octet-stream
+Content-Description: Part number 3.2
+Content-Transfer-Encoding: base64
+
+Rm9vYmFyLg==
+
+--Y--
+)
+c OK done
+send 1
+d fetch 1 body.peek[3]
+receive 27
+* 1 FETCH (BODY[3] {540}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Abhijit Menon-Sen <ams@oryx.com>
+Subject: embedded rfc822 message
+Date: Thu, 20 May 2004 14:28:50 +0200
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=Y
+Content-Description: Part number 3.TEXT
+
+--Y
+Content-Type: text/plain
+Content-Language: en, no, de
+Content-Description: Part number 3.1
+Content-Disposition: inline
+
+bp-3.1.
+
+--Y
+Content-Type: application/octet-stream
+Content-Description: Part number 3.2
+Content-Transfer-Encoding: base64
+
+Rm9vYmFyLg==
+
+--Y--
+)
+d OK done
+send 1
+d fetch 1 body.peek[3.header]
+receive 6
+* 1 FETCH (BODY[3.HEADER] {68}
+Content-Type: message/rfc822
+Content-Description: Part number 3
+
+)
+d OK done
+send 1
+e fetch 1 body.peek[4.2.text]
+receive 29
+* 1 FETCH (BODY[4.2.TEXT] {393}
+--A
+Content-Type: text/plain
+Content-Description: Part number 4.2.1
+
+b4.2.1.
+
+--A
+Content-Type: multipart/alternative; boundary=B
+Content-Description: Part number 4.2.2
+
+--B
+Content-Type: text/plain
+Content-Description: Part number 4.2.2.1
+Content-Language: en
+
+bp4221.
+
+--B
+Content-Type: text/richtext
+Content-Description: Part number 4.2.2.2
+
+bp4222.
+
+--B--
+
+--A--
+)
+e OK done
+send 1
+f fetch 1 body.peek[4.2]
+receive 37
+* 1 FETCH (BODY[4.2] {658}
+From: Abhijit Menon-Sen <ams@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Subject: second embedded rfc822 message
+Date: Thu, 20 May 2004 14:28:50 +0200
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=A
+Content-Description: Part number 4.2.TEXT
+
+--A
+Content-Type: text/plain
+Content-Description: Part number 4.2.1
+
+b4.2.1.
+
+--A
+Content-Type: multipart/alternative; boundary=B
+Content-Description: Part number 4.2.2
+
+--B
+Content-Type: text/plain
+Content-Description: Part number 4.2.2.1
+Content-Language: en
+
+bp4221.
+
+--B
+Content-Type: text/richtext
+Content-Description: Part number 4.2.2.2
+
+bp4222.
+
+--B--
+
+--A--
+)
+f OK done
+send 1
+g fetch 1 body.peek[4.2.1]
+receive 4
+* 1 FETCH (BODY[4.2.1] {9}
+b4.2.1.
+)
+g OK done
+end

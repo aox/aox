@@ -1,0 +1,9 @@
+depends connect
+send 1
+login unix hacker
+receive 4
+* OK  Hint: An IMAP command is prefixed by a tag. The command is the
+* OK  second word on the line, after the tag. In your command, "unix"
+* OK  is the command and "login" is the tag.
+login BAD No such command: unix
+end

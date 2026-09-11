@@ -1,0 +1,49 @@
+depends empty-inbox
+# check that CRCRLF, CRLF and LF all are turned into CRLF
+send 8
+a append INBOX () {213+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 20 May 2004 14:28:51 +0200
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
+
+Q1JDUkxGDQ0KQ1JMRg0KTEYKbGFzdCBsaW5lCg==
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+b fetch 1 (body.peek[1] binary.peek[1]<8.1> binary.peek[1]<14.1> binary.peek[1]<18.1>)
+receive 7
+* 1 FETCH (BODY[1] {29}
+CRCRLF
+CRLF
+LF
+last line
+ BINARY[1]<8> "C" BINARY[1]<14> "L" BINARY[1]<18> "l")
+b OK done
+send 9
+c append INBOX () {247+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 20 May 2004 14:28:51 +0200
+Content-Type: application/msword
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
+
+Q1JDUkxGDQ0KQ1JMRg0KTEYKbGFzdCBsaW5lCg==
+receive 4
+* 2 EXISTS
+* 2 RECENT
+* OK [UIDNEXT 3] next uid
+c OK [APPENDUID 1 2] done
+send 1
+d fetch 2 (body.peek[1] binary.peek[1]<9.1> binary.peek[1]<15.1> binary.peek[1]<18.1>)
+receive 4
+* 2 FETCH (BODY[1] {42}
+Q1JDUkxGDQ0KQ1JMRg0KTEYKbGFzdCBsaW5lCg==
+ BINARY[1]<9> "C" BINARY[1]<15> "L" BINARY[1]<18> "l")
+d OK done
+end

@@ -1,0 +1,18 @@
+depends messagemix
+send 1
+a fetch 1:3 (body flags body.peek[header.fields (subject)])
+receive 13
+* 1 FETCH (FLAGS (\Recent) BODY ("text" "plain" ("format" "flowed") NIL NIL "7BIT" 885 25) BODY[HEADER.FIELDS (Subject)] {29}
+Subject: Re: good morning
+
+)
+* 2 FETCH (FLAGS (\Recent) BODY (("text" "plain" NIL NIL NIL "7BIT" 32 1)(("text" "plain" NIL NIL NIL "7BIT" 19 1)(("text" "plain" NIL NIL NIL "7BIT" 24 1)("text" "html" NIL NIL NIL "7BIT" 33 1) "alternative") "mixed") "mixed") BODY[HEADER.FIELDS (Subject)] {34}
+Subject: nested multipart test
+
+)
+* 3 FETCH (FLAGS (\Recent) BODY (("text" "plain" NIL NIL NIL "7BIT" 58 3)("image" "jpeg" NIL NIL NIL "BASE64" 13774)("text" "plain" NIL NIL NIL "QUOTED-PRINTABLE" 1588 43) "mixed") BODY[HEADER.FIELDS (Subject)] {18}
+Subject: mpart
+
+)
+a OK done
+end

@@ -1,0 +1,31 @@
+depends messagemix
+# a simple positive search
+send 1
+s1 uid search subject morning
+receive 2
+* SEARCH 1
+s1 OK done
+# a search that should break if we get confused over non-subject fields
+send 1
+s2 uid search not subject morning
+receive 2
+* SEARCH 2 3
+s2 OK done
+send 1
+s3 uid search not subject morning not subject evening
+receive 2
+* SEARCH 2 3
+s3 OK done
+# just check that life is okay before x2
+send 1
+x1 search or header "subject" "morning" header "" "lustre"
+receive 2
+* SEARCH 1 3
+x1 OK done
+# x2 checks that one not is enough to exclude a message
+send 1
+x2 search not header "subject" "morning" not header "" "lustre"
+receive 2
+* SEARCH 2
+x2 OK done
+end

@@ -1,0 +1,49 @@
+# checks that we use the supplied internaldate or guess a good one if
+# none is supplied
+depends append
+send 30
+a append INBOX () {1613+}
+Received: from svr4.postgresql.org (svr4.postgresql.org [66.98.251.159])
+	by kalyani.oryx.com (Postfix) with ESMTP id 4E3124AC1C
+	for <ams@oryx.com>; Tue, 16 Aug 2005 04:02:55 +0200 (CEST)
+Received: from postgresql.org (svr1.postgresql.org [200.46.204.71])
+	by svr4.postgresql.org (Postfix) with ESMTP id 2F9535AF329
+	for <ams@oryx.com>; Tue, 16 Aug 2005 02:03:01 +0000 (GMT)
+X-Original-To: pgsql-hackers-postgresql.org@localhost.postgresql.org
+Received: from localhost (unknown [200.46.204.144])
+	by svr1.postgresql.org (Postfix) with ESMTP id 1E4C352928
+	for <pgsql-hackers-postgresql.org@localhost.postgresql.org>; Mon, 15 Aug 2005 23:00:14 -0300 (ADT)
+Received: from svr1.postgresql.org ([200.46.204.71])
+ by localhost (av.hub.org [200.46.204.144]) (amavisd-new, port 10024)
+ with ESMTP id 06291-01
+ for <pgsql-hackers-postgresql.org@localhost.postgresql.org>;
+ Tue, 16 Aug 2005 02:00:12 +0000 (GMT)
+Received: from houston.familyhealth.com.au (houston.au.fhnetwork.com [203.22.197.21])
+	by svr1.postgresql.org (Postfix) with ESMTP id 8F95D52920
+	for <pgsql-hackers@postgresql.org>; Mon, 15 Aug 2005 23:00:11 -0300 (ADT)
+Received: from houston.familyhealth.com.au (localhost [127.0.0.1])
+	by houston.familyhealth.com.au (Postfix) with ESMTP id 8423B2506C;
+	Tue, 16 Aug 2005 10:00:15 +0800 (WST)
+Received: from [127.0.0.1] (work-40.internal [192.168.0.40])
+	by houston.familyhealth.com.au (Postfix) with ESMTP id 4D3722506B;
+	Tue, 16 Aug 2005 10:00:12 +0800 (WST)
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+asdf
+receive 4
+* 5 EXISTS
+* 5 RECENT
+* OK [UIDNEXT 6] next uid
+a OK [APPENDUID 1 5] done
+send 1
+b fetch 1:* internaldate
+receive 6
+* 1 FETCH (INTERNALDATE "13-May-2004 12:28:51 +0000")
+* 2 FETCH (INTERNALDATE "20-May-2004 12:28:51 +0000")
+* 3 FETCH (INTERNALDATE "12-Feb-2005 10:13:14 +0000")
+* 4 FETCH (INTERNALDATE "09-Feb-2002 10:13:14 +0000")
+* 5 FETCH (INTERNALDATE "16-Aug-2005 02:02:55 +0000")
+b OK done
+end

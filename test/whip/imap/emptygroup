@@ -1,0 +1,22 @@
+# checks that our envelope structure is sensible when group syntax and
+# domainless addresses are used. RFC 3501 defines that such that it
+# isn't really, really, really possible. but. well.
+depends empty-inbox
+send 6
+a append INBOX () {108+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: stuff:;, nonsense
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+asdf
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+b fetch 1 envelope
+receive 2
+* 1 FETCH (ENVELOPE ("Thu, 13 May 2004 14:28:51 +0200" NIL (("Arnt Gulbrandsen" NIL "arnt" "oryx.com")) NIL NIL ((NIL NIL "stuff" NIL)(NIL NIL NIL NIL)(NIL NIL "nonsense" " ")) NIL NIL NIL NIL))
+b OK done
+end

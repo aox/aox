@@ -1,0 +1,45 @@
+depends empty-inbox
+send 25
+a1 append inbox () "12-Feb-2006 13:08:16 +0000" {865+}
+Return-Path: <willi.moll@foo.com>
+Content-class: urn:content-classes:message
+MIME-Version: 1.0
+Content-Type: text/plain;
+        charset="us-ascii"
+X-MimeOLE: Produced By Microsoft Exchange V6.5.7226.0
+Subject: RE: Multiprocess enhancement -urgent!!!
+Date: Fri, 10 Feb 2006 10:19:30 +0200
+Message-ID: <4DC6E4819C252B45930EE1DBF7000D056C1D59@foo.com>
+X-MS-Has-Attach:
+X-MS-TNEF-Correlator:
+Thread-Topic: Multiprocess enhancement -urgent!!!
+Thread-Index: AcYuGa94EnX3l2F2QSCjRdZVkDgA7QAAGU6Q
+From: "Moll, Willi" <willi.moll@foo.com>
+To: "Tim Meyer " <squish+501@froglogic.com>
+X-OriginalArrivalTime: 10 Feb 2006 08:19:36.0399 (UTC) FILETIME=[BAC2BDF0:01C62E1A]
+Content-Transfer-Encoding: 8bit
+X-MIME-Autoconverted: from quoted-printable to 8bit by alster.froglogic.com id k1A8L2Nr031358
+Status: RO
+X-Status:
+X-Keywords:
+X-UID: 23
+
+E-mail body.
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a1 OK [APPENDUID 1 1] done
+send 1
+b0 fetch 1 envelope
+receive 2
+* 1 FETCH (ENVELOPE ("Fri, 10 Feb 2006 10:19:30 +0200" "RE: Multiprocess enhancement -urgent!!!" (("Moll, Willi" NIL "willi.moll" "foo.com")) NIL NIL (("Tim Meyer" NIL "squish+501" "froglogic.com")) NIL NIL NIL "<4DC6E4819C252B45930EE1DBF7000D056C1D59@foo.com>"))
+b0 OK done
+send 1
+b1 fetch 1 (uid rfc822.size flags internaldate envelope body.peek[header.fields (Newsgroups Content-Md5 Content-Disposition Content-Language Content-Location Resent-To Resent-Date Resent-From Resent-Cc Resent-Subject List-Help List-Unsubscribe List-Subscribe List-Post List-Owner List-Archive Followup-To References)])
+receive 4
+* 1 FETCH (UID 1 RFC822.SIZE 760 FLAGS (\Recent) INTERNALDATE "12-Feb-2006 13:08:16 +0000" ENVELOPE ("Fri, 10 Feb 2006 10:19:30 +0200" "RE: Multiprocess enhancement -urgent!!!" (("Moll, Willi" NIL "willi.moll" "foo.com")) NIL NIL (("Tim Meyer" NIL "squish+501" "froglogic.com")) NIL NIL NIL "<4DC6E4819C252B45930EE1DBF7000D056C1D59@foo.com>") BODY[HEADER.FIELDS (Newsgroups Content-Md5 Content-Disposition Content-Language Content-Location Resent-To Resent-Date Resent-From Resent-Cc Resent-Subject List-Help List-Unsubscribe List-Subscribe List-Post List-Owner List-Archive Followup-To References)] {2}
+
+)
+b1 OK done
+end

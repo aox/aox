@@ -1,0 +1,24 @@
+depends 20-inbox
+# first a simplified version, short enough for $#@$@ syslog
+send 1
+a1 search or text "-----BEGIN=20PGP" text "LS0tQkVHSU4gUEdQI"
+receive 2
+* SEARCH
+a1 OK done
+send 1
+a2 search uid 10:20 or or or or text "-----BEGIN=20PGP" text "LS0tQkVHSU4gUEdQI" or text "LS0tLUJFR0lOIFBHUC" text "LS0tLS1CRUdJTiBQR1Ag" or or text "multipart/encrypted" text "application/x-pkcs7-mime" or text "* PGP" text "application/pgp-encrypted" or or text "application/pgp-signature" text "-----BEGIN PGP" or text "application/pkcs7-mime" text "multipart/signed"
+receive 2
+* SEARCH
+a2 OK done
+end
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,101 @@
+depends login
+send 1
+a myrights inbox
+receive 2
+* MYRIGHTS INBOX lrswipkxteancd
+a OK done
+send 1
+b listrights inbox script
+receive 2
+* LISTRIGHTS INBOX lrswipkxteancd
+b OK done
+send 1
+c GETACL inbox
+receive 2
+* ACL INBOX script lrswipkxteancd
+c OK done
+send 1
+d SETACL inbox ams lrswip
+receive 1
+d OK done
+send 1
+e GETACL inbox
+receive 2
+* ACL INBOX ams lrswip script lrswipkxteancd
+e OK done
+send 1
+f setacl inbox ams lrswip
+receive 1
+f OK done
+send 1
+g getacl inbox
+receive 2
+* ACL INBOX ams lrswip script lrswipkxteancd
+g OK done
+send 1
+h setacl inbox ams +an
+receive 1
+h OK done
+send 1
+i getacl inbox
+receive 2
+* ACL INBOX ams lrswipan script lrswipkxteancd
+i OK done
+send 1
+j setacl inbox ams -swip
+receive 1
+j OK done
+send 1
+k getacl INBOx
+receive 2
+* ACL INBOX ams lran script lrswipkxteancd
+k OK done
+send 1
+l setacl inbox ams +c
+receive 1
+l OK done
+send 1
+m getacl INBOX
+receive 2
+* ACL INBOX ams lrkanc script lrswipkxteancd
+m OK done
+send 1
+n setacl /users/script/INBOX ams +d
+receive 1
+n OK done
+send 1
+o getacl inbox
+receive 2
+* ACL INBOX ams lrkxteancd script lrswipkxteancd
+o OK done
+send 1
+p setacl inbox ams -cd
+receive 1
+p OK done
+send 1
+q getacl /users/script/inbox
+receive 2
+* ACL "/users/script/INBOX" ams lran script lrswipkxteancd
+q OK done
+send 1
+r setacl inbox ams -l
+receive 1
+r OK done
+send 1
+s setacl inbox ams rsp
+receive 1
+s OK done
+send 1
+t setacl inbox script -rsp
+receive 1
+t NO can't change owner's rights
+send 1
+u DELETEACL inbox ams
+receive 1
+u OK done
+send 1
+v getacl inbox
+receive 2
+* ACL INBOX script lrswipkxteancd
+v OK done
+end

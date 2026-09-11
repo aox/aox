@@ -1,0 +1,33 @@
+depends append
+# append a message with the current date
+send 5
+a append INBOX () {84+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+
+asdf
+receive 4
+* 5 EXISTS
+* 5 RECENT
+* OK [UIDNEXT 6] next uid
+a OK [APPENDUID 1 5] done
+send 1
+b search younger 10
+receive 2
+* SEARCH 5
+b OK done
+send 1
+c search older 10
+receive 2
+* SEARCH 1 2 3 4
+c OK done
+send 1
+d search not older 10
+receive 2
+* SEARCH 5
+d OK done
+send 1
+e search older x
+receive 1
+e BAD Expected a number, but saw: x
+end

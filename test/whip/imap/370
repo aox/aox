@@ -1,0 +1,59 @@
+depends empty-inbox
+send 35
+a append inbox () {1387+}
+Message-ID: <23293518.1166206597553.JavaMail.javamailuser@localhost>
+Date: Fri, 15 Dec 2006 10:16:36 -0800 (PST)
+From: character.15422.tadfff@5.perpetual.com
+To: character.15423.tbdfff@5.perpetual.com
+Subject: Test Save / Delete Flags
+Mime-Version: 1.0
+Content-Type: multipart/mixed; 
+	boundary="----=_Part_0_30584859.1166206596178"
+X-Mailer: smtpsend
+Messagetype: PARCEL
+Messagesenddate: 1166206596006
+messageexpirationbasedate: 1166206596006
+messageexpirationduration: 720
+messageexpirationaction: BOUNCE
+Messagesaveable: false
+Messagedeletable: false
+Messagecost: 120 gold
+guid: D47C73FE-D55D-2B15-23CC-F592A829F320
+
+------=_Part_0_30584859.1166206596178
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Content-Description: Body
+
+Test Save / Delete Flags
+------=_Part_0_30584859.1166206596178
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment
+Content-Description: Attachment
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?><gameEmailAttachmentList><attachments><attachmentType>CURRENCY</attachmentType><attachmentHeader>Currency</attachmentHeader><attachmentDetail>8g4s3b2c</attachmentDetail><saveable>false</saveable><deleteable>false</deleteable><id>0</id><cost>10 gold</cost></attachments></gameEmailAttachmentList>
+------=_Part_0_30584859.1166206596178--
+
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+A12 FETCH 1 (BODYSTRUCTURE)
+receive 2
+* 1 FETCH (BODYSTRUCTURE (("text" "plain" NIL NIL "Body" "7BIT" 26 1 NIL NIL NIL NIL)("text" "plain" NIL NIL "Attachment" "QUOTED-PRINTABLE" 370 5 NIL ("attachment" NIL) NIL NIL) "mixed" ("boundary" "----=_Part_0_30584859.1166206596178") NIL NIL NIL))
+A12 OK done
+send 1
+A15 FETCH 1 (BODY.peek[2]<0.16384>)
+receive 8
+* 1 FETCH (BODY[2]<0> {370}
+<?xml version=3D"1.0" encoding=3D"UTF-8" standalone=3D"yes"?><gameEmailAt=
+tachmentList><attachments><attachmentType>CURRENCY</attachmentType><attac=
+hmentHeader>Currency</attachmentHeader><attachmentDetail>8g4s3b2c</attach=
+mentDetail><saveable>false</saveable><deleteable>false</deleteable><id>0<=
+/id><cost>10 gold</cost></attachments></gameEmailAttachmentList>
+)
+A15 OK done
+end

@@ -1,0 +1,387 @@
+# appends 32 messages
+depends empty-inbox
+send 6
+a0001 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0001
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a0001 OK [APPENDUID 1 1] done
+send 6
+a0002 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0002
+receive 4
+* 2 EXISTS
+* 2 RECENT
+* OK [UIDNEXT 3] next uid
+a0002 OK [APPENDUID 1 2] done
+send 6
+a0003 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0003
+receive 4
+* 3 EXISTS
+* 3 RECENT
+* OK [UIDNEXT 4] next uid
+a0003 OK [APPENDUID 1 3] done
+send 6
+a0004 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0004
+receive 4
+* 4 EXISTS
+* 4 RECENT
+* OK [UIDNEXT 5] next uid
+a0004 OK [APPENDUID 1 4] done
+send 6
+a0005 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0005
+receive 4
+* 5 EXISTS
+* 5 RECENT
+* OK [UIDNEXT 6] next uid
+a0005 OK [APPENDUID 1 5] done
+send 6
+a0006 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0006
+receive 4
+* 6 EXISTS
+* 6 RECENT
+* OK [UIDNEXT 7] next uid
+a0006 OK [APPENDUID 1 6] done
+send 6
+a0007 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0007
+receive 4
+* 7 EXISTS
+* 7 RECENT
+* OK [UIDNEXT 8] next uid
+a0007 OK [APPENDUID 1 7] done
+send 6
+a0008 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0008
+receive 4
+* 8 EXISTS
+* 8 RECENT
+* OK [UIDNEXT 9] next uid
+a0008 OK [APPENDUID 1 8] done
+send 6
+a0009 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0009
+receive 4
+* 9 EXISTS
+* 9 RECENT
+* OK [UIDNEXT 10] next uid
+a0009 OK [APPENDUID 1 9] done
+send 6
+a0010 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0010
+receive 4
+* 10 EXISTS
+* 10 RECENT
+* OK [UIDNEXT 11] next uid
+a0010 OK [APPENDUID 1 10] done
+send 6
+a0011 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0011
+receive 4
+* 11 EXISTS
+* 11 RECENT
+* OK [UIDNEXT 12] next uid
+a0011 OK [APPENDUID 1 11] done
+send 6
+a0012 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0012
+receive 4
+* 12 EXISTS
+* 12 RECENT
+* OK [UIDNEXT 13] next uid
+a0012 OK [APPENDUID 1 12] done
+send 6
+a0013 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0013
+receive 4
+* 13 EXISTS
+* 13 RECENT
+* OK [UIDNEXT 14] next uid
+a0013 OK [APPENDUID 1 13] done
+send 6
+a0014 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0014
+receive 4
+* 14 EXISTS
+* 14 RECENT
+* OK [UIDNEXT 15] next uid
+a0014 OK [APPENDUID 1 14] done
+send 6
+a0015 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0015
+receive 4
+* 15 EXISTS
+* 15 RECENT
+* OK [UIDNEXT 16] next uid
+a0015 OK [APPENDUID 1 15] done
+send 6
+a0016 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0016
+receive 4
+* 16 EXISTS
+* 16 RECENT
+* OK [UIDNEXT 17] next uid
+a0016 OK [APPENDUID 1 16] done
+send 6
+a0017 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0017
+receive 4
+* 17 EXISTS
+* 17 RECENT
+* OK [UIDNEXT 18] next uid
+a0017 OK [APPENDUID 1 17] done
+send 6
+a0018 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0018
+receive 4
+* 18 EXISTS
+* 18 RECENT
+* OK [UIDNEXT 19] next uid
+a0018 OK [APPENDUID 1 18] done
+send 6
+a0019 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0019
+receive 4
+* 19 EXISTS
+* 19 RECENT
+* OK [UIDNEXT 20] next uid
+a0019 OK [APPENDUID 1 19] done
+send 6
+a0020 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0020
+receive 4
+* 20 EXISTS
+* 20 RECENT
+* OK [UIDNEXT 21] next uid
+a0020 OK [APPENDUID 1 20] done
+send 6
+a0021 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0021
+receive 4
+* 21 EXISTS
+* 21 RECENT
+* OK [UIDNEXT 22] next uid
+a0021 OK [APPENDUID 1 21] done
+send 6
+a0022 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0022
+receive 4
+* 22 EXISTS
+* 22 RECENT
+* OK [UIDNEXT 23] next uid
+a0022 OK [APPENDUID 1 22] done
+send 6
+a0023 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0023
+receive 4
+* 23 EXISTS
+* 23 RECENT
+* OK [UIDNEXT 24] next uid
+a0023 OK [APPENDUID 1 23] done
+send 6
+a0024 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0024
+receive 4
+* 24 EXISTS
+* 24 RECENT
+* OK [UIDNEXT 25] next uid
+a0024 OK [APPENDUID 1 24] done
+send 6
+a0025 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0025
+receive 4
+* 25 EXISTS
+* 25 RECENT
+* OK [UIDNEXT 26] next uid
+a0025 OK [APPENDUID 1 25] done
+send 6
+a0026 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0026
+receive 4
+* 26 EXISTS
+* 26 RECENT
+* OK [UIDNEXT 27] next uid
+a0026 OK [APPENDUID 1 26] done
+send 6
+a0027 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0027
+receive 4
+* 27 EXISTS
+* 27 RECENT
+* OK [UIDNEXT 28] next uid
+a0027 OK [APPENDUID 1 27] done
+send 6
+a0028 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0028
+receive 4
+* 28 EXISTS
+* 28 RECENT
+* OK [UIDNEXT 29] next uid
+a0028 OK [APPENDUID 1 28] done
+send 6
+a0029 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0029
+receive 4
+* 29 EXISTS
+* 29 RECENT
+* OK [UIDNEXT 30] next uid
+a0029 OK [APPENDUID 1 29] done
+send 6
+a0030 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0030
+receive 4
+* 30 EXISTS
+* 30 RECENT
+* OK [UIDNEXT 31] next uid
+a0030 OK [APPENDUID 1 30] done
+send 6
+a0031 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0031
+receive 4
+* 31 EXISTS
+* 31 RECENT
+* OK [UIDNEXT 32] next uid
+a0031 OK [APPENDUID 1 31] done
+send 6
+a0032 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0032
+receive 4
+* 32 EXISTS
+* 32 RECENT
+* OK [UIDNEXT 33] next uid
+a0032 OK [APPENDUID 1 32] done
+end

@@ -1,0 +1,1002 @@
+depends login
+send 997
+a1 append INBOX () {1544+}
+Received: from postgresql.org.org (webmail.postgresql.org [216.126.85.28])
+	by postgresql.org (8.11.3/8.11.1) with SMTP id f314JXK22167
+	for <pgsql-general@postgresql.org>; Sat, 31 Mar 2001 23:19:33 -0500 (EST)
+	(envelope-from pgsql-general-owner@postgresql.org)
+Received: from news.tht.net (news.hub.org [216.126.91.242])
+	by postgresql.org (8.11.3/8.11.1) with ESMTP id f2VIePK22485
+	for <pgsql-general@postgresql.org>; Sat, 31 Mar 2001 13:40:25 -0500 (EST)
+	(envelope-from news@news.tht.net)
+Received: (from news@localhost)
+	by news.tht.net (8.11.1/8.11.1) id f2VIaqw58664
+	for pgsql-general@postgresql.org; Sat, 31 Mar 2001 13:36:52 -0500 (EST)
+	(envelope-from news)
+From: Steve Aras <steve@stevearas.com>
+X-Newsgroups: comp.databases.postgresql.questions
+Subject: where does the -i go?
+Date: Sat, 31 Mar 2001 13:31:51 -0500
+Organization: Hub.Org Networking Services (http://www.hub.org)
+Lines: 12
+Message-Id: <3AC62297.1550148C@stevearas.com>
+X-Complaints-To: scrappy@hub.org
+X-Mailer: Mozilla 4.76 [en] (X11; U; Linux 2.2.14-5.0 i686)
+X-Accept-Language: en
+To: pgsql-general@postgresql.org
+X-Archive-Number: 200104/1
+X-Sequence-Number: 7066
+
+I've seen there are multiple ways of doing the -i for postmaster.
+Someone said something like:  Uncomment #PGOPTS= -i  Iv'e also seen it
+in the postmaster call  e.g.  postmaster -i  foo
+
+Do I need to add it to /rc.d/init.d/postgresql in the line below?
+ Where?
+
+su -l postgres -c "/usr/bin/pg_ctl -D $PGDATA -p /usr/bin/postmaster
+start  >/dev/null 2>&1"
+
+
+
+ {1965+}
+Received: from mx01.iprimus.com.au (mx01.iprimus.com.au [203.134.64.91])
+	by postgresql.org (8.11.3/8.11.1) with ESMTP id f315WGK32615
+	for <pgsql-general@postgresql.org>; Sun, 1 Apr 2001 00:32:17 -0500 (EST)
+	(envelope-from jclift@iprimus.com.au)
+Received: from iprimus.com.au ([63.34.220.219]) by mx01.iprimus.com.au  with Microsoft SMTPSVC(5.5.1877.647.64);
+	 Sun, 1 Apr 2001 15:32:13 +1000
+Message-Id: <3AC6BC4B.49C4DC5A@iprimus.com.au>
+Date: Sun, 1 Apr 2001 15:27:39 +1000
+From: Justin Clift <jclift@iprimus.com.au>
+X-Mailer: Mozilla 4.76 [en] (WinNT; U)
+X-Accept-Language: en
+To: Steve Aras <steve@stevearas.com>
+Cc: pgsql-general@postgresql.org
+Subject: Re: where does the -i go?
+References: <3AC62297.1550148C@stevearas.com>
+X-Archive-Number: 200104/2
+X-Sequence-Number: 7067
+
+Hi,
+
+I'd generally do :
+
+su - postgres -c "pg_ctl start -o '-i' > /dev/null 2>&1&"
+
+Making sure the correct environment variables are in the .profile or
+.bashrc start scripts for the postgres user of course.  (Depending on OS
+and default shell for the postgres)
+
+Regards and best wishes,
+
+Justin Clift
+
+su -l postgres -c "/usr/bin/pg_ctl -D $PGDATA -p /usr/bin/postmaster
+start  >/dev/null 2>&1"
+
+Steve Aras wrote:
+> 
+> I've seen there are multiple ways of doing the -i for postmaster.
+> Someone said something like:  Uncomment #PGOPTS= -i  Iv'e also seen it
+> in the postmaster call  e.g.  postmaster -i  foo
+> 
+> Do I need to add it to /rc.d/init.d/postgresql in the line below?
+>  Where?
+> 
+> su -l postgres -c "/usr/bin/pg_ctl -D $PGDATA -p /usr/bin/postmaster
+> start  >/dev/null 2>&1"
+> 
+> ---------------------------(end of broadcast)---------------------------
+> TIP 4: Don't 'kill -9' the postmaster
+
+-- 
+"My grandfather once told me that there are two kinds of people: those
+who work and those who take the credit. He told me to try to be in the
+first group; there was less competition there."
+     - Indira Gandhi
+ {1427+}
+Received: from postgresql.org.org (webmail.postgresql.org [216.126.85.28])
+	by postgresql.org (8.11.3/8.11.1) with SMTP id f314K3K22420
+	for <pgsql-general@postgresql.org>; Sat, 31 Mar 2001 23:20:03 -0500 (EST)
+	(envelope-from pgsql-general-owner@postgresql.org)
+Received: from news.tht.net (news.hub.org [216.126.91.242])
+	by postgresql.org (8.11.3/8.11.1) with ESMTP id f2VMARK39301
+	for <pgsql-general@postgresql.org>; Sat, 31 Mar 2001 17:10:27 -0500 (EST)
+	(envelope-from news@news.tht.net)
+Received: (from news@localhost)
+	by news.tht.net (8.11.1/8.11.1) id f2VM2MT60776
+	for pgsql-general@postgresql.org; Sat, 31 Mar 2001 17:02:22 -0500 (EST)
+	(envelope-from news)
+From: Markus Mohr <markus@johalla.de>
+X-Newsgroups: comp.databases.postgresql.questions
+Subject: capitals in fieldnames
+Date: Sun, 1 Apr 2001 00:02:19 +0200
+Organization: Krtek Inc.
+Lines: 16
+Message-Id: <3AC653EB.5AA66C5C@johalla.de>
+X-Complaints-To: scrappy@hub.org
+X-Mailer: Mozilla 4.76 [en] (X11; U; Linux 2.4.2 i586)
+X-Accept-Language: de, en
+To: pgsql-general@postgresql.org
+X-Archive-Number: 200104/2
+X-Sequence-Number: 7068
+
+Hi!
+
+I use postgres 7.0.3 on Linux and have the following problem:
+there is a field with the name 'BGF' and I can access it only with:
+
+SELECT "BGF" FROM <table>;
+
+Neither
+
+SELECT BGF ... nor
+SELECT bgf ...
+
+work. But AFAIK all three should do. Whats wrong here?
+
+thanks
+markus
+
+ {929+}
+Received: from postgresql.org.org (webmail.postgresql.org [216.126.85.28])
+	by postgresql.org (8.11.3/8.11.1) with SMTP id f314BtK21351
+	for <pgsql-general@postgresql.org>; Sat, 31 Mar 2001 23:11:55 -0500 (EST)
+	(envelope-from pgsql-general-owner@postgresql.org)
+Received: from nyc.rr.com (nycsmtp3fb.rdc-nyc.rr.com [24.29.99.80])
+	by postgresql.org (8.11.3/8.11.1) with ESMTP id f2UKpAK36362
+	for <pgsql-general@postgresql.org>; Fri, 30 Mar 2001 15:51:10 -0500 (EST)
+	(envelope-from igb@igb.net)
+Received: from [192.168.1.100] ([66.65.38.59]) by nyc.rr.com  with Microsoft SMTPSVC(5.5.1877.357.35);
+	 Fri, 30 Mar 2001 15:54:13 -0500
+Mime-Version: 1.0
+Message-Id: <p05010400b6eaa12d4a95@[192.168.1.100]>
+Date: Fri, 30 Mar 2001 15:49:24 -0500
+To: pgsql-general@postgresql.org
+From: "IGB.NET" <igb@igb.net>
+Content-Type: text/plain; format=flowed
+X-Archive-Number: 200104/3
+X-Sequence-Number: 7069
+
+subscribe
+
+ {2080+}
+Received: from postgresql.org.org (webmail.postgresql.org [216.126.85.28])
+	by postgresql.org (8.11.3/8.11.1) with SMTP id f314KqK22536
+	for <pgsql-general@postgresql.org>; Sat, 31 Mar 2001 23:20:52 -0500 (EST)
+	(envelope-from pgsql-general-owner@postgresql.org)
+Received: from news.tht.net (news.hub.org [216.126.91.242])
+	by postgresql.org (8.11.3/8.11.1) with ESMTP id f312eTK13926
+	for <pgsql-general@postgresql.org>; Sat, 31 Mar 2001 21:40:30 -0500 (EST)
+	(envelope-from news@news.tht.net)
+Received: (from news@localhost)
+	by news.tht.net (8.11.1/8.11.1) id f312BSb65992
+	for pgsql-general@postgresql.org; Sat, 31 Mar 2001 21:11:28 -0500 (EST)
+	(envelope-from news)
+From: Jacob <Jay@cob.com>
+X-Newsgroups: comp.databases.postgresql.questions
+Subject: SELECT MAX question
+Date: Sat, 31 Mar 2001 21:11:39 -0500
+Lines: 8
+X-Priority: 3
+X-Msmail-Priority: Normal
+X-Newsreader: Microsoft Outlook Express 5.00.2919.6600
+X-Mimeole: Produced By Microsoft MimeOLE V5.00.2919.6600
+Message-Id: <3ac68e33_3@news.uncensored-news.com>
+Organization: Uncensored-News.Com $9.95 Uncensored Newsgroups.
+X-Report-Abuse-To: abuse@uncensored-news.com
+X-T.O.S.: http://www.uncensored-news.com/terms.html
+To: pgsql-general@postgresql.org
+X-Archive-Number: 200104/4
+X-Sequence-Number: 7070
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0
+
+I have an sql tatement in my ASP page that has a WHERE date =3D (SELECT
+MAX(other_date) FROM SomeTable WHERE Blah1 =3D Blah2) clause.  What's
+happening is that the query is grabbing the latest date ONLY if something
+something is in the "other_date" field.  If the "other_date" field is =
+blank,
+then the record is not chosen.  My question is, how do I grab the latest
+date of "other_date" even if the it happens to be blank?
+
+
+
+______________________________________________________________________
+Posted Via Uncensored-News.Com - Still Only $9.95 - http://www.uncensored=
+-news.com
+   With Seven Servers In California And Texas - The Worlds Uncensored =
+News Source
+ =20
+
+ {2049+}
+Received: from smtp06.mail.onemain.com (SMTP-OUT003.ONEMAIN.COM [63.208.208.73])
+	by postgresql.org (8.11.3/8.11.1) with SMTP id f315n8K35380
+	for <pgsql-general@postgresql.org>; Sun, 1 Apr 2001 00:49:08 -0500 (EST)
+	(envelope-from egm2@jps.net)
+Received: (qmail 15386 invoked from network); 1 Apr 2001 05:49:00 -0000
+Received: from unknown (HELO localhost) ([216.119.36.110]) (envelope-sender <egm2@jps.net>)
+          by smtp06.mail.onemain.com (qmail-ldap-1.03) with SMTP
+          for <pgsql-general@postgresql.org>; 1 Apr 2001 05:49:00 -0000
+Received: from felix by localhost with local (Exim 3.22 #1 (Debian))
+	id 14jajD-0000EY-00
+	for <pgsql-general@postgresql.org>; Sat, 31 Mar 2001 21:48:43 -0800
+Date: Sat, 31 Mar 2001 21:48:42 -0800
+From: "Eric G. Miller" <egm2@jps.net>
+To: pgsql-general@postgresql.org
+Subject: Re: SQL Script
+Message-Id: <20010331214842.A678@calico.local>
+Mail-Followup-To: "Eric G. Miller" <egm2@jps.net>,
+	pgsql-general@postgresql.org
+References: <Hz4x6.1028$Tfq.8978590@tomcat.sk.sympatico.ca>
+User-Agent: Mutt/1.3.15i
+In-Reply-To: <Hz4x6.1028$Tfq.8978590@tomcat.sk.sympatico.ca>; from kdwillems@hotmail.com on Fri, Mar 30, 2001 at 06:50:15PM +0000
+X-Archive-Number: 200104/5
+X-Sequence-Number: 7071
+
+On Fri, Mar 30, 2001 at 06:50:15PM +0000, Kevin Willems wrote:
+> I have written the following function but when I try to run it, I get Error:
+> ERROR:  parser: parse error at or near "". As you can see, there is no
+> instance of "" in my function. Does anyone have any idea why this is
+> happening?
+> 
+> CREATE FUNCTION dropifexists(text)
+> RETURNS text
+> AS 'DECLARE
+>    numcount integer;
+>    nameoftable text;
+> BEGIN
+>    nameoftable := lower($1);
+>    SELECT INTO numcount count(tablename)
+>    FROM pg_tables
+>    WHERE tablename = nameoftable;
+> 
+>    if numcount = 1
+>    then DROP TABLE nameoftable;
+>    end if;
+>    RETURN nameoftable;
+> END;'
+
+You forgot to add " LANGUAGE 'plpgsql'; " at the end (no dbl quotes).
+
+-- 
+Eric G. Miller <egm2@jps.net>
+
+ {1992+}
+Received: from smtp05.mail.onemain.com (SMTP-OUT003.ONEMAIN.COM [63.208.208.73])
+	by postgresql.org (8.11.3/8.11.1) with SMTP id f315v5K36287
+	for <pgsql-general@postgresql.org>; Sun, 1 Apr 2001 00:57:05 -0500 (EST)
+	(envelope-from egm2@jps.net)
+Received: (qmail 29600 invoked from network); 1 Apr 2001 05:57:04 -0000
+Received: from unknown (HELO localhost) ([216.119.36.110]) (envelope-sender <egm2@jps.net>)
+          by smtp05.mail.onemain.com (qmail-ldap-1.03) with SMTP
+          for <pgsql-general@postgresql.org>; 1 Apr 2001 05:57:04 -0000
+Received: from felix by localhost with local (Exim 3.22 #1 (Debian))
+	id 14jar4-0000F7-00
+	for <pgsql-general@postgresql.org>; Sat, 31 Mar 2001 21:56:50 -0800
+Date: Sat, 31 Mar 2001 21:56:50 -0800
+From: "Eric G. Miller" <egm2@jps.net>
+To: pgsql-general@postgresql.org
+Subject: Re: SELECT MAX question
+Message-Id: <20010331215650.B678@calico.local>
+Mail-Followup-To: "Eric G. Miller" <egm2@jps.net>,
+	pgsql-general@postgresql.org
+References: <3ac68e33_3@news.uncensored-news.com>
+User-Agent: Mutt/1.3.15i
+In-Reply-To: <3ac68e33_3@news.uncensored-news.com>; from Jay@cob.com on Sat, Mar 31, 2001 at 09:11:39PM -0500
+X-Archive-Number: 200104/6
+X-Sequence-Number: 7072
+
+On Sat, Mar 31, 2001 at 09:11:39PM -0500, Jacob wrote:
+> I have an sql tatement in my ASP page that has a WHERE date = (SELECT
+> MAX(other_date) FROM SomeTable WHERE Blah1 = Blah2) clause.  What's
+> happening is that the query is grabbing the latest date ONLY if
+> something something is in the "other_date" field.  If the "other_date"
+> field is blank, then the record is not chosen.  My question is, how do
+> I grab the latest date of "other_date" even if the it happens to be
+> blank?
+
+Think about what you're asking.  How can anything or anybody know
+whether or not a NULL date is greater than some other date?  Maybe you
+want to look into having a timestamp with a default of
+CURRENT_TIMESTAMP?  
+
+-- 
+Eric G. Miller <egm2@jps.net>
+
+ {1316+}
+Received: from mailout06.sul.t-online.com (mailout06.sul.t-online.com [194.25.134.19])
+	by postgresql.org (8.11.3/8.11.1) with ESMTP id f31AWVK82544
+	for <pgsql-general@postgresql.org>; Sun, 1 Apr 2001 06:32:34 -0400 (EDT)
+	(envelope-from peter_e@gmx.net)
+Received: from fwd00.sul.t-online.com 
+	by mailout06.sul.t-online.com with smtp 
+	id 14jf9e-0006ER-05; Sun, 01 Apr 2001 12:32:18 +0200
+Received: from peter.localdomain (520083510237-0001@[212.185.245.185]) by fmrl00.sul.t-online.com
+	with esmtp id 14jf9T-27b088C; Sun, 1 Apr 2001 12:32:07 +0200
+Date: Sun, 1 Apr 2001 12:42:42 +0200 (CEST)
+From: Peter Eisentraut <peter_e@gmx.net>
+To: Justin Clift <jclift@iprimus.com.au>
+Cc: pgsql-general@postgresql.org
+Subject: Re: Need PostgreSQL startup scripts
+In-Reply-To: <3AC69CD1.3247A5B2@iprimus.com.au>
+Message-Id: <Pine.LNX.4.30.0104011241510.1308-100000@peter.localdomain>
+X-Sender: 520083510237-0001@t-dialin.net
+X-Archive-Number: 200104/7
+X-Sequence-Number: 7073
+
+Justin Clift writes:
+
+> If anybody has a minute or two, can they please email me the startup
+> script they use on their system to automatically start PostgreSQL when
+> the system boots?
+
+I've started collecting some in contrib/start-scripts.
+
+-- 
+Peter Eisentraut      peter_e@gmx.net       http://yi.org/peter-e/
+
+
+ {1802+}
+Received: from mailout05.sul.t-online.com (mailout05.sul.t-online.com [194.25.134.82])
+	by postgresql.org (8.11.3/8.11.1) with ESMTP id f31AauK82845
+	for <pgsql-general@postgresql.org>; Sun, 1 Apr 2001 06:36:58 -0400 (EDT)
+	(envelope-from peter_e@gmx.net)
+Received: from fwd00.sul.t-online.com 
+	by mailout05.sul.t-online.com with smtp 
+	id 14jfDy-0001WT-03; Sun, 01 Apr 2001 12:36:46 +0200
+Received: from peter.localdomain (520083510237-0001@[212.185.245.185]) by fmrl00.sul.t-online.com
+	with esmtp id 14jfDj-0Gvbg8C; Sun, 1 Apr 2001 12:36:31 +0200
+Date: Sun, 1 Apr 2001 12:47:06 +0200 (CEST)
+From: Peter Eisentraut <peter_e@gmx.net>
+To: Kevin Willems <kdwillems@hotmail.com>
+Cc: pgsql-general@postgresql.org
+Subject: Re: SQL Script
+In-Reply-To: <Hz4x6.1028$Tfq.8978590@tomcat.sk.sympatico.ca>
+Message-Id: <Pine.LNX.4.30.0104011246120.1308-100000@peter.localdomain>
+X-Sender: 520083510237-0001@t-dialin.net
+X-Archive-Number: 200104/8
+X-Sequence-Number: 7074
+
+Kevin Willems writes:
+
+> I have written the following function but when I try to run it, I get Error:
+> ERROR:  parser: parse error at or near "". As you can see, there is no
+> instance of "" in my function. Does anyone have any idea why this is
+> happening?
+
+"" means 'empty string', which often indicates end of input.
+
+>
+> CREATE FUNCTION dropifexists(text)
+> RETURNS text
+> AS 'DECLARE
+>    numcount integer;
+>    nameoftable text;
+> BEGIN
+>    nameoftable := lower($1);
+>    SELECT INTO numcount count(tablename)
+>    FROM pg_tables
+>    WHERE tablename = nameoftable;
+>
+>    if numcount = 1
+>    then DROP TABLE nameoftable;
+>    end if;
+>    RETURN nameoftable;
+> END;'
+
+You're missing LANGUAGE '...' here.
+
+-- 
+Peter Eisentraut      peter_e@gmx.net       http://yi.org/peter-e/
+
+
+ {1243+}
+Received: from rumba.agouros.de (mail.agouros.de [194.77.40.242])
+	by postgresql.org (8.11.3/8.11.1) with ESMTP id f31Bl5K95352
+	for <pgsql-general@postgresql.org>; Sun, 1 Apr 2001 07:47:05 -0400 (EDT)
+	(envelope-from elwood@agouros.de)
+Received: by rumba.agouros.de (Postfix, from userid 101)
+	id 092714D80F; Sun,  1 Apr 2001 12:50:51 +0200 (CEST)
+To: pgsql-general@postgresql.org
+Path: news.agouros.de!elwood
+From: Konstantinos Agouros <elwood@agouros.de>
+Newsgroups: pgsql.general
+Subject: 7.0.X-> 7.1 dump/restore required?
+Date: Sun, 1 Apr 2001 12:50:51 +0200
+Organization: Agouros.de
+Lines: 10
+Message-Id: <elwood.986122228@news.agouros.de>
+X-Newsreader: NN version 6.5.6
+X-Archive-Number: 200104/1
+X-Sequence-Number: 7075
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0
+
+Hi,
+
+before I download and compile will I need a dump/restore to upgrade?
+
+Konstantin
+--=20
+Dipl-Inf. Konstantin Agouros aka Elwood Blues. Internet: elwood@agouros.d=
+e
+Otkerstr. 28, 81547 Muenchen, Germany. Tel +49 89 69370185
+-------------------------------------------------------------------------=
+---
+"Captain, this ship will not sustain the forming of the cosmos." B'Elana =
+Torres
+
+ {1623+}
+Received: from mx02.iprimus.com.au (mx02.iprimus.com.au [203.134.65.91])
+	by postgresql.org (8.11.3/8.11.1) with ESMTP id f31CjiK00397
+	for <pgsql-general@postgresql.org>; Sun, 1 Apr 2001 08:45:45 -0400 (EDT)
+	(envelope-from jclift@iprimus.com.au)
+Received: from iprimus.com.au ([63.34.216.181]) by mx02.iprimus.com.au  with Microsoft SMTPSVC(5.5.1877.537.53);
+	 Sun, 1 Apr 2001 20:42:48 +1000
+Message-Id: <3AC70514.6FB45C26@iprimus.com.au>
+Date: Sun, 1 Apr 2001 20:38:12 +1000
+From: Justin Clift <jclift@iprimus.com.au>
+X-Mailer: Mozilla 4.76 [en] (WinNT; U)
+X-Accept-Language: en
+To: Peter Eisentraut <peter_e@gmx.net>
+Cc: pgsql-general@postgresql.org
+Subject: Re: Need PostgreSQL startup scripts
+References: <Pine.LNX.4.30.0104011241510.1308-100000@peter.localdomain>
+X-Archive-Number: 200104/2
+X-Sequence-Number: 7076
+
+Oops.
+
+Thanks Peter, I hadn't thought of checking there.
+
+Now that I know you are already addressing this, I'm not sure they need
+to be on the techdocs site.  I don't think we should have too much
+duplication and therefore wasted effort.
+
+Do you think it would be better to remove the startup scripts section
+from the techdocs site, or leave it there?
+
+Regards and best wishes,
+
+Justin Clift
+
+Peter Eisentraut wrote:
+> 
+> Justin Clift writes:
+> 
+> > If anybody has a minute or two, can they please email me the startup
+> > script they use on their system to automatically start PostgreSQL when
+> > the system boots?
+> 
+> I've started collecting some in contrib/start-scripts.
+> 
+> --
+> Peter Eisentraut      peter_e@gmx.net       http://yi.org/peter-e/
+
+ {1939+}
+Received: from corvette.mascari.com (dhcp065-024-161-045.columbus.rr.com [65.24.161.45])
+	by postgresql.org (8.11.3/8.11.1) with ESMTP id f31Di2K05274
+	for <pgsql-general@postgresql.org>; Sun, 1 Apr 2001 09:44:03 -0400 (EDT)
+	(envelope-from mascarm@mascari.com)
+Received: from ferrari (ferrari.mascari.com [192.168.2.1])
+	by corvette.mascari.com (8.9.3/8.9.3) with SMTP id JAA15481;
+	Sun, 1 Apr 2001 09:38:58 -0400
+Received: by localhost with Microsoft MAPI; Sun, 1 Apr 2001 09:42:31 -0400
+Message-Id: <01C0BA90.123A9520.mascarm@mascari.com>
+From: Mike Mascari <mascarm@mascari.com>
+To: Markus Mohr <markus@johalla.de>, pgsql-general@postgresql.org
+Subject: RE: capitals in fieldnames
+Date: Sun, 1 Apr 2001 09:42:30 -0400
+Organization: Mascari Development Inc.
+X-Mailer: Microsoft Internet E-mail/MAPI - 8.0.0.4211
+Encoding: 35 TEXT
+X-Archive-Number: 200104/3
+X-Sequence-Number: 7077
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0
+
+It was initially created with quotes. If you want to access it the other =
+way, you need to rename it:
+
+ALTER TABLE foo RENAME COLUMN "BGF" TO BGF;
+
+Hope that helps,
+
+Mike Mascari
+
+-----Original Message-----
+From:	Markus Mohr [SMTP:markus@johalla.de]
+Sent:	Saturday, March 31, 2001 5:02 PM
+To:	pgsql-general@postgresql.org
+Subject:	[GENERAL] capitals in fieldnames
+
+Hi!
+
+I use postgres 7.0.3 on Linux and have the following problem:
+there is a field with the name 'BGF' and I can access it only with:
+
+SELECT "BGF" FROM <table>;
+
+Neither
+
+SELECT BGF ... nor
+SELECT bgf ...
+
+work. But AFAIK all three should do. Whats wrong here?
+
+thanks
+markus
+
+---------------------------(end of broadcast)---------------------------
+TIP 3: if posting/reading through Usenet, please send an appropriate
+subscribe-nomail command to majordomo@postgresql.org so that your
+message can get through to the mailing list cleanly
+
+
+ {1186+}
+Received: from mailout04.sul.t-online.com (mailout04.sul.t-online.com [194.25.134.18])
+	by postgresql.org (8.11.3/8.11.1) with ESMTP id f31EhDK10274
+	for <pgsql-general@postgresql.org>; Sun, 1 Apr 2001 10:43:14 -0400 (EDT)
+	(envelope-from peter_e@gmx.net)
+Received: from fwd00.sul.t-online.com 
+	by mailout04.sul.t-online.com with smtp 
+	id 14jj4H-0001mI-01; Sun, 01 Apr 2001 16:43:01 +0200
+Received: from peter.localdomain (520083510237-0001@[212.185.245.185]) by fmrl00.sul.t-online.com
+	with esmtp id 14jj43-091aWeC; Sun, 1 Apr 2001 16:42:47 +0200
+Date: Sun, 1 Apr 2001 16:53:23 +0200 (CEST)
+From: Peter Eisentraut <peter_e@gmx.net>
+To: Konstantinos Agouros <elwood@agouros.de>
+Cc: pgsql-general@postgresql.org
+Subject: Re: 7.0.X-> 7.1 dump/restore required?
+In-Reply-To: <elwood.986122228@news.agouros.de>
+Message-Id: <Pine.LNX.4.30.0104011653000.1308-100000@peter.localdomain>
+X-Sender: 520083510237-0001@t-dialin.net
+X-Archive-Number: 200104/4
+X-Sequence-Number: 7078
+
+Konstantinos Agouros writes:
+
+> before I download and compile will I need a dump/restore to upgrade?
+
+Yes.
+
+-- 
+Peter Eisentraut      peter_e@gmx.net       http://yi.org/peter-e/
+
+
+ {1311+}
+Received: from smtp01ffm.de.uu.net (smtp01ffm.de.uu.net [192.76.144.150])
+	by postgresql.org (8.11.3/8.11.1) with ESMTP id f31FbLK15175
+	for <pgsql-general@postgresql.org>; Sun, 1 Apr 2001 11:37:21 -0400 (EDT)
+	(envelope-from al@humantouch.de)
+Received: from [192.168.0.44] ([213.68.175.247])
+	by smtp01ffm.de.uu.net (5.5.5/5.5.5) with ESMTP id RAA22807
+	for <pgsql-general@postgresql.org>; Sun, 1 Apr 2001 17:37:14 +0200 (MET DST)
+Mime-Version: 1.0
+Message-Id: <p05010400b6ecfaec0a5d@[192.168.0.44]>
+Date: Sun, 1 Apr 2001 17:37:07 +0200
+To: pgsql-general@postgresql.org
+From: Alexander Lohse <al@humantouch.de>
+Subject: Using Indices
+Content-Type: text/plain; format=flowed
+X-Archive-Number: 200104/5
+X-Sequence-Number: 7079
+
+Hi,
+
+when I use phpPgAdmin to create DBs, my Indices are getting automatic 
+names like : pers_UID_key
+
+I am getting confused about the name!
+
+Does that mean a need to do call this in a select query?
+
+"select * from pers where pers_UID_key = '...'"
+
+or do i call the original field?
+
+"select * from pers where UID= '...'"
+
+Thanx,
+
+Alex
+-- 
+___________________________
+Alexander Lohse
+Human Touch Medienproduktion GmbH
+Am See 1
+17440 Klein Jasedow
+
+Tel: (038374) 75211
+Fax: (038374) 75223
+eMail: al@humantouch.de
+http://www.humantouch.de
+
+ {1212+}
+Received: from smtp2.home.se (smtphost5.home.se [195.66.35.201])
+	by postgresql.org (8.11.3/8.11.1) with ESMTP id f31G20K17435
+	for <pgsql-general@postgresql.org>; Sun, 1 Apr 2001 12:02:00 -0400 (EDT)
+	(envelope-from zilch@home.se)
+Received: from zilch@home.se [195.54.154.30] by home.se
+	with Novell Internet Messaging System Web Client; Sun, 01 Apr 2001 17:59:46
+Subject: Dissapearing indexes, what's that all about?
+From: Daniel ?erud <zilch@home.se>
+To: pgsql-general@postgresql.org
+Date: Sun, 1 Apr 2001 15:59:46 +0000 (GMT)
+X-Sender: Novell Internet Messaging System Web Client
+Mime-Version: 1.0
+Message-Id: <986140786.134zilch@home.se>
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: quoted-printable
+X-Archive-Number: 200104/6
+X-Sequence-Number: 7080
+
+Hey people,
+have a very strange problem now...
+It's that when my database with the script i'm using a
+explain select * from acc where username=3D'britta' yields an=20
+index scan. Very nice. But after some time being up the=20
+same thing yields a SEQUENTIAL scan. What's happening=20
+folks? =3D) No more than update's select's and vacuums has=20
+been invoked.=20
+
+Thanks! *hug*
+
+Daniel =C5kerud
+
+
+ {1420+}
+Received: from mail1.crcom.net (mail1.crcom.net [208.220.74.12])
+	by postgresql.org (8.11.3/8.11.1) with ESMTP id f31GEXK18365
+	for <pgsql-general@postgresql.org>; Sun, 1 Apr 2001 12:14:33 -0400 (EDT)
+	(envelope-from len-morgan@crcom.net)
+Received: from H233 (max02-08.crcom.net [208.234.65.65])
+	by mail1.crcom.net (8.8.8/8.8.8) with SMTP id LAA02498;
+	Sun, 1 Apr 2001 11:14:29 -0500 (CDT)
+Message-Id: <001e01c0bac6$b9794f80$0908a8c0@H233.bstx.cc>
+From: Len Morgan <len-morgan@crcom.net>
+To: Daniel ?erud <zilch@home.se>, pgsql-general@postgresql.org
+Subject: Re: Dissapearing indexes, what's that all about?
+Date: Sun, 1 Apr 2001 11:13:36 -0500
+Mime-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+X-Priority: 3
+X-Msmail-Priority: Normal
+X-Mailer: Microsoft Outlook Express 4.72.3110.5
+X-Mimeole: Produced By Microsoft MimeOLE V4.72.3110.3
+X-Archive-Number: 200104/7
+X-Sequence-Number: 7081
+
+>Hey people,
+>have a very strange problem now...
+>It's that when my database with the script i'm using a
+>explain select * from acc where username='britta' yields an
+>index scan. Very nice. But after some time being up the
+>same thing yields a SEQUENTIAL scan. What's happening
+>folks? =) No more than update's select's and vacuums has
+>been invoked.
+
+Are you doing vacuum or vacuum analyze?  I believe only the 'vacuum analyze'
+function cleans up the indexing statistics.
+
+len
+
+
+ {2559+}
+Received: from bastuba.partitur.se (bastuba.partitur.se [212.209.169.194])
+	by postgresql.org (8.11.3/8.11.1) with ESMTP id f31GSYK19707
+	for <pgsql-general@postgresql.org>; Sun, 1 Apr 2001 12:28:34 -0400 (EDT)
+	(envelope-from kudo@partitur.se)
+Received: from tb303.partitur.se (tb303.partitur.se [212.209.169.230])
+	by bastuba.partitur.se (8.11.1/8.11.1) with ESMTP id f31GSTX09358;
+	Sun, 1 Apr 2001 18:28:33 +0200 (CEST)
+	(envelope-from kudo@partitur.se)
+Received: from localhost (localhost.partitur.se [127.0.0.1])
+	by tb303.partitur.se (8.11.1/8.11.1) with ESMTP id f31GSTx71365;
+	Sun, 1 Apr 2001 18:28:29 +0200 (CEST)
+	(envelope-from kudo@partitur.se)
+Date: Sun, 1 Apr 2001 18:28:28 +0200 (CEST)
+From: Patrik Kudo <kudo@partitur.se>
+To: Alexander Lohse <al@humantouch.de>
+Cc: pgsql-general@postgresql.org
+Subject: Re: Using Indices
+In-Reply-To: <p05010400b6ecfaec0a5d@[192.168.0.44]>
+Message-Id: <Pine.BSF.4.31.0104011825261.54442-100000@tb303.partitur.se>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: quoted-printable
+X-Archive-Number: 200104/8
+X-Sequence-Number: 7082
+
+Hi
+
+You should use the original field name. You don't have to worry about the
+indicies after they're created. Postgres uses them automagicaly whenever
+she think they'll speed up your queries. The name of the index is choosen
+to make it easy to understand what it's indexing (pers table, uid key in
+your case)
+
+Hope it helps.
+
+Regards,
+Patrik Kudo
+
+ech`echo xiun|tr nu oc|sed 'sx\([sx]\)\([xoi]\)xo un\2\1 is xg'`ol
+K=E4nns det oklart? Fr=E5ga p=E5!
+
+On Sun, 1 Apr 2001, Alexander Lohse wrote:
+
+> Hi,
+>
+> when I use phpPgAdmin to create DBs, my Indices are getting automatic
+> names like : pers_UID_key
+>
+> I am getting confused about the name!
+>
+> Does that mean a need to do call this in a select query?
+>
+> "select * from pers where pers_UID_key =3D '...'"
+>
+> or do i call the original field?
+>
+> "select * from pers where UID=3D '...'"
+>
+> Thanx,
+>
+> Alex
+> --
+> ___________________________
+> Alexander Lohse
+> Human Touch Medienproduktion GmbH
+> Am See 1
+> 17440 Klein Jasedow
+>
+> Tel: (038374) 75211
+> Fax: (038374) 75223
+> eMail: al@humantouch.de
+> http://www.humantouch.de
+>
+> ---------------------------(end of broadcast)--------------------------=
+-
+> TIP 3: if posting/reading through Usenet, please send an appropriate
+> subscribe-nomail command to majordomo@postgresql.org so that your
+> message can get through to the mailing list cleanly
+>
+
+
+ {2014+}
+Received: from smtp1.home.se (smtphost4.home.se [195.66.35.200])
+	by postgresql.org (8.11.3/8.11.1) with ESMTP id f31GXYK20301
+	for <pgsql-general@postgresql.org>; Sun, 1 Apr 2001 12:33:34 -0400 (EDT)
+	(envelope-from zilch@home.se)
+Received: from zilch@home.se [195.54.154.30] by home.se
+	with Novell Internet Messaging System Web Client; Sun, 01 Apr 2001 18:31:20
+Subject: Re: Re: Dissapearing indexes, what's that all about?
+From: Daniel ?erud <zilch@home.se>
+To: pgsql-general@postgresql.org
+Date: Sun, 1 Apr 2001 16:31:20 +0000 (GMT)
+X-Sender: Novell Internet Messaging System Web Client
+Mime-Version: 1.0
+Message-Id: <986142680.160zilch@home.se>
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: quoted-printable
+X-Archive-Number: 200104/9
+X-Sequence-Number: 7083
+
+
+
+> >Hey people,
+> >have a very strange problem now...
+> >It's that when my database with the script i'm using a
+> >explain select * from acc where username=3D'britta' yields=20
+an
+> >index scan. Very nice. But after some time being up the
+> >same thing yields a SEQUENTIAL scan. What's happening
+> >folks? =3D) No more than update's select's and vacuums has
+> >been invoked.
+>=20
+> Are you doing vacuum or vacuum analyze?  I believe only=20
+the 'vacuum analyze'
+> function cleans up the indexing statistics.
+>=20
+> len
+>
+
+Please look at this:
+I just ran an interesting little test here...
+watch this:
+
+<DROP DB><CREATE DB><RUN DB SCRIPT>
+
+explain select * from acc where username=3D'britta';
+
+Index scan using acc_username_key on acc...
+
+VACUUM;
+
+explain select * from acc where username=3D'britta';
+
+Seq Scan on acc
+
+<DROP DB><CREATE DB><RUN DB SCRIPT>
+
+explain select * from acc where username=3D'britta';
+
+Index scan
+
+VACUUM ANALYZE
+
+explain select * from acc where username=3D'britta';
+
+Seq scan
+
+What the wakk is goin on here people? =3D)
+
+version: PostgreSQL 7.0.0 on i686-pc-linux-gnu, compiled by=20
+gcc 2.95.2
+
+Thanks
+
+Daniel =C5kerud
+
+
+ {2140+}
+Received: from dm3cnd.bell.ca (dm3cnd.bell.ca [198.235.69.146])
+	by postgresql.org (8.11.3/8.11.1) with SMTP id f31GYuK20543
+	for <pgsql-general@postgresql.org>; Sun, 1 Apr 2001 12:34:56 -0400 (EDT)
+	(envelope-from adba.amdocs@bell.ca)
+Received: from 142.117.3.162 by dm3cnd.bell.ca with SMTP (WorldSecure
+ Server SMTP Relay(WSS) v4.5); Sun, 01 Apr 2001 12:34:53 -0400
+X-Server-Uuid: b85f21a3-cfd1-11d3-8401-00104bf46ab7
+Received: from bell.ca ([142.117.131.212]) by blmc2w.qc.bell.ca (
+ Netscape Messaging Server 3.6) with ESMTP id AAA46CD; Sun, 1 Apr 2001
+ 12:34:33 -0400
+Message-Id: <3AC75845.3090604@bell.ca>
+Date: Sun, 1 Apr 2001 12:33:09 -0400
+From: ADBAAMD <adba.amdocs@bell.ca>
+Organization: Amdocs at Bell Canada
+User-Agent: Mozilla/5.0 (Windows; U; WinNT4.0; en-US; 0.8.1)
+ Gecko/20010323
+X-Accept-Language: pt-br, pt, gl, es, en-gb, en, =?ISO-8859-1?q?fr=C4=D0=60?=
+Mime-Version: 1.0
+To: Jacob <Jay@cob.com>
+Cc: pgsql-general@postgresql.org
+Subject: Re: SELECT MAX question
+References: <3ac68e33_3@news.uncensored-news.com>
+X-Wss-Id: 16D98710472381-01-01
+Content-Type: text/plain; charset=iso-8859-15; format=flowed
+Content-Transfer-Encoding: quoted-printable
+X-Archive-Number: 200104/10
+X-Sequence-Number: 7084
+
+Jacob wrote:
+
+> I have an sql tatement in my ASP page that has a WHERE date =3D (SELECT
+> MAX(other_date) FROM SomeTable WHERE Blah1 =3D Blah2) clause.  What's
+> happening is that the query is grabbing the latest date ONLY if =
+something
+> something is in the "other_date" field.  If the "other_date" field is =
+blank,
+> then the record is not chosen.  My question is, how do I grab the =
+latest
+> date of "other_date" even if the it happens to be blank?
+
+	Adding my own question to this, does pgsql have an equivalent to the=20
+Oracle NVL function?
+
+
+
+--=20
+  _
+/ \   Leandro Guimar=E3es Faria Corsetti Dutra         +55 (11) 3040 8913
+\ /   Amdocs at Bell Canada                          +1 (514) 786 87 47
+  X    Support Center, S=E3o Paulo, Brazil          mailto:adbaamd@bell.c=
+a
+/ \   http://terravista.pt./Enseada/1989/    mailto:leandrod@amdocs.com
+
+
+
+ {2708+}
+Received: from corvette.mascari.com (dhcp065-024-161-045.columbus.rr.com [65.24.161.45])
+	by postgresql.org (8.11.3/8.11.1) with ESMTP id f31GfOK21476
+	for <pgsql-general@postgresql.org>; Sun, 1 Apr 2001 12:41:25 -0400 (EDT)
+	(envelope-from mascarm@mascari.com)
+Received: from ferrari (ferrari.mascari.com [192.168.2.1])
+	by corvette.mascari.com (8.9.3/8.9.3) with SMTP id MAA16008;
+	Sun, 1 Apr 2001 12:36:48 -0400
+Received: by localhost with Microsoft MAPI; Sun, 1 Apr 2001 12:40:20 -0400
+Message-Id: <01C0BAA8.E9B63B40.mascarm@mascari.com>
+From: Mike Mascari <mascarm@mascari.com>
+To: Daniel ?erud <zilch@home.se>, pgsql-general@postgresql.org
+Subject: RE: Re: Dissapearing indexes, what's that all about?
+Date: Sun, 1 Apr 2001 12:40:19 -0400
+Organization: Mascari Development Inc.
+X-Mailer: Microsoft Internet E-mail/MAPI - 8.0.0.4211
+Encoding: 70 TEXT
+X-Archive-Number: 200104/11
+X-Sequence-Number: 7085
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0
+
+What are the costs associated with the EXPLAIN output? Perhaps a =
+sequential scan is *faster* then an index scan.
+
+Mike Mascari
+mascarm@mascari.com
+
+-----Original Message-----
+From:	Daniel ?erud [SMTP:zilch@home.se]
+Sent:	Sunday, April 01, 2001 12:31 PM
+To:	pgsql-general@postgresql.org
+Subject:	Re: Re: [GENERAL] Dissapearing indexes, what's that all about?
+
+
+
+> >Hey people,
+> >have a very strange problem now...
+> >It's that when my database with the script i'm using a
+> >explain select * from acc where username=3D'britta' yields=20
+an
+> >index scan. Very nice. But after some time being up the
+> >same thing yields a SEQUENTIAL scan. What's happening
+> >folks? =3D) No more than update's select's and vacuums has
+> >been invoked.
+>=20
+> Are you doing vacuum or vacuum analyze?  I believe only=20
+the 'vacuum analyze'
+> function cleans up the indexing statistics.
+>=20
+> len
+>
+
+Please look at this:
+I just ran an interesting little test here...
+watch this:
+
+<DROP DB><CREATE DB><RUN DB SCRIPT>
+
+explain select * from acc where username=3D'britta';
+
+Index scan using acc_username_key on acc...
+
+VACUUM;
+
+explain select * from acc where username=3D'britta';
+
+Seq Scan on acc
+
+<DROP DB><CREATE DB><RUN DB SCRIPT>
+
+explain select * from acc where username=3D'britta';
+
+Index scan
+
+VACUUM ANALYZE
+
+explain select * from acc where username=3D'britta';
+
+Seq scan
+
+What the wakk is goin on here people? =3D)
+
+version: PostgreSQL 7.0.0 on i686-pc-linux-gnu, compiled by=20
+gcc 2.95.2
+
+Thanks
+
+Daniel Akerud
+
+
+---------------------------(end of broadcast)---------------------------
+TIP 4: Don't 'kill -9' the postmaster
+
+
+receive 1
+a1 OK [APPENDUID 1 1:20] done
+end

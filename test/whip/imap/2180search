@@ -1,0 +1,36 @@
+# RFC 2180:
+#   A server MAY simply not return a search response for messages that
+#   have been expunged and it has not been able to inform the client
+#   about.  If a client was expecting a particular message to be returned
+#   in a search result, and it was not, the client SHOULD issue a NOOP
+#   command to see if the message was expunged by another client.
+depends 2180base
+send 1
+a store 1:2 +flags.silent \deleted
+receive 1
+a OK done
+send 1
+a uid expunge 1:2
+receive 3
+* 1 EXPUNGE
+* 1 EXPUNGE
+a OK done
+use watcher
+send 1
+a search from arnt@
+receive 2
+* SEARCH 3 4
+a OK done
+send 1
+a uid search from arnt@
+receive 4
+* 1 EXPUNGE
+* 1 EXPUNGE
+* SEARCH 3 4
+a OK done
+send 1
+a search from arnt@
+receive 2
+* SEARCH 1 2
+a OK done
+end

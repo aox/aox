@@ -1,0 +1,126 @@
+depends empty-inbox
+send 111
+a append INBOX (\Seen) {2292+}
+From: RichardBrooksbyrb@geodesic.com (RichardBrooksbyrb@geodesic.com)
+Date: Mon, 1 Feb 1999 09:01:16 -0600
+Subject: p4UI GUI prototype...
+Message-ID: <mailman.1891.1130361996.18943.perforce-user@perforce.com>
+
+At 1999-01-31 17:26 -0800, David Jeske wrote:
+
+> >> I didn't really intend to create a 'flame fest' regarding my
+> >> prototype. I was really more interested in getting constructive
+> >> information about what people like and don't like in GUIs.
+> >
+> > I don't think this is the place for a general discussion about GUIs.  I can
+> > tell you about the experiences that I and my company have had with source
+> > control systems and their interfaces, and encourage you to make your GUI
+> > more effective for organizations like ours.
+>
+> Your comments are much appreciated. However, you implication that
+> somehow my goals should be more like your goals are
+> unnecessary. Different orginizations have different goals. ...
+
+I'm sorry, I misunderstood you.  I thought you were proposing a Perforce
+GUI for everyone.
+
+Please note that _we_ migrated from SourceSafe to Perforce, so I'm not
+entirely ignorant about that.  We migrated partly because SourceSafe's GUI
+was terrible, so a SourceSafe-similar GUI would have been a bad move, I
+think.
+
+> However, this isn't a perfect world, and I feel that I at least made
+> some attempt to explain the motivating assumptions of my GUI
+> choices. Instead of pointing out useful ideas outside of the space
+> where our assumptions different, you seem determined to point out that
+> you think your assumptions are better.
+
+Yes, that's exactly what I'm doing, based on my error (see above) that your
+goal was to create a Perforce GUI which is widely suitable.  Looking at
+your GUI I could see that you'd made assumptions that weren't compatible
+with my experience in this organization, _given that goal_, and I thought
+you should know about that.
+
+I apologise for not making myself clearer, and for not taking the time to
+understand your terms of reference.
+- ---
+Richard Brooksby <rb at geodesic.com>          VP of Engineering and Development
+Geodesic Systems, 414 North Orleans Street, Suite 410, Chicago, IL 60610, USA
+Tel: +1 (312) 832-2044  Fax: +1 (312) 832-1230  Web: http://www.geodesic.com/
+ (\Flagged) "01-Apr-1999 12:40:00 +0200" annotation (/comment (value.priv "woops")) {1400+}
+From: RichardGeiger <rmg@netapp.com>
+Date: Tue, 02 Feb 1999 08:37:06 -0800
+Subject: Using Perforce for your web content?
+Message-ID: <mailman.1897.1130361997.18943.perforce-user@perforce.com>
+
+
+We use Perforce to manage several regions of our internal engineering
+web pages.
+
+Currently, use a cron job that syncs to the head of all the managed
+pages (and page sources, since in some cases we use tools that build
+the final HTML from "html sources"), and then runs the tools that
+build the pages. This cron job runs every 15 minutes. I'm looking at
+making it more intelligent - update daemon-based, perhaps.
+
+We make sure that the whole site is done with relative links, so that
+an individual's client workspace can be used for testing before
+changes are submitted.
+
+I'm trying to convince our external web (http://www.netapp.com) folks
+that they would benefit greatly by using Perforce in a similar way.
+
+I'm also toying with the idea of suggesting that my personal
+ISP/webspace provider add Perforce client side support, so that I
+could use Perforce for uploading my personal site. I use a "smart ftp"
+client to do this now, but it's much less efficient that perforce
+would be. Since they offer Solaris based shell access, this shouldn't
+be amazingly difficult for them, though they do tend to be careful
+about what binaries they allow to run on their hosts.
+
+  - rmg
+ {1398+}
+From: RichardGeiger <rmg@netapp.com>
+Date: Tue, 02 Feb 1999 08:37:06 -0800
+Subject: Using Perforce for your web content?
+Message-ID: <mailman.1897.1130361997.18943.perforce-user@perforce.com>
+
+
+We use Perforce to manage several regions of our internal engineering
+web pages.
+
+Currently, use a cron job that syncs to the head of all the managed
+pages (and page sources, since in some cases we use tools that build
+the final HTML from "html sources"), and then runs the tools that
+build the pages. This cron job runs every 15 minutes. I'm looking at
+making it more intelligent - update daemon-based, perhaps.
+
+We make sure that the whole site is done with relative links, so that
+an individual's client workspace can be used for testing before
+changes are submitted.
+
+I'm trying to convince our external web (http://www.netapp.com) folks
+that they would benefit greatly by using Perforce in a similar way.
+
+I'm also toying with the idea of suggesting that my personal
+ISP/webspace provider add Perforce client side support, so that I
+could use Perforce for uploading my personal site. I use a "smart ftp"
+client to do this now, but it's much less efficient that perforce
+would be. Since they offer Solaris based shell access, this shouldn't
+be amazingly difficult for them, though they do tend to be careful
+about what binaries they allow to run on their hosts.
+
+  - rmg
+receive 4
+* 3 EXISTS
+* 3 RECENT
+* OK [UIDNEXT 4] next uid
+a OK [APPENDUID 1 1:3] done
+send 1
+b fetch 1:3 (flags annotation (/comment (value.priv)) internaldate)
+receive 4
+* 1 FETCH (FLAGS (\Recent \Seen) INTERNALDATE "01-Feb-1999 15:01:16 +0000" ANNOTATION ())
+* 2 FETCH (FLAGS (\Flagged \Recent) INTERNALDATE "01-Apr-1999 10:40:00 +0000" ANNOTATION (/comment (value.priv "woops")))
+* 3 FETCH (FLAGS (\Recent) INTERNALDATE "02-Feb-1999 16:37:06 +0000" ANNOTATION ())
+b OK done
+end

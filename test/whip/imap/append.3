@@ -1,0 +1,47 @@
+depends empty-inbox
+send 11
+a append INBOX (foo bar baz \Seen \Draft) ANNOTATION (/foo (value.priv "foo") /bar (value.shared "bar")) {264+}
+From: Some New Person <somenew@person.oryx.com>
+To: Another New Person <ams@oryx.com>
+Cc: Arnt in disguise Gulbrandsen <arnt@oryx.com>
+Date: 20 June 2008 14:28:51 +0200
+Subject: this is a test.
+X-Foo-Bar: barf
+X-Bar-Baz: quux
+
+asdf blah de blah
+foo de bar
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+b fetch 1 (flags)
+receive 4
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen bar baz foo)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen bar baz foo \*)] permanent flags
+* 1 FETCH (FLAGS (\Draft \Recent \Seen bar baz foo))
+b OK done
+send 1
+c fetch 1 (annotation (/* (value.priv value.shared)))
+receive 2
+* 1 FETCH (ANNOTATION (/bar (value.priv NIL value.shared "bar") /foo (value.priv "foo" value.shared NIL)))
+c OK done
+send 1
+d fetch 1 rfc822
+receive 13
+* 1 FETCH (RFC822 {270}
+From: Some New Person <somenew@person.oryx.com>
+To: Another New Person <ams@oryx.com>
+Cc: Arnt in disguise Gulbrandsen <arnt@oryx.com>
+Date: Fri, 20 Jun 2008 14:28:51 +0200
+Subject: this is a test.
+X-Foo-Bar: barf
+X-Bar-Baz: quux
+
+asdf blah de blah
+foo de bar
+)
+d OK done
+end

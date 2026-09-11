@@ -1,0 +1,39 @@
+broken
+depends 2180base
+# tests NOTIFY support, RFC 5465
+send 1
+a1 create Lists/lemonade
+receive 1
+a1 OK done
+send 1
+a1b create Lists/im2000
+receive 1
+a1b OK done
+send 1
+a2 notify set status (selected (MessageNew (uid body.peek[header.fields (from to subject)]) MessageExpunge)) (subtree Lists (MessageNew))
+receive 1
+a2 OK done
+use watcher
+send 1
+w2 notify set status (selected (MessageNew (uid body.peek[header.fields (from to subject)]) MessageExpunge)) (subtree Lists (MessageNew))
+receive 1
+w2 OK done
+use main
+send 6
+b1 append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+asdf
+receive 4
+* 5 EXISTS
+* OK [UIDNEXT 6] next uid
+b1 OK [APPENDUID 1 5] done
+use watcher
+receive 4
+1
+2
+3
+4
+end

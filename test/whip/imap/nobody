@@ -1,0 +1,42 @@
+depends empty-inbox
+# try to append a message with no body, and check that it comes back sane.
+send 14
+a append INBOX () {457+}
+Return-Path: owner-lftp@uniyar.ac.ru
+Message-ID: <48F4BD05.4020609@ipichgc.rimed.cu>
+Date: Tue, 14 Oct 2008 11:38:45 -0400
+From: Karel del Prado <karel@ipichgc.rimed.cu>
+User-Agent: Thunderbird 2.0.0.16 (Windows/20080708)
+MIME-Version: 1.0
+To: lftp@uniyar.ac.ru
+Subject: help me with lftp for windows
+Content-Type: multipart/alternative;
+ boundary="------------050308050503070804050901"
+Precedence: bulk
+
+--------------050308050503070804050901--
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+c fetch 1 body.peek[]
+receive 16
+* 1 FETCH (BODY[] {459}
+Return-Path: <owner-lftp@uniyar.ac.ru>
+Message-Id: <48F4BD05.4020609@ipichgc.rimed.cu>
+Date: Tue, 14 Oct 2008 11:38:45 -0400
+From: Karel del Prado <karel@ipichgc.rimed.cu>
+User-Agent: Thunderbird 2.0.0.16 (Windows/20080708)
+Mime-Version: 1.0
+To: lftp@uniyar.ac.ru
+Subject: help me with lftp for windows
+Content-Type: multipart/alternative;
+ boundary=------------050308050503070804050901
+Precedence: bulk
+
+--------------050308050503070804050901--
+)
+c OK done
+end

@@ -1,0 +1,13 @@
+depends login
+send 1
+c select inbox
+receive 8
+* 0 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 1] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+c OK [READ-WRITE] done
+end

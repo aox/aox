@@ -1,0 +1,36 @@
+depends login
+send 1
+a enable condstore
+receive 2
+* ENABLED CONDSTORE
+a OK done
+send 1
+a enable annotate-experiment-1
+receive 2
+* ENABLED ANNOTATE-EXPERIMENT-1
+a OK done
+send 1
+a enable condstore annotate-experiment-1
+receive 2
+* ENABLED CONDSTORE ANNOTATE-EXPERIMENT-1
+a OK done
+send 1
+a enable condstore annotate-experiment-1 x-good-idea
+receive 2
+* ENABLED CONDSTORE ANNOTATE-EXPERIMENT-1
+a OK done
+send 1
+a enable annotate-experiment-1 x-good-idea condstore
+receive 2
+* ENABLED CONDSTORE ANNOTATE-EXPERIMENT-1
+a OK done
+send 1
+a enable annotate-experiment-1 x-good-idea condstore annotate-experiment-1
+receive 2
+* ENABLED CONDSTORE ANNOTATE-EXPERIMENT-1
+a OK done
+send 1
+a enable idle
+receive 1
+a BAD Capability IDLE is not subject to Enable
+end

@@ -1,0 +1,13 @@
+depends login
+send 4
+a logout
+b noop
+c noop
+d noop
+receive 5
+* BYE logout
+a OK done
+b OK done
+c OK done
+d OK done
+end
