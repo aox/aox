@@ -1,0 +1,59 @@
+# builds a biggish mailbox using COPY. this should not take too long.
+depends smallcopy
+send 1
+d copy 1:* inbox
+receive 4
+* 512 EXISTS
+* 512 RECENT
+* OK [UIDNEXT 513] next uid
+d OK [COPYUID 1 1:256 257:512] done
+send 1
+e copy 1:* inbox
+receive 4
+* 1024 EXISTS
+* 1024 RECENT
+* OK [UIDNEXT 1025] next uid
+e OK [COPYUID 1 1:512 513:1024] done
+send 1
+f copy 1:* inbox
+receive 4
+* 2048 EXISTS
+* 2048 RECENT
+* OK [UIDNEXT 2049] next uid
+f OK [COPYUID 1 1:1024 1025:2048] done
+send 1
+g copy 1:* inbox
+receive 4
+* 4096 EXISTS
+* 4096 RECENT
+* OK [UIDNEXT 4097] next uid
+g OK [COPYUID 1 1:2048 2049:4096] done
+send 1
+h copy 1:* inbox
+receive 4
+* 8192 EXISTS
+* 8192 RECENT
+* OK [UIDNEXT 8193] next uid
+h OK [COPYUID 1 1:4096 4097:8192] done
+send 1
+i copy 1:* inbox
+receive 4
+* 16384 EXISTS
+* 16384 RECENT
+* OK [UIDNEXT 16385] next uid
+i OK [COPYUID 1 1:8192 8193:16384] done
+send 1
+j copy 1:* inbox
+receive 4
+* 32768 EXISTS
+* 32768 RECENT
+* OK [UIDNEXT 32769] next uid
+j OK [COPYUID 1 1:16384 16385:32768] done
+send 1
+k copy 1:* inbox
+receive 4
+* 65536 EXISTS
+* 65536 RECENT
+* OK [UIDNEXT 65537] next uid
+k OK [COPYUID 1 1:32768 32769:65536] done
+end

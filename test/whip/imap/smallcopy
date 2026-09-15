@@ -1,0 +1,24 @@
+# builds a smallish mailbox using COPY
+depends correctbody
+send 1
+a copy 1:* inbox
+receive 4
+* 64 EXISTS
+* 64 RECENT
+* OK [UIDNEXT 65] next uid
+a OK [COPYUID 1 1:32 33:64] done
+send 1
+b copy 1:* inbox
+receive 4
+* 128 EXISTS
+* 128 RECENT
+* OK [UIDNEXT 129] next uid
+b OK [COPYUID 1 1:64 65:128] done
+send 1
+c copy 1:* inbox
+receive 4
+* 256 EXISTS
+* 256 RECENT
+* OK [UIDNEXT 257] next uid
+c OK [COPYUID 1 1:128 129:256] done
+end
