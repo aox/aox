@@ -1,0 +1,32 @@
+# checks that we're not emitting any expunges on select, even if the
+# mailbox uid set contains holes.
+depends messagemix
+send 2
+a store 1 +flags \deleted
+b expunge
+receive 4
+* 1 FETCH (UID 1 FLAGS (\Deleted \Recent))
+a OK done
+* 1 EXPUNGE
+b OK done
+send 1
+c unselect
+receive 2
+* OK [CLOSED] I, missa est
+c OK done
+send 1
+d select inbox
+receive 8
+* 2 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 4] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+d OK [READ-WRITE] done
+send 1
+e noop
+receive 1
+e OK done
+end

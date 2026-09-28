@@ -24,82 +24,26 @@ class SelectData
 public:
     SelectData()
         : readOnly( false ), condstore( false ),
-          needFirstUnseen( false ), unicode( false ), qresync( false ),
-          firstUnseen( 0 ), allFlags( 0 ), updated( 0 ),
+          unicode( false ), qresync( false ),
+          allFlags( 0 ), updated( 0 ),
           mailbox( 0 ), session( 0 ), permissions( 0 ),
-          cacheFirstUnseen( 0 ),
           lastUidValidity( 0 ), lastModSeq( 0 ), firstFetch( 0 )
     {}
 
     bool readOnly;
     bool condstore;
-    bool needFirstUnseen;
     bool unicode;
     bool qresync;
-    Query * firstUnseen;
     Query * allFlags;
     Query * updated;
     Mailbox * mailbox;
     ImapSession * session;
     Permissions * permissions;
-    Query * cacheFirstUnseen;
     uint lastUidValidity;
     uint lastModSeq;
     IntegerSet knownUids;
     Fetch * firstFetch;
-
-    class FirstUnseenCache
-        : public Cache
-    {
-    public:
-        FirstUnseenCache(): Cache( 10 ) {}
-
-        struct MailboxInfo
-            : public Garbage
-        {
-        public:
-            MailboxInfo(): Garbage(), fu( 0 ), ms( 0 ) {}
-            uint fu;
-            int64 ms;
-        };
-
-        Map<MailboxInfo> c;
-
-        int64 find( Mailbox * m, int64 ms ) {
-            if ( !m || !m->id() )
-                return 0;
-            MailboxInfo * mi = c.find( m->id() );
-            if ( !mi )
-                return 0;
-            if ( mi->ms < ms )
-                c.remove( m->id() );
-            if ( mi->ms != ms )
-                return 0;
-            return mi->fu;
-        }
-
-        void insert( Mailbox * m, int64 ms, uint uid ) {
-            if ( !m || !m->id() || !ms )
-                return;
-            MailboxInfo * mi = c.find( m->id() );
-            if ( !mi ) {
-                mi = new MailboxInfo();
-                c.insert( m->id(), mi );
-            }
-            if ( mi->ms < ms ) {
-                mi->fu = uid;
-                mi->ms = ms;
-            }
-        }
-
-        void clear() {
-            c.clear();
-        }
-    };
 };
-
-
-static SelectData::FirstUnseenCache * firstUnseenCache = 0;
 
 
 /*! \class Select select.h
@@ -229,9 +173,6 @@ void Select::execute()
     if ( !transaction() )
         setTransaction( new Transaction( this ) );
 
-    if ( !::firstUnseenCache )
-        ::firstUnseenCache = new SelectData::FirstUnseenCache;
-
     if ( !d->session ) {
         d->session = new ImapSession( imap(), d->mailbox,
                                       d->readOnly, d->unicode,
@@ -242,14 +183,6 @@ void Select::execute()
 
     if ( !d->session->initialised() )
         return;
-
-    if ( d->session->isEmpty() )
-        d->needFirstUnseen = false;
-    else if ( ::firstUnseenCache &&
-              ::firstUnseenCache->find( d->mailbox, d->session->nextModSeq() ) )
-        d->needFirstUnseen = false;
-    else
-        d->needFirstUnseen = true;
 
     if ( d->lastModSeq < d->mailbox->nextModSeq() - 1 && !d->updated ) {
         if ( d->knownUids.isEmpty() ) {
@@ -276,19 +209,9 @@ void Select::execute()
         transaction()->enqueue( d->updated );
     }
 
-    if ( d->needFirstUnseen && !d->firstUnseen ) {
-        d->firstUnseen
-            = new Query( "select uid from mailbox_messages mm "
-                         "where mailbox=$1 and not seen "
-                         "order by uid limit 1", this );
-        d->firstUnseen->bind( 1, d->mailbox->id() );
-        transaction()->enqueue( d->firstUnseen );
-    }
-
     transaction()->execute();
 
-    if ( ( d->updated && !d->updated->done() ) ||
-         ( d->firstUnseen && !d->firstUnseen->done() ) )
+    if ( d->updated && !d->updated->done() )
         return;
 
     if ( d->updated && !d->firstFetch ) {
@@ -326,23 +249,6 @@ void Select::execute()
 
     respond( "OK [MAILBOXID (f" + fn( d->mailbox->id() ) + ")]"
              " stable mailbox ID" );
-
-    if ( d->firstUnseen ) {
-        if ( !::firstUnseenCache )
-            ::firstUnseenCache = new SelectData::FirstUnseenCache;
-        Row * r = d->firstUnseen->nextRow();
-        if ( r )
-            ::firstUnseenCache->insert( d->mailbox, d->session->nextModSeq(),
-                                        r->getInt( "uid" ) );
-    }
-
-    if ( ::firstUnseenCache ) {
-        uint unseen = ::firstUnseenCache->find( d->mailbox,
-                                                d->session->nextModSeq() );
-        if ( unseen )
-            respond( "OK [UNSEEN " + fn( d->session->msn( unseen ) ) +
-                     "] first unseen" );
-    }
 
     if ( d->session->readOnly() )
         setRespTextCode( "READ-ONLY" );
