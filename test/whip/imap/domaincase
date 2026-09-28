@@ -1,0 +1,50 @@
+# checks that domains are case-insensitive in the database
+depends append
+# appends a message exactly like uid 1 to the mailbox, except with
+# different case on the addresses.
+send 6
+a append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@ORYX.COM>
+To: Arnt Gulbrandsen <arnt@Oryx.Com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+asdf
+receive 4
+* 5 EXISTS
+* 5 RECENT
+* OK [UIDNEXT 6] next uid
+a OK [APPENDUID 1 5] done
+# check that we can search properly on all
+send 1
+b1 search from @oryx.com
+receive 2
+* SEARCH 1 2 3 4 5
+b1 OK done
+send 1
+b2 search from @ORYX.COM
+receive 2
+* SEARCH 1 2 3 4 5
+b2 OK done
+send 1
+c fetch 1,5 rfc822
+# ... and expect the two to be identical when they come back.
+# (we actually expect the first casing seen to be used for both messages.)
+receive 17
+* 1 FETCH (UID 1 FLAGS (\Recent \Seen))
+* 5 FETCH (UID 5 FLAGS (\Recent \Seen))
+* 1 FETCH (RFC822 {125}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+asdf
+)
+* 5 FETCH (RFC822 {125}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+asdf
+)
+c OK done
+end

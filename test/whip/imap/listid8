@@ -1,0 +1,68 @@
+# check that we can append a message containing a bad list-id
+depends empty-inbox
+send 30
+a append INBOX () {1440+}
+Received: from stripe.suchdol.net (unknown [212.24.156.226])
+	by ns.chl.cz (Postfix) with ESMTP id C2B2220A4F
+	for <python@py.cz>; Sun, 19 Sep 2004 19:23:55 +0200 (CEST)
+Received: (qmail 8055 invoked from network); 19 Sep 2004 19:23:53 +0200
+Received: from 10.19.2.202 by stripe (envelope-from <talpa@suchdol.net>, uid 201) with qmail-scanner-1.23st 
+ (f-prot: 4.3.1/3.14.7. spamassassin: 2.64. perlscan: 1.23st.  
+ Clear:RC:1(10.19.2.202):. 
+ Processed in 0.515488 secs); 19 záø 2004 17:23:53 -0000
+Received: from unknown (HELO intra2horizont) (10.19.2.202)
+	by 0 with SMTP; 19 Sep 2004 19:23:52 +0200
+From: Aleš Pavel <talpa@suchdol.net>
+To: "'Konference uživatelù Pythonu a spol.'" <python@py.cz>
+Subject: RE: [python] Je Python vhodny pro vyvoj databzovych aplikaci ?
+Date: Sun, 19 Sep 2004 19:23:52 +0200
+Message-ID: <000001c49e6d$6f54f880$ca02130a@suchdol.czf>
+Precedence: list
+Reply-To: Konference u¾ivatelù Pythonu a spol. <python@py.cz>
+List-Id: Konference u¾ivatelù Pythonu a spol.
+	<python.py.cz>
+List-Unsubscribe: <http://ns.chl.cz/mailman/listinfo/python>,
+	<mailto:python-request@py.cz?subject=unsubscribe>
+List-Archive: <http://ns.chl.cz/pipermail/python>
+List-Post: <mailto:python@py.cz>
+List-Help: <mailto:python-request@py.cz?subject=help>
+List-Subscribe: <http://ns.chl.cz/mailman/listinfo/python>,
+	<mailto:python-request@py.cz?subject=subscribe>
+Sender: python-bounces@py.cz
+
+content deleted
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+b fetch 1 rfc822
+receive 26
+* 1 FETCH (UID 1 FLAGS (\Recent \Seen))
+* 1 FETCH (RFC822 {941}
+Received: from stripe.suchdol.net (unknown [212.24.156.226])
+	by ns.chl.cz (Postfix) with ESMTP id C2B2220A4F
+	for <python@py.cz>; Sun, 19 Sep 2004 19:23:55 +0200 (CEST)
+Received: (qmail 8055 invoked from network); 19 Sep 2004 19:23:53 +0200
+From: talpa@suchdol.net
+To: python@py.cz
+Subject: RE: [python] Je Python vhodny pro vyvoj databzovych aplikaci ?
+Date: Sun, 19 Sep 2004 19:23:52 +0200
+Message-Id: <000001c49e6d$6f54f880$ca02130a@suchdol.czf>
+Precedence: list
+Reply-To: python@py.cz
+List-Id: <python.py.cz>
+List-Unsubscribe: <http://ns.chl.cz/mailman/listinfo/python>,
+	<mailto:python-request@py.cz?subject=unsubscribe>
+List-Archive: <http://ns.chl.cz/pipermail/python>
+List-Post: <mailto:python@py.cz>
+List-Help: <mailto:python-request@py.cz?subject=help>
+List-Subscribe: <http://ns.chl.cz/mailman/listinfo/python>,
+	<mailto:python-request@py.cz?subject=subscribe>
+Sender: python-bounces@py.cz
+
+content deleted
+)
+b OK done
+end

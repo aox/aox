@@ -1,0 +1,32 @@
+depends empty-inbox
+send 6
+a append /users/script/INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 20 May 2004 14:28:51 +0200
+
+asdf
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+b STORE 1 +FLAGS (\Seen \Deleted)
+receive 2
+* 1 FETCH (UID 1 FLAGS (\Deleted \Recent \Seen))
+b OK done
+send 1
+e close asdf
+receive 1
+e BAD More text follows end of input: asdf
+send 1
+c close
+receive 2
+* OK [CLOSED] I, missa est
+c OK done
+send 1
+d close
+receive 1
+d BAD Not permitted without mailbox
+end

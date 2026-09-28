@@ -115,9 +115,8 @@ public:
         }
         EString text() const {
             uint x = session()->nextModSeq();
-            if ( x <= d->nms || x < 2 )
+            if ( x < 2 )
                 return "";
-            d->nms = x;
             return "OK [HIGHESTMODSEQ " + fn( x - 1 ) + "] next modseq - 1";
         }
         void setSent() {
@@ -278,11 +277,14 @@ void ImapSession::emitUpdates( Transaction * t )
         }
     }
 
-    if ( d->nms < nextModSeq() &&
-         !d->highestModseqResponse ) {
-        d->highestModseqResponse =
-            new ImapSessionData::HighestModseqResponse( this, d );
-        work = true;
+    if ( d->nms < nextModSeq() ) {
+        d->nms = nextModSeq();
+        if ( imap()->clientSupports( IMAP::Condstore ) &&
+             !d->highestModseqResponse ) {
+            d->highestModseqResponse =
+                new ImapSessionData::HighestModseqResponse( this, d );
+            work = true;
+        }
     }
 
     emitFlagUpdates( t );

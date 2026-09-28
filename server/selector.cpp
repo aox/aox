@@ -694,9 +694,11 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     }
 
     if ( order ) {
-        if ( wanted->contains( "uid" ) && wanted->contains( "mailbox" ) )
+        if ( !wanted )
+            q.append( " order by " + mm() + ".uid" );
+        else if ( wanted->contains( "uid" ) && wanted->contains( "mailbox" ) )
             q.append( " order by " + mm() + ".mailbox, " + mm() + ".uid" );
-        else if ( wanted->contains( "uid" ) || !wanted )
+        else if ( wanted->contains( "uid" ) )
             q.append( " order by " + mm() + ".uid" );
         else if ( wanted->contains( "message" ) )
             q.append( " order by " + mm() + ".message" );
@@ -975,7 +977,7 @@ EString Selector::whereHeaderField()
 
 EString Selector::whereHeaders( List<Selector> * sl )
 {
-    if ( sl->count() == 1 )
+    if ( sl->count() == 1 && !sl->first()->d->s8.isEmpty() )
         return sl->first()->whereHeaderField();
 
     EStringList likes;

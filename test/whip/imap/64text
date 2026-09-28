@@ -1,0 +1,100 @@
+depends empty-inbox
+send 44
+a append INBOX () {1630+}
+From: Abhijit Menon-Sen <ams@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 23 Mar 2006 06:28:51 +0530
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary=X
+
+--X
+Content-Type: text/plain
+Content-Transfer-Encoding: base64
+
+T25lIHZlcnkgbG9uZyBsaW5lLgoKVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBs
+YXp5IGRvZywgYW5kIGNvbnRpbnVlcyB0byBkbyBzbyBmb3IgYXMgbG9uZyBhcyBpdCB0YWtlcyB0
+byBnZXQgYSBzdWZmaWNpZW50bHkgbG9uZyBsaW5lIG9mIHRleHQgZm9yIG15IHRlc3Qgb2YgYmFz
+ZTY0IHByb2Nlc3Npbmcgd2l0aCBlbWJlZGRlZCBDUkxGcy4=
+
+--X
+Content-Type: text/plain
+Content-Transfer-Encoding: base64
+
+TEYgdGVybWluYXRlZCBsaW5lcy4KClRoZSBxdWljayBicm93biBmb3gganVtcHMgb3ZlciB0aGUg
+bGF6eSBkb2csIGFuZCBjb250aW51ZXMgdG8gZG8gc28gZm9yCmFzIGxvbmcgYXMgaXQgdGFrZXMg
+dG8gZ2V0IGEgc3VmZmljaWVudGx5IGxvbmcgbGluZSBvZiB0ZXh0IGZvciBteSB0ZXN0Cm9mIGJh
+c2U2NCBwcm9jZXNzaW5nIHdpdGggZW1iZWRkZWQgQ1JMRnMu
+
+--X
+Content-Type: text/plain
+Content-Transfer-Encoding: base64
+
+Q1JMRiB0ZXJtaW5hdGVkIGxpbmVzLg0KDQpUaGUgcXVpY2sgYnJvd24gZm94IGp1bXBzIG92ZXIg
+dGhlIGxhenkgZG9nLCBhbmQgY29udGludWVzIHRvIGRvIHNvIGZvcg0KYXMgbG9uZyBhcyBpdCB0
+YWtlcyB0byBnZXQgYSBzdWZmaWNpZW50bHkgbG9uZyBsaW5lIG9mIHRleHQgZm9yIG15IHRlc3QN
+Cm9mIGJhc2U2NCBwcm9jZXNzaW5nIHdpdGggZW1iZWRkZWQgQ1JMRnMu
+
+--X
+Content-Type: text/plain
+Content-Transfer-Encoding: base64
+
+TWl4ZWQgTEYvQ1JMRiB0ZXJtaW5hdGVkIGxpbmVzLgoKVGhlIHF1aWNrIGJyb3duIGZveCBqdW1w
+cyBvdmVyIHRoZSBsYXp5IGRvZywgYW5kIGNvbnRpbnVlcyB0byBkbyBzbyBmb3INCmFzIGxvbmcg
+YXMgaXQgdGFrZXMgdG8gZ2V0IGEgc3VmZmljaWVudGx5IGxvbmcgbGluZSBvZiB0ZXh0IGZvciBt
+eSB0ZXN0DQpvZiBiYXNlNjQgcHJvY2Vzc2luZyB3aXRoIGVtYmVkZGVkIENSTEZzLg==
+
+--X--
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+b fetch 1 rfc822
+receive 45
+* 1 FETCH (UID 1 FLAGS (\Recent \Seen))
+* 1 FETCH (RFC822 {1163}
+From: Abhijit Menon-Sen <ams@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 23 Mar 2006 06:28:51 +0530
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=X
+
+--X
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+
+One very long line.
+
+The quick brown fox jumps over the lazy dog, and continues to do so for =
+as long as it takes to get a sufficiently long line of text for my test =
+of base64 processing with embedded CRLFs.
+
+--X
+
+LF terminated lines.
+
+The quick brown fox jumps over the lazy dog, and continues to do so for
+as long as it takes to get a sufficiently long line of text for my test
+of base64 processing with embedded CRLFs.
+
+--X
+
+CRLF terminated lines.
+
+The quick brown fox jumps over the lazy dog, and continues to do so for
+as long as it takes to get a sufficiently long line of text for my test
+of base64 processing with embedded CRLFs.
+
+--X
+
+Mixed LF/CRLF terminated lines.
+
+The quick brown fox jumps over the lazy dog, and continues to do so for
+as long as it takes to get a sufficiently long line of text for my test
+of base64 processing with embedded CRLFs.
+
+--X--
+)
+b OK done
+end

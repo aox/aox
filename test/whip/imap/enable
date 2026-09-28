@@ -5,29 +5,29 @@ receive 2
 * ENABLED CONDSTORE
 a OK done
 send 1
-a enable annotate-experiment-1
+a enable utf8=accept
 receive 2
-* ENABLED ANNOTATE-EXPERIMENT-1
+* ENABLED UTF8=ACCEPT
 a OK done
 send 1
-a enable condstore annotate-experiment-1
+a enable condstore utf8=accept
 receive 2
-* ENABLED CONDSTORE ANNOTATE-EXPERIMENT-1
+* ENABLED CONDSTORE UTF8=ACCEPT
 a OK done
 send 1
-a enable condstore annotate-experiment-1 x-good-idea
+a enable condstore utf8=accept x-good-idea
 receive 2
-* ENABLED CONDSTORE ANNOTATE-EXPERIMENT-1
+* ENABLED CONDSTORE UTF8=ACCEPT
 a OK done
 send 1
-a enable annotate-experiment-1 x-good-idea condstore
+a enable utf8=accept x-good-idea condstore
 receive 2
-* ENABLED CONDSTORE ANNOTATE-EXPERIMENT-1
+* ENABLED CONDSTORE UTF8=ACCEPT
 a OK done
 send 1
-a enable annotate-experiment-1 x-good-idea condstore annotate-experiment-1
+a enable utf8=accept x-good-idea condstore utf8=accept
 receive 2
-* ENABLED CONDSTORE ANNOTATE-EXPERIMENT-1
+* ENABLED CONDSTORE UTF8=ACCEPT
 a OK done
 send 1
 a enable idle

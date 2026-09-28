@@ -1,0 +1,123 @@
+depends messagemix
+send 1
+a store 1:* +flags \deleted
+receive 4
+* 1 FETCH (UID 1 FLAGS (\Deleted \Recent))
+* 2 FETCH (UID 2 FLAGS (\Deleted \Recent))
+* 3 FETCH (UID 3 FLAGS (\Deleted \Recent))
+a OK done
+send 1
+a store 1:* +flags \seen
+receive 4
+* 1 FETCH (UID 1 FLAGS (\Deleted \Recent \Seen))
+* 2 FETCH (UID 2 FLAGS (\Deleted \Recent \Seen))
+* 3 FETCH (UID 3 FLAGS (\Deleted \Recent \Seen))
+a OK done
+send 1
+a store 1:* flags \Deleted
+receive 4
+* 1 FETCH (UID 1 FLAGS (\Deleted \Recent))
+* 2 FETCH (UID 2 FLAGS (\Deleted \Recent))
+* 3 FETCH (UID 3 FLAGS (\Deleted \Recent))
+a OK done
+send 1
+a uid store 1:* -flags \deleted
+receive 4
+* 1 FETCH (UID 1 FLAGS (\Recent))
+* 2 FETCH (UID 2 FLAGS (\Recent))
+* 3 FETCH (UID 3 FLAGS (\Recent))
+a OK done
+send 1
+a uid store 1:* flags \Deleted
+receive 4
+* 1 FETCH (UID 1 FLAGS (\Deleted \Recent))
+* 2 FETCH (UID 2 FLAGS (\Deleted \Recent))
+* 3 FETCH (UID 3 FLAGS (\Deleted \Recent))
+a OK done
+send 1
+a uid store 2:4 +flags \seen
+receive 3
+* 2 FETCH (UID 2 FLAGS (\Deleted \Recent \Seen))
+* 3 FETCH (UID 3 FLAGS (\Deleted \Recent \Seen))
+a OK done
+send 1
+a store 1:* flags \Deleted
+receive 3
+* 2 FETCH (UID 2 FLAGS (\Deleted \Recent))
+* 3 FETCH (UID 3 FLAGS (\Deleted \Recent))
+a OK done
+send 1
+a uid expunge 2
+receive 2
+* 2 EXPUNGE
+a OK done
+send 1
+a uid store 2 +flags \seen
+receive 1
+a OK done
+send 1
+a uid store 2:* +flags \seen
+receive 2
+* 2 FETCH (UID 3 FLAGS (\Deleted \Recent \Seen))
+a OK done
+send 1
+a uid store 2:* -flags \seen
+receive 2
+* 2 FETCH (UID 3 FLAGS (\Deleted \Recent))
+a OK done
+send 1
+a uid store 2:* +flags \seen
+receive 2
+* 2 FETCH (UID 3 FLAGS (\Deleted \Recent \Seen))
+a OK done
+send 1
+a uid store 2:* +flags \seen
+receive 1
+a OK done
+send 3
+a STORE 1 ANNOTATION ("/comment" ("value.priv" "My new comment" "vendor.foobar.priv" "foo's bar"))
+b STORE 1 ANNOTATION ("/comment" ("value.priv" "My new comment"))
+c STORE 1 ANNOTATION ("/comment" ("value" "My new comment"))
+receive 3
+a BAD Unknown attribute: vendor.foobar
+b OK done
+c BAD Must store either .priv or .shared attributes
+send 1
+d STORE * ANNOTATION ("/comment" ("value.priv" "d"))
+receive 1
+d OK done
+send 1
+e STORE 1 ANNOTATION ("/comment" ("value.priv" "e"))
+receive 1
+e OK done
+send 1
+f STORE 1 ANNOTATION ("/comment" ("value.priv" "f"))
+receive 1
+f OK done
+send 1
+g STORE 1 ANNOTATION ("/comment" ("value.priv" "g"))
+receive 1
+g OK done
+send 1
+h1 store 1:* +flags.silent (a1 a2 a3 a4 a5)
+receive 3
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen a1 a2 a3 a4 a5)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen a1 a2 a3 a4 a5 \*)] permanent flags
+h1 OK done
+send 1
+h2 store 1 -flags.silent (a6)
+receive 3
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen a1 a2 a3 a4 a5 a6)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen a1 a2 a3 a4 a5 a6 \*)] permanent flags
+h2 OK done
+send 1
+h3 store 1:* -flags.silent (a5 a7)
+receive 3
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen a1 a2 a3 a4 a5 a6 a7)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen a1 a2 a3 a4 a5 a6 a7 \*)] permanent flags
+h3 OK done
+send 1
+h3 store 1:* -flags.silent (a5 a7)
+receive 1
+h3 OK done
+end

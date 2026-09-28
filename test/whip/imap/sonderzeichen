@@ -1,0 +1,39 @@
+depends empty-inbox
+send 12
+x append inbox () {310+}
+Return-Path: <ams@toroid.org>
+From: Abhijit Menon-Sen <ams@toroid.org>
+To: script@test.oryx.com
+Subject: sonderzeichen
+Date: Fri, 29 Jun 2007 11:12:13 +0530
+Mime-Version: 1.0
+Content-Type: text/html; charset=iso-8859-1
+Content-Transfer-Encoding: quoted-printable
+
+<html><body><p>=FC=DF</body></html>
+
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+x OK [APPENDUID 1 1] done
+send 1
+c fetch 1 (rfc822 body[1])
+receive 16
+* 1 FETCH (UID 1 FLAGS (\Recent \Seen))
+* 1 FETCH (RFC822 {310}
+Return-Path: <ams@toroid.org>
+From: Abhijit Menon-Sen <ams@toroid.org>
+To: script@test.oryx.com
+Subject: sonderzeichen
+Date: Fri, 29 Jun 2007 11:12:13 +0530
+Mime-Version: 1.0
+Content-Type: text/html; charset=iso-8859-1
+Content-Transfer-Encoding: quoted-printable
+
+<html><body><p>=FC=DF</body></html>
+ BODY[1] {37}
+<html><body><p>=FC=DF</body></html>
+)
+c OK done
+end
