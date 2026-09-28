@@ -1,0 +1,21 @@
+depends login
+send 1
+a create inbox/case
+receive 1
+a OK done
+send 1
+b create inbox/CASE
+receive 1
+b NO [ALREADYEXISTS] /users/script/inbox/CASE already exists
+send 1
+c create inbox/CASE/case
+receive 1
+c OK done
+send 1
+d list "" *
+receive 4
+* LIST (\haschildren) "/" INBOX
+* LIST (\haschildren) "/" "inbox/case"
+* LIST (\hasnochildren) "/" "inbox/CASE/case"
+d OK done
+end

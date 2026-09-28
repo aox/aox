@@ -1,0 +1,44 @@
+depends subscribe
+#
+# check that status works in a loop
+#
+# I don't know how we could test this properly in whip, cache effects being
+# what they are, but the first few STATUS commands should result in one SQL
+# select each, then something should use one select to process the rest of
+# the mailboxes, and the last command or two should not do any DB work.
+#
+send 1
+fs1 lsub "" *
+receive 6
+* LSUB () "/" INBOX
+* LSUB () "/" "inbox/a/1"
+* LSUB () "/" "inbox/b/2"
+* LSUB () "/" "inbox/c/3"
+* LSUB () "/" "INBOX/subscribe"
+fs1 OK done
+send 1
+fs2a status inbox (messages)
+receive 2
+* STATUS INBOX (MESSAGES 0)
+fs2a OK done
+send 1
+fs2b status "inbox/a/1" (messages)
+receive 2
+* STATUS "inbox/a/1" (MESSAGES 0)
+fs2b OK done
+send 1
+fs2c status "inbox/b/2" (messages)
+receive 2
+* STATUS "inbox/b/2" (MESSAGES 0)
+fs2c OK done
+send 1
+fs2d status "inbox/c/3" (messages)
+receive 2
+* STATUS "inbox/c/3" (MESSAGES 0)
+fs2d OK done
+send 1
+fs2e status "inbox/subscribe" (messages)
+receive 2
+* STATUS "INBOX/subscribe" (MESSAGES 0)
+fs2e OK done
+end

@@ -1,0 +1,32 @@
+depends login
+#
+# check that we can create and use mailbox names expressed both as mutf7,
+# utf8 and pure plain ascii.
+#
+send 1
+a create &
+receive 1
+a OK done
+send 1
+a create &
+receive 1
+a NO [ALREADYEXISTS] /users/script/& already exists
+send 1
+a create &-
+receive 1
+a NO [ALREADYEXISTS] /users/script/& already exists
+send 1
+a create A&ImIDkQ-.
+receive 1
+a OK done
+send 1
+a list "" A*
+receive 2
+* LIST (\hasnochildren) "/" "A&ImIDkQ-."
+a OK done
+send 1
+a list "" &*
+receive 2
+* LIST (\hasnochildren) "/" &-
+a OK done
+end

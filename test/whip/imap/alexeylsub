@@ -1,0 +1,40 @@
+depends login
+send 4
+a create "Fruit/Orange"
+a create "Fruit/Apple"
+a create "Fruit/Apple/Red"
+a create Drafts
+receive 4
+a OK done
+a OK done
+a OK done
+a OK done
+send 5
+b subscribe "Fruit/Orange"
+b subscribe "Fruit/Apple/Red"
+b subscribe "Fruit/Apple"
+b subscribe Drafts
+b subscribe inbox
+receive 5
+b OK done
+b OK done
+b OK done
+b OK done
+b OK done
+send 1
+v lsub "" *
+receive 6
+* LSUB () "/" Drafts
+* LSUB () "/" "Fruit/Apple"
+* LSUB () "/" "Fruit/Apple/Red"
+* LSUB () "/" "Fruit/Orange"
+* LSUB () "/" INBOX
+v OK done
+send 1
+s lsub "" %
+receive 4
+* LSUB () "/" Drafts
+* LSUB (\noselect) "/" Fruit
+* LSUB () "/" INBOX
+s OK done
+end

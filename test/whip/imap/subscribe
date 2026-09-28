@@ -1,0 +1,89 @@
+depends login
+send 1
+a lsub "" *
+receive 1
+a OK done
+send 1
+b subscribe INBOX
+receive 1
+b OK done
+send 1
+c lsub "" *
+receive 2
+* LSUB () "/" INBOX
+c OK done
+send 1
+d subscribe hixbox
+receive 1
+d NO No such mailbox: /users/script/hixbox
+send 1
+e lsub "" *
+receive 2
+* LSUB () "/" INBOX
+e OK done
+send 3
+f create INBOX/subscribe
+g delete INBOX/subscribe
+h lsub "/" *
+receive 4
+f OK done
+g OK done
+* LSUB () "/" INBOX
+h OK done
+send 4
+i create INBOX/subscribe
+j subscribe /users/script/INBOX/subscribe
+k delete INBOX/subscribe
+l lsub "/" *
+receive 5
+i OK done
+j OK done
+k OK done
+* LSUB () "/" INBOX
+l OK done
+send 1
+m subscribe /ernest/bojangles
+receive 1
+m OK done
+send 1
+n lsub "/" *
+receive 3
+* LSUB () "/" "/ernest/bojangles"
+* LSUB () "/" INBOX
+n OK done
+send 1
+o lsub "" *
+receive 2
+* LSUB () "/" INBOX
+o OK done
+send 2
+p create INBOX/subscribe
+q lsub "" *
+receive 4
+p OK done
+* LSUB () "/" INBOX
+* LSUB () "/" "INBOX/subscribe"
+q OK done
+send 6
+r1 create inbox/a/1
+r2 subscribe inbox/a/1
+r3 create inbox/b/2
+r4 subscribe inbox/b/2
+r5 create inbox/c/3
+r6 subscribe inbox/c/3
+receive 6
+r1 OK done
+r2 OK done
+r3 OK done
+r4 OK done
+r5 OK done
+r6 OK done
+send 1
+s lsub "" inbox/%
+receive 5
+* LSUB (\noselect) "/" "inbox/a"
+* LSUB (\noselect) "/" "inbox/b"
+* LSUB (\noselect) "/" "inbox/c"
+* LSUB () "/" "INBOX/subscribe"
+s OK done
+end

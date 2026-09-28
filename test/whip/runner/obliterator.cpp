@@ -135,7 +135,12 @@ void Obliterator::execute()
                        "where owner is null and name ilike '/users/%'", 0 );
         t->enqueue( q );
 
-        q = new Query( "alter sequence mailboxes_id_seq restart with 2000", 0 );
+        // mailboxes that survive obliteration keep their ids, and some of
+        // them may be above 2000 already, so we cannot just restart at a
+        // constant: the next create would collide.
+        q = new Query( "select setval('mailboxes_id_seq',"
+                       " greatest(2000, (select max(id) from mailboxes)))",
+                       0 );
         t->enqueue( q );
 
         q = new Query( "notify obliterated", 0 );

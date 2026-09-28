@@ -1,0 +1,57 @@
+# checks that mailbox names are case insensitive, even when there is a
+# little bit of unicode mixed in. so far this test does not use
+# (de)composition on anything, but that probably needs to be done,
+# too.
+# 
+depends login
+# test the preliminaries
+send 1
+a list "" *
+receive 2
+* LIST (\hasnochildren) "/" INBOX
+a OK done
+# does basic ascii case insensitivity work?
+send 2
+b1 create lowercase
+b2 create LOWERCASE
+receive 2
+b1 OK done
+b2 NO [ALREADYEXISTS] /users/script/LOWERCASE already exists
+# does mutf7-d case insensitivity still work?
+send 3
+c1 create l&APY-w&AOg-r&AOcA5A-s&AOk-
+c2 create L&ANY-W&AMg-R&AMcAxA-S&AMk-
+c3 create L&ANY-W&AMg-R&AOcA5A-s&AOk-
+receive 3
+c1 OK done
+c2 NO [ALREADYEXISTS] /users/script/L?W?R??S? already exists
+c3 NO [ALREADYEXISTS] /users/script/L?W?R??s? already exists
+# do we preserve case from the create?
+send 1
+d list "" *
+receive 4
+* LIST (\hasnochildren) "/" INBOX
+* LIST (\hasnochildren) "/" lowercase
+* LIST (\hasnochildren) "/" l&APY-w&AOg-r&AOcA5A-s&AOk-
+d OK done
+# this shouldn't match anything, since the AO only occurs in a mutf7'd
+# part of one mailbox name:
+send 1
+e list "" *AO*
+receive 1
+e OK done
+# basic globbing:
+send 1
+f list "" L*
+receive 3
+* LIST (\hasnochildren) "/" lowercase
+* LIST (\hasnochildren) "/" l&APY-w&AOg-r&AOcA5A-s&AOk-
+f OK done
+# partly mutf7'd globbing:
+send 1
+g list "" L&APY-*
+receive 2
+* LIST (\hasnochildren) "/" l&APY-w&AOg-r&AOcA5A-s&AOk-
+g OK done
+# lovely. it works.
+end
