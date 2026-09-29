@@ -16,9 +16,10 @@
 
 void Close::execute()
 {
+    Session * s = imap()->session();
     if ( state() != Executing )
         return;
     Expunge::execute();
-    if ( imap()->session() )
+    if ( s && imap()->session() == s )
         imap()->setSession( 0 );
 }

@@ -1,0 +1,126 @@
+# check that we can close and reselect a mailbox really quickly. forces
+# state-related bugs out of this world.
+depends empty-inbox
+send 20
+a0 close
+b0 select inbox
+a1 close
+b1 select inbox
+a2 close
+b2 select inbox
+a3 close
+b3 select inbox
+a4 close
+b4 select inbox
+a5 close
+b5 select inbox
+a6 close
+b6 select inbox
+a7 close
+b7 select inbox
+a8 close
+b8 select inbox
+a9 close
+b9 select inbox
+receive 100
+* OK [CLOSED] I, missa est
+a0 OK done
+* 0 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 1] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+b0 OK [READ-WRITE] done
+* OK [CLOSED] I, missa est
+a1 OK done
+* 0 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 1] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+b1 OK [READ-WRITE] done
+* OK [CLOSED] I, missa est
+a2 OK done
+* 0 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 1] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+b2 OK [READ-WRITE] done
+* OK [CLOSED] I, missa est
+a3 OK done
+* 0 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 1] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+b3 OK [READ-WRITE] done
+* OK [CLOSED] I, missa est
+a4 OK done
+* 0 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 1] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+b4 OK [READ-WRITE] done
+* OK [CLOSED] I, missa est
+a5 OK done
+* 0 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 1] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+b5 OK [READ-WRITE] done
+* OK [CLOSED] I, missa est
+a6 OK done
+* 0 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 1] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+b6 OK [READ-WRITE] done
+* OK [CLOSED] I, missa est
+a7 OK done
+* 0 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 1] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+b7 OK [READ-WRITE] done
+* OK [CLOSED] I, missa est
+a8 OK done
+* 0 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 1] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+b8 OK [READ-WRITE] done
+* OK [CLOSED] I, missa est
+a9 OK done
+* 0 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 1] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+b9 OK [READ-WRITE] done
+end
