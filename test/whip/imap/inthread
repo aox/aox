@@ -1,0 +1,12 @@
+depends thread
+send 1
+a search from "steve aras"
+receive 2
+* SEARCH 1
+a OK done
+send 1
+b search inthread from "steve aras"
+receive 2
+* SEARCH 1 2
+b OK done
+end

@@ -1,0 +1,7 @@
+depends 20-inbox
+send 1
+a thread orderedsubject ascii all
+receive 2
+* THREAD (1 2)(3 12)(4)(5 (7)(19))(6 9)(8 11)(10 13)(14 17)(15 (16)(18)(20))
+a OK done
+end

@@ -613,7 +613,8 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     if ( d->a == And && w.startsWith( "(" ) && w.endsWith( ")" ) )
         w = w.mid( 1, w.length() - 2 );
 
-    if ( wanted && wanted->contains( "m.idate" ) )
+    if ( wanted && ( wanted->contains( "m.idate" ) ||
+                     wanted->contains( "m.thread_root" ) ) )
         d->needMessages = true;
 
     if ( d->needDateFields )

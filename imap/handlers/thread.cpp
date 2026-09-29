@@ -37,14 +37,12 @@ public:
         Node()
             : Garbage(),
               uid( 0 ), threadRoot( 0 ),
-              idate( 0 ),
               reported( false ), added( false ),
               parent( 0 ) {}
 
         uint uid;
         uint threadRoot;
         UString subject;
-        uint idate;
         EString references;
         EString messageId;
 
@@ -143,12 +141,12 @@ void Thread::execute()
         EStringList * want = new EStringList;
         want->append( "uid" );
         want->append( "message" );
-        want->append( "m.idate" );
         want->append( "m.thread_root" );
         want->append( "tmid.value as messageid" );
         want->append( "tref.value as references" );
         EString ts;
-        if ( d->threadAlg == ThreadData::References ) {
+        if ( d->threadAlg == ThreadData::References ||
+             d->threadAlg == ThreadData::OrderedSubject ) {
             want->append( "tsubj.value as subject" );
             ts = "left join header_fields tsubj on"
                  " (m.id=tsubj.message and"
@@ -158,7 +156,7 @@ void Thread::execute()
 
         d->find = d->s->query( imap()->user(),
                                d->session->mailbox(), d->session,
-                               this, false, want );
+                               this, true, want );
         EString j = d->find->string();
 
         // we need to get the References and Message-Id fields as well
@@ -185,7 +183,6 @@ void Thread::execute()
         Row * r = d->find->nextRow();
         ThreadData::Node * n = new ThreadData::Node;
         n->uid = r->getInt( "uid" );
-        n->idate = r->getInt( "idate" );
         if ( !r->isNull( "thread_root" ) )
             n->threadRoot = r->getInt( "thread_root" );
         if ( !r->isNull( "references" ) )
@@ -287,8 +284,8 @@ void Thread::execute()
         }
     }
 
-    // set up child lists and the root list
-    Dict<ThreadData::Node>::Iterator i( d->nodes );
+    // set up child lists and the root list, ordered as in the SQL result
+    List<ThreadData::Node>::Iterator i( d->result );
     while ( i ) {
         ThreadData::Node * n = i;
         ++i;
@@ -300,24 +297,6 @@ void Thread::execute()
                 else
                     d->roots.append( n );
             }
-            n = n->parent;
-        }
-    }
-
-    // we need to sort root nodes (and children) by idate, so we
-    // extend the definition until sorting works: a non-message's
-    // idate is the oldest idate of a direct descendant.
-    i = Dict<ThreadData::Node>::Iterator( d->nodes );
-    while ( i ) {
-        ThreadData::Node * n = i;
-        ++i;
-
-        uint idate = n->idate;
-        while ( n ) {
-            if ( n->uid )
-                idate = n->idate;
-            else if ( !n->idate || n->idate > idate )
-                n->idate = idate;
             n = n->parent;
         }
     }
