@@ -1,0 +1,64 @@
+depends search
+send 1
+a store 1,3 +flags \deleted
+receive 3
+* 1 FETCH (UID 1 FLAGS (\Deleted \Recent))
+* 3 FETCH (UID 3 FLAGS (\Deleted \Recent))
+a OK done
+send 1
+b expunge
+receive 3
+* 1 EXPUNGE
+* 2 EXPUNGE
+b OK done
+send 1
+c search all
+receive 2
+* SEARCH 1 2 3 4
+c OK done
+send 1
+d uid search all
+receive 2
+* SEARCH 2 4 5 6
+d OK done
+send 1
+e uid search 1:4
+receive 2
+* SEARCH 2 4 5 6
+e OK done
+send 1
+f uid search uid 2:*
+receive 2
+* SEARCH 2 4 5 6
+f OK done
+send 1
+g uid search uid 2
+receive 2
+* SEARCH 2
+g OK done
+send 1
+h uid search 2
+receive 2
+* SEARCH 4
+h OK done
+send 1
+i search uid 2
+receive 2
+* SEARCH 1
+i OK done
+send 1
+j search 2
+receive 2
+* SEARCH 2
+j OK done
+send 1
+k search uid 4
+receive 2
+* SEARCH 2
+k OK done
+send 1
+l uid search uid 4
+receive 2
+* SEARCH 4
+l OK done
+end

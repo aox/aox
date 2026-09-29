@@ -1,0 +1,19 @@
+# check that we don't receive nonexistent UIDs back, even though the SQL
+# select might include them. should.
+depends uidmsnsearch
+send 1
+m uid search or uid 2,4 unseen
+receive 2
+* SEARCH 2 4 5 6
+m OK done
+send 1
+n search or uid 2,4 unseen
+receive 2
+* SEARCH 1 2 3 4
+n OK done
+send 1
+o search uid 3
+receive 2
+* SEARCH
+o OK done
+end

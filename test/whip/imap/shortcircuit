@@ -1,0 +1,22 @@
+depends search
+# these two queries shouldn't need to access the bodyparts table
+# at all. this isn't tested here, but the searches need to be
+# somewhere... the only way I know of testing is 'explain analyze'.
+#
+# the FROM bit is true for all messages, so pg should be able to
+# short-circuit OR and not test BODY at all. and a seqscan should
+# definitely not be needed.
+send 1
+1533 uid SEARCH UNDELETED (OR FROM "arnt" BODY "word")
+receive 2
+* SEARCH 1 2 3 4 5 6
+1533 OK done
+# there are no deleted messages, so neither FROM now BODY should need
+# evaluation. the planner may plan, but most of the plan should never be
+# executed.
+send 1
+1533 uid SEARCH DELETED FROM "arnt" BODY "word"
+receive 2
+* SEARCH
+1533 OK done
+end
