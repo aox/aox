@@ -1,0 +1,22 @@
+depends 400
+send 1
+b STORE 1,3,9,27,81,243 +FLAGS (\Seen \Deleted)
+receive 7
+* 1 FETCH (UID 1 FLAGS (\Deleted \Recent \Seen))
+* 3 FETCH (UID 3 FLAGS (\Deleted \Recent \Seen))
+* 9 FETCH (UID 9 FLAGS (\Deleted \Recent \Seen))
+* 27 FETCH (UID 27 FLAGS (\Deleted \Recent \Seen))
+* 81 FETCH (UID 81 FLAGS (\Deleted \Recent \Seen))
+* 243 FETCH (UID 243 FLAGS (\Deleted \Recent \Seen))
+b OK done
+send 1
+c EXPUNGE
+receive 7
+* 1 EXPUNGE
+* 2 EXPUNGE
+* 7 EXPUNGE
+* 24 EXPUNGE
+* 77 EXPUNGE
+* 238 EXPUNGE
+c OK done
+end

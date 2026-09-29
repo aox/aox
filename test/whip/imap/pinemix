@@ -1,0 +1,208 @@
+depends messagemix
+send 1
+a close
+receive 2
+* OK [CLOSED] I, missa est
+a OK done
+send 1
+00000002 SELECT inbox
+receive 8
+* 3 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 4] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+00000002 OK [READ-WRITE] done
+send 1
+00000003 SEARCH UNSEEN
+receive 2
+* SEARCH 1 2 3
+00000003 OK done
+send 1
+00000004 SEARCH UNSEEN
+receive 2
+* SEARCH 1 2 3
+00000004 OK done
+send 1
+00000005 NOOP
+receive 1
+00000005 OK done
+send 1
+00000006 FETCH 1 FLAGS
+receive 2
+* 1 FETCH (FLAGS ())
+00000006 OK done
+send 1
+00000007 FETCH 1,2:3 UID
+receive 4
+* 1 FETCH (UID 1)
+* 2 FETCH (UID 2)
+* 3 FETCH (UID 3)
+00000007 OK done
+send 1
+00000008 FETCH 1:3 (UID ENVELOPE BODY.PEEK[HEADER.FIELDS (Newsgroups Content-MD5 Content-Disposition Content-Language Content-Location resent-to resent-date resent-from resent-cc resent-subject List-Help List-Unsubscribe List-Subscribe List-Post List-Owner List-Archive Followup-To References)] INTERNALDATE RFC822.SIZE FLAGS)
+receive 15
+* 1 FETCH (UID 1 RFC822.SIZE 1452 FLAGS () INTERNALDATE "26-May-2004 10:41:11 +0000" ENVELOPE ("Wed, 26 May 2004 12:41:11 +0200" "Re: good morning" (("Arnt Gulbrandsen" NIL "arnt" "oryx.com")) NIL NIL (("Abhijit Menon-Sen" NIL "ams" "oryx.com")) NIL NIL "<20040526051933.A583@lustre.dyn.wiw.org>" "<oWCXxOQwWEbLpq0CbqsS0A.md5@libertango.oryx.com>") BODY[HEADER.FIELDS (Newsgroups Content-Md5 Content-Disposition Content-Language Content-Location Resent-To Resent-Date Resent-From Resent-Cc Resent-Subject List-Help List-Unsubscribe List-Subscribe List-Post List-Owner List-Archive Followup-To References)] {246}
+References: <20040524120528.A20211@lustre.dyn.wiw.org>
+ <1oVc2bWKwhUzCIuRDoUJcQ.md5@prosecco.oryx.com>
+ <20040524131541.F18784@lustre.dyn.wiw.org>
+ <CFRHwCwKnZkw1NyGRX1FXg.md5@libertango.oryx.com>
+ <20040526051933.A583@lustre.dyn.wiw.org>
+
+)
+* 2 FETCH (UID 2 RFC822.SIZE 619 FLAGS () INTERNALDATE "20-May-2004 12:28:51 +0000" ENVELOPE ("Thu, 20 May 2004 14:28:51 +0200" "nested multipart test" (("Arnt Gulbrandsen" NIL "arnt" "oryx.com")) NIL NIL (("Abhijit Menon-Sen" NIL "ams" "oryx.com")) NIL NIL NIL NIL) BODY[HEADER.FIELDS (Newsgroups Content-Md5 Content-Disposition Content-Language Content-Location Resent-To Resent-Date Resent-From Resent-Cc Resent-Subject List-Help List-Unsubscribe List-Subscribe List-Post List-Owner List-Archive Followup-To References)] {2}
+
+)
+* 3 FETCH (UID 3 RFC822.SIZE 16668 FLAGS () INTERNALDATE "21-Jul-2004 10:48:30 +0000" ENVELOPE ("Wed, 21 Jul 2004 16:18:10 +0530" "mpart" (("Arnt Gulbrandsen" NIL "arnt" "oryx.com")) NIL NIL (("Abhijit Menon-Sen" NIL "ams" "oryx.com")) NIL NIL NIL "<IelfP0+I5kkOdt6wQ43vJQ.md5@prosecco.lustre.dyn.wiw.org>") BODY[HEADER.FIELDS (Newsgroups Content-Md5 Content-Disposition Content-Language Content-Location Resent-To Resent-Date Resent-From Resent-Cc Resent-Subject List-Help List-Unsubscribe List-Subscribe List-Post List-Owner List-Archive Followup-To References)] {2}
+
+)
+00000008 OK done
+send 1
+00000009 FETCH 1 (BODYSTRUCTURE FLAGS)
+receive 2
+* 1 FETCH (FLAGS () BODYSTRUCTURE ("text" "plain" ("format" "flowed") NIL NIL "7BIT" 885 25 NIL NIL NIL NIL))
+00000009 OK done
+send 1
+0000000a FETCH 1 BODY.PEEK[HEADER.FIELDS (Content-Type)]
+receive 5
+* 1 FETCH (BODY[HEADER.FIELDS (Content-Type)] {43}
+Content-Type: text/plain; format=flowed
+
+)
+0000000a OK done
+send 1
+0000000b FETCH 1 BODY[1]
+receive 29
+* 1 FETCH (UID 1 FLAGS (\Seen))
+* 1 FETCH (BODY[1] {885}
+Abhijit Menon-Sen writes:
+>>  find( const String & ) depends on the casting operator from T to 
+>>  String to deliver a search key.
+>
+> That is not how I intended it to work (though I might have 
+> misunderstood things, and it actually does work that way). I wanted 
+> to rely on classes that want this behavious defining an operator !=( 
+> const String & ), and leaving casting entirely out of the picture.
+>
+> Can't it work that way?
+
+Sure. In that case, operator!=() gets the, ah, innovative semantics. Our 
+style guide says we don't do that.
+
+>>  What are the three first places in which we'd use them?
+>
+> Mapping mailbox names to IDs (and thence via a Map to an object)?
+
+Two more?
+
+Btw, do we want to keep a tree of mailboxes, or a flat list? If a tree, 
+then using LIST the way RFC2683 says works well, but we pay for that 
+with some complexity.
+
+Arnt
+)
+0000000b OK done
+send 1
+0000000c FETCH 1 BODY.PEEK[HEADER.FIELDS (List-Help List-Unsubscribe List-Subscribe List-Post List-Owner List-Archive)]
+receive 4
+* 1 FETCH (BODY[HEADER.FIELDS (List-Help List-Unsubscribe List-Subscribe List-Post List-Owner List-Archive)] {2}
+
+)
+0000000c OK done
+send 1
+0000000d STORE 1 +Flags (\SEEN)
+receive 1
+0000000d OK done
+send 1
+0000000e FETCH 2 (BODYSTRUCTURE FLAGS)
+receive 2
+* 2 FETCH (FLAGS () BODYSTRUCTURE (("text" "plain" NIL NIL NIL "7BIT" 32 1 NIL NIL NIL NIL)(("text" "plain" NIL NIL NIL "7BIT" 19 1 NIL NIL NIL NIL)(("text" "plain" NIL NIL NIL "7BIT" 24 1 NIL NIL NIL NIL)("text" "html" NIL NIL NIL "7BIT" 33 1 NIL NIL NIL NIL) "alternative" ("boundary" "C") NIL NIL NIL) "mixed" ("boundary" "B") NIL NIL NIL) "mixed" ("boundary" "A") NIL NIL NIL))
+0000000e OK done
+send 1
+0000000f FETCH 2 BODY.PEEK[HEADER.FIELDS (Content-Type)]
+receive 5
+* 2 FETCH (BODY[HEADER.FIELDS (Content-Type)] {45}
+Content-Type: multipart/mixed; boundary=A
+
+)
+0000000f OK done
+send 1
+00000010 FETCH 2 BODY[1]
+receive 5
+* 2 FETCH (UID 2 FLAGS (\Seen))
+* 2 FETCH (BODY[1] {32}
+This is just some random text.
+)
+00000010 OK done
+send 1
+00000011 FETCH 2 BODY[2.1]
+receive 4
+* 2 FETCH (BODY[2.1] {19}
+More random text.
+)
+00000011 OK done
+send 1
+00000012 FETCH 2 BODY[2.2.2]
+receive 4
+* 2 FETCH (BODY[2.2.2] {33}
+<html>HTML'd random text</html>
+)
+00000012 OK done
+send 1
+00000013 FETCH 2 BODY.PEEK[HEADER.FIELDS (List-Help List-Unsubscribe List-Subscribe List-Post List-Owner List-Archive)]
+receive 4
+* 2 FETCH (BODY[HEADER.FIELDS (List-Help List-Unsubscribe List-Subscribe List-Post List-Owner List-Archive)] {2}
+
+)
+00000013 OK done
+send 1
+00000014 STORE 2 +Flags (\SEEN)
+receive 1
+00000014 OK done
+send 1
+00000015 FETCH 3 (BODYSTRUCTURE FLAGS)
+receive 2
+* 3 FETCH (FLAGS () BODYSTRUCTURE (("text" "plain" NIL NIL NIL "7BIT" 58 3 NIL NIL NIL NIL)("image" "jpeg" NIL NIL NIL "BASE64" 13774 NIL ("attachment" ("filename" "1.jpg" "size" "10049")) NIL NIL)("text" "plain" NIL NIL NIL "QUOTED-PRINTABLE" 1588 43 NIL ("attachment" ("filename" "sex.html" "size" "1445")) NIL NIL) "mixed" ("boundary" "-") NIL NIL NIL))
+00000015 OK done
+send 1
+00000016 FETCH 3 BODY.PEEK[HEADER.FIELDS (Content-Type)]
+receive 5
+* 3 FETCH (BODY[HEADER.FIELDS (Content-Type)] {45}
+Content-Type: multipart/mixed; boundary=-
+
+)
+00000016 OK done
+send 1
+00000017 FETCH 3 BODY[1]
+receive 7
+* 3 FETCH (UID 3 FLAGS (\Seen))
+* 3 FETCH (BODY[1] {58}
+Appended is one html file and one French lesson.
+
+Arnt
+)
+00000017 OK done
+send 1
+00000018 FETCH 3 BODY.PEEK[HEADER.FIELDS (List-Help List-Unsubscribe List-Subscribe List-Post List-Owner List-Archive)]
+receive 4
+* 3 FETCH (BODY[HEADER.FIELDS (List-Help List-Unsubscribe List-Subscribe List-Post List-Owner List-Archive)] {2}
+
+)
+00000018 OK done
+send 1
+00000019 STORE 3 +Flags (\SEEN)
+receive 1
+00000019 OK done
+send 1
+0000001a NOOP
+receive 1
+0000001a OK done
+send 1
+0000001b LOGOUT
+receive 3
+* OK [CLOSED] I, missa est
+* BYE logout
+0000001b OK done
+end
