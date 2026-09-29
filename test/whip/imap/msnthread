@@ -1,0 +1,19 @@
+# thread without UID, so that the response has to report MSNs. expunging
+# the first message makes MSN and UID differ, which is the point.
+depends thread
+send 1
+b store 1 +flags (\deleted)
+receive 2
+* 1 FETCH (UID 1 FLAGS (\Deleted \Recent))
+b OK done
+send 1
+c expunge
+receive 2
+* 1 EXPUNGE
+c OK done
+send 1
+d thread orderedsubject ascii all
+receive 2
+* THREAD (1)(2 11)(3)(4 (6)(18))(5 8)(7 10)(9 12)(13 16)(14 (15)(17)(19))
+d OK done
+end

@@ -65,6 +65,7 @@ public:
 
     List<Node> result;
 
+    uint number( Node * ) const;
     void splice( List<Node> * );
     void append( EString &, List<Node> *, bool );
 };
@@ -335,6 +336,18 @@ EString ThreadResponse::text() const
     return result;
 }
 
+/*! Returns the number to report for \a n, which is its UID if the
+    command was UID THREAD and its MSN if it was THREAD.
+*/
+
+uint ThreadData::number( ThreadData::Node * n ) const
+{
+    if ( uid )
+        return n->uid;
+    return session->msn( n->uid );
+}
+
+
 void ThreadData::splice( List<ThreadData::Node> * l )
 {
     List<Node>::Iterator i ( l );
@@ -361,14 +374,14 @@ void ThreadData::append( EString & r, List<ThreadData::Node> * l, bool t )
 
     if ( l->count() == 1 && !t ) {
         r.append( " " );
-        r.appendNumber( l->first()->uid );
+        r.appendNumber( number( l->first() ) );
     }
     else {
         r.append( " " );
         List<Node>::Iterator c( l );
         while ( c ) {
             r.append( "(" );
-            r.appendNumber( c->uid );
+            r.appendNumber( number( c ) );
             append( r, &c->children, false );
             r.append( ")" );
             ++c;
