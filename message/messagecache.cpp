@@ -13,12 +13,19 @@
 static class MessageCache * c = 0;
 
 
+// The cache is for clients that look at one or a few messages
+// repeatedly, e.g. with partial fetches. Let's bound it, to
+// avoid eating all the memory.
+static const uint cacheLimit = 1024;
+
+
 class MessageCacheData
     : public Garbage
 {
 public:
-    MessageCacheData(): Garbage() {}
+    MessageCacheData(): Garbage(), n( 0 ) {}
     Map<Map<Message> > m;
+    uint n;
 };
 
 
@@ -53,12 +60,15 @@ void MessageCache::insert( class Mailbox * mb, uint uid,
         return;
     if ( !c )
         c = new MessageCache;
+    if ( c->d->n >= cacheLimit )
+        c->clear();
     Map<Message> * mbcache = c->d->m.find( mb->id() );
     if ( !mbcache ) {
         mbcache = new Map<Message>;
         c->d->m.insert( mb->id(), mbcache );
     }
     mbcache->insert( uid, m );
+    c->d->n++;
 }
 
 
@@ -80,6 +90,7 @@ class Message * MessageCache::find( class Mailbox * mailbox, uint uid )
 void MessageCache::clear()
 {
     d->m.clear();
+    d->n = 0;
 }
 
 
