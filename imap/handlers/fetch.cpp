@@ -24,6 +24,7 @@
 #include "store.h"
 #include "timer.h"
 #include "imap.h"
+#include "eventloop.h"
 #include "date.h"
 #include "user.h"
 #include "dict.h"
@@ -1485,6 +1486,8 @@ void Fetch::pickup()
         return;
     log( "Processed " + fn( done ) + " messages", Log::Debug );
     imap()->emitResponses();
+    if ( done >= 1024 )
+        EventLoop::freeMemorySoon();
 }
 
 
@@ -1542,6 +1545,7 @@ void ImapFetchResponse::setSent()
 void Fetch::forget( uint uid )
 {
     d->messages.remove( uid );
+    d->dynamics.remove( uid );
 }
 
 
