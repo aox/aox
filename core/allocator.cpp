@@ -88,7 +88,7 @@ public:
         Allocator::ulong v = ((Allocator::ulong)a->buffer) >> BlockShift;
         Allocator::ulong i = 0;
         while ( i < a->step * a->capacity ) {
-            insert( v + i, a );
+            insert( v + ( i >> BlockShift ), a );
             i += BlockSize;
         }
     }
@@ -102,7 +102,7 @@ public:
         Allocator::ulong v = ((Allocator::ulong)a->buffer) >> BlockShift;
         Allocator::ulong i = 0;
         while ( i < a->step * a->capacity ) {
-            remove( v + i, a );
+            remove( v + ( i >> BlockShift ), a );
             i += BlockSize;
         }
     }
