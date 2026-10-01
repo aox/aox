@@ -235,7 +235,7 @@ int main( int argc, char ** argv )
     Database::setup( 1, Database::DbOwner );
     Mailbox::setup();
 
-    EventLoop::global()->setMemoryUsage( 64 * 1024 * 1024 );
+    EventLoop::global()->setMemoryUsage( 256 * 1024 * 1024 );
 
     TestRunner::run( verbose );
     if ( TestRunner::running() )
