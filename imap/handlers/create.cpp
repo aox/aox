@@ -3,6 +3,7 @@
 #include "create.h"
 
 #include "imap.h"
+#include "utf.h"
 #include "user.h"
 #include "mailbox.h"
 #include "transaction.h"
@@ -47,6 +48,31 @@ void Create::parse()
     end();
     if ( d->name.titlecased() == imap()->user()->inbox()->name().titlecased() )
         error( No, "INBOX always exists" );
+    if ( imap()->clientSupports( IMAP::Unicode ) ) {
+        // The name arrived as UTF-8. If the same octets are also valid
+        // mUTF-7 for a different name, then this mailbox and that other
+        // name are the same thing to a client that decodes mUTF-7 even
+        // though it asked for UTF-8, and it will see two mailboxes it
+        // cannot tell apart. We would rather not create such a name.
+        Utf8Codec u;
+        EString raw = u.fromUnicode( d->name );
+        bool sevenBit = true;
+        uint i = 0;
+        while ( i < raw.length() ) {
+            if ( raw[i] >= 128 )
+                sevenBit = false;
+            i++;
+        }
+        // mUTF-7 is seven-bit, so a name that needs the eighth bit
+        // cannot be mistaken for it. MUtf7Codec passes such octets
+        // through rather than rejecting them, so we have to look.
+        if ( sevenBit ) {
+            MUtf7Codec m;
+            UString other = m.toUnicode( raw );
+            if ( m.wellformed() && other != d->name )
+                error( No, "Mailbox name could also be read as mUTF-7" );
+        }
+    }
     log( "Create " + d->name.ascii() );
 }
 

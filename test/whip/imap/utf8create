@@ -1,0 +1,22 @@
+# RFC 9755 does not require this, but a mailbox whose UTF-8 name could
+# also be read as mUTF-7 is ambiguous: a connection that has not enabled
+# UTF8=ACCEPT can only report it by escaping the ampersand. We would
+# rather not have such names at all, so creating one is refused. A name
+# that cannot be mUTF-7 is of course still fine.
+depends twologins
+use second
+send 1
+a enable utf8=accept
+receive 2
+* ENABLED UTF8=ACCEPT
+a OK done
+send 1
+b create &CQkJJgk+CTkJMAkj-
+receive 1
+b NO Mailbox name could also be read as mUTF-7
+send 2
+c create {18+}
+उदाहरण
+receive 1
+c OK done
+end
