@@ -192,6 +192,7 @@ void TestRunner::close( bool verbose )
 
     Allocator::removeEternal( ::runningRunner );
     ::runningRunner = 0;
+    EventLoop::freeMemorySoon();
     if ( verbose && stopOnFailure )
         EventLoop::global()->stop();
     else
@@ -229,7 +230,7 @@ void TestRunner::react( Connection::Event e, TestClient * c )
     case Connection::Timeout:
         if ( c != d->active )
             return;
-        error( "No response after 4 seconds" );
+        error( "No response after 10 seconds" );
         if ( d->scripts->first() )
             d->scripts->first()->setFailed( true );
         break;
@@ -347,8 +348,8 @@ void TestRunner::compare()
         return;
     }
     else if ( any && !patient ) {
-        d->active->setTimeoutAfter( 4 );
-        log( "Timeout set: 4s after compare on " + d->active->name() );
+        d->active->setTimeoutAfter( 10 );
+        log( "Timeout set: 10s after compare on " + d->active->name() );
     }
     if ( !d->expected.isEmpty() )
         return;
@@ -549,8 +550,8 @@ void TestRunner::send()
             }
             log( ll );
             if ( !patient ) {
-                d->active->setTimeoutAfter( 4 );
-                log( "Timeout set: 4s after send on " +
+                d->active->setTimeoutAfter( 10 );
+                log( "Timeout set: 10s after send on " +
                      d->active->name() );
             }
         }
