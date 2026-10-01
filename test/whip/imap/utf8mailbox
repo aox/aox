@@ -1,0 +1,42 @@
+# RFC 9755: on a connection that has enabled UTF8=ACCEPT, mailbox names
+# are UTF-8, in commands and in responses alike. On a connection that
+# has not, they are mUTF-7. The first connection here checks the mUTF-7
+# side, the second the UTF-8 side.
+depends twologins
+send 1
+a create &CQkJJgk+CTkJMAkj-
+receive 1
+a OK done
+send 1
+b list "" &CQkJJgk+CTkJMAkj-
+receive 2
+* LIST (\hasnochildren) "/" &CQkJJgk+CTkJMAkj-
+b OK done
+send 1
+c status &CQkJJgk+CTkJMAkj- (messages)
+receive 2
+* STATUS &CQkJJgk+CTkJMAkj- (MESSAGES 0)
+c OK done
+# The UTF-8 side sends one name as a quoted string and one as a
+# literal; RFC 9755 permits both. The server replies with a literal
+# either way, so the expected responses are the same.
+use second
+send 1
+d enable utf8=accept
+receive 2
+* ENABLED UTF8=ACCEPT
+d OK done
+send 1
+e list "" "उदाहरण"
+receive 3
+* LIST (\hasnochildren) "/" {18}
+उदाहरण
+e OK done
+send 2
+f status {18+}
+उदाहरण (messages)
+receive 3
+* STATUS {18}
+उदाहरण (MESSAGES 0)
+f OK done
+end
