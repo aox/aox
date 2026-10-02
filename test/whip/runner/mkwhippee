@@ -45,7 +45,9 @@ F=/tmp/mkwhippee-$$
   aox show cf entropy-source ; \
   aox show cf hostname ; \
   aox show cf lmtp-port ; \
-  aox show cf smarthost-port ; ) > ${F}-a
+  aox show cf smarthost-port ; \
+  aox show cf server-processes ; \
+  aox show cf memory-limit ; ) > ${F}-a
 
 cat <<EORIGHT > ${F}-b
 use-imap = on
@@ -59,14 +61,15 @@ submit-copy-to-sender = on
 auth-anonymous = on
 auth-digest-md5 = on
 auth-login = on
-entropy-source = /dev/zero
-hostname = imapscript.test.oryx.com
+entropy-source = "/dev/zero"
+hostname = "imapscript.test.oryx.com"
 lmtp-port = 2026
 smarthost-port = 9925
 server-processes = 1
+memory-limit = 256
 EORIGHT
 
-if cmp -q ${F}-a ${F}-b ; then
+if cmp -s ${F}-a ${F}-b ; then
     echo config is okay
 else
     echo "archivopteryx.conf is bad. Diff (-right +actual):"

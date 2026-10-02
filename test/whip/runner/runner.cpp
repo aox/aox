@@ -10,6 +10,7 @@
 #include "log.h"
 
 #include <stdio.h>
+#include <stdlib.h> // getloadavg
 #include <unistd.h> // sleep
 
 
@@ -200,6 +201,22 @@ void TestRunner::close( bool verbose )
 }
 
 
+/*! Returns a complaint about system load if the load average is high
+    enough to make the timeouts unreliable, and an empty string if
+    not. A timeout on a loaded host says nothing about the server.
+*/
+
+static EString loadComplaint()
+{
+    double load[1];
+    if ( getloadavg( load, 1 ) != 1 || load[0] <= 1.5 )
+        return "";
+    uint tenths = (uint)(load[0] * 10 + 0.5);
+    return " (load average " + fn( tenths / 10 ) + "." + fn( tenths % 10 ) +
+        ", so the wall-clock timing is unreliable)";
+}
+
+
 /*! Processes server output, timeouts etc. and sends new input to the
     server. \a e is either server information or a 10-second timeout.
 */
@@ -230,7 +247,7 @@ void TestRunner::react( Connection::Event e, TestClient * c )
     case Connection::Timeout:
         if ( c != d->active )
             return;
-        error( "No response after 10 seconds" );
+        error( "No response after 10 seconds" + loadComplaint() );
         if ( d->scripts->first() )
             d->scripts->first()->setFailed( true );
         break;
