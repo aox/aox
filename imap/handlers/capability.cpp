@@ -4,6 +4,7 @@
 
 #include "scope.h"
 #include "configuration.h"
+#include "imapparser.h"
 #include "imap.h"
 #include "buffer.h"
 #include "estringlist.h"
@@ -46,6 +47,7 @@
     RFC 6154: SPECIAL-USE,
     RFC 6855: UTF=ACCEPT,
     RFC 7162: QRESYNC,
+    RFC 7889: APPENDLIMIT,
     RFC 8474: OBJECTID,
     RFC 9586: UIDONLY.
 */
@@ -81,6 +83,7 @@ EString Capability::capabilities( IMAP * i, bool all )
 
     if ( all || login ) {
         c.append( "ACL" );
+        c.append( "APPENDLIMIT=" + fn( ImapParser::literalSizeLimit() ) );
         c.append( "BINARY" );
         c.append( "CATENATE" );
         c.append( "CHILDREN" );

@@ -169,6 +169,33 @@ Command::~Command()
 }
 
 
+/*! Reports the parser's complaint as BAD for most syntax errors
+    but as NO with TOOBIG (RFC4469 section 4) when the client has
+    announced a literal bigger than we accept.
+
+    A client needs to tell the two apart: one that sends an APPEND for
+    a too-long message may be able to go on with other work, while a
+    BAD is a different kind of problem.
+
+    A BAD counts towards the delay that slows abusive clients down
+    (see IMAP::runCommands), and a vast literal is abusive, so
+    parseError() adds a syntax error in both cases.
+*/
+
+void Command::parseError()
+{
+    if ( !d->args->tooBig() ) {
+        error( Bad, d->args->error() );
+        return;
+    }
+
+    setRespTextCode( "TOOBIG" );
+    error( No, d->args->error() );
+    if ( imap() )
+        imap()->recordSyntaxError();
+}
+
+
 /*! This static function creates an instance of the right subclass of
     Command, depending on \a name and the state of \a imap.
 
@@ -778,7 +805,7 @@ void Command::require( const EString & s )
 {
     d->args->require( s );
     if ( !d->args->ok() )
-        error( Bad, d->args->error() );
+        parseError();
 }
 
 
@@ -790,7 +817,7 @@ EString Command::digits( uint min, uint max )
 {
     EString r( d->args->digits( min, max ) );
     if ( !d->args->ok() )
-        error( Bad, d->args->error() );
+        parseError();
     return r;
 }
 
@@ -804,7 +831,7 @@ EString Command::letters( uint min, uint max )
 {
     EString r( d->args->letters( min, max ) );
     if ( !d->args->ok() )
-        error( Bad, d->args->error() );
+        parseError();
     return r;
 }
 
@@ -816,7 +843,7 @@ void Command::nil()
 {
     d->args->nil();
     if ( !d->args->ok() )
-        error( Bad, d->args->error() );
+        parseError();
 }
 
 
@@ -848,7 +875,7 @@ uint Command::number()
 {
     uint n = d->args->number();
     if ( !d->args->ok() )
-        error( Bad, d->args->error() );
+        parseError();
     return n;
 }
 
@@ -859,7 +886,7 @@ uint Command::nzNumber()
 {
     uint n = d->args->nzNumber();
     if ( !d->args->ok() )
-        error( Bad, d->args->error() );
+        parseError();
     return n;
 }
 
@@ -904,7 +931,7 @@ EString Command::atom()
 {
     EString r( d->args->atom() );
     if ( !d->args->ok() )
-        error( Bad, d->args->error() );
+        parseError();
     return r;
 }
 
@@ -918,7 +945,7 @@ EString Command::listChars()
 {
     EString r( d->args->atom() );
     if ( !d->args->ok() )
-        error( Bad, d->args->error() );
+        parseError();
     return r;
 }
 
@@ -935,7 +962,7 @@ EString Command::quoted()
 {
     EString r( d->args->quoted() );
     if ( !d->args->ok() )
-        error( Bad, d->args->error() );
+        parseError();
     return r;
 }
 
@@ -948,7 +975,7 @@ EString Command::literal()
 {
     EString r( d->args->literal() );
     if ( !d->args->ok() )
-        error( Bad, d->args->error() );
+        parseError();
     return r;
 }
 
@@ -961,7 +988,7 @@ EString Command::string()
 {
     EString r( d->args->string() );
     if ( !d->args->ok() )
-        error( Bad, d->args->error() );
+        parseError();
     return r;
 }
 
@@ -974,7 +1001,7 @@ EString Command::nstring()
 {
     EString r( d->args->nstring() );
     if ( !d->args->ok() )
-        error( Bad, d->args->error() );
+        parseError();
     return r;
 }
 
@@ -987,7 +1014,7 @@ EString Command::astring()
 {
     EString r( d->args->astring() );
     if ( !d->args->ok() )
-        error( Bad, d->args->error() );
+        parseError();
     return r;
 }
 
@@ -1001,7 +1028,7 @@ UString Command::listMailbox()
 {
     EString r( d->args->listMailbox() );
     if ( !d->args->ok() )
-        error( Bad, d->args->error() );
+        parseError();
 
     if ( imap()->clientSupports( IMAP::Unicode ) ) {
         Utf8Codec c;
@@ -1152,7 +1179,7 @@ EString Command::flag()
 {
     EString r( d->args->flag() );
     if ( !d->args->ok() )
-        error( Bad, d->args->error() );
+        parseError();
     return r;
 }
 
@@ -1166,7 +1193,7 @@ void Command::end()
 {
     d->args->end();
     if ( !d->args->ok() )
-        error( Bad, d->args->error() );
+        parseError();
 }
 
 

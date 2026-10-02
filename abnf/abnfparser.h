@@ -16,6 +16,7 @@ public:
 
     bool ok() const;
     EString error() const;
+    bool tooBig() const;
 
     uint pos() const;
     EString input() const;
@@ -40,6 +41,7 @@ protected:
     EString str;
 
     void setError( const EString & );
+    void setTooBig( const EString & );
 
 private:
     class AbnfParserData * d;

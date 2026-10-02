@@ -6,6 +6,8 @@
 #include "ustring.h"
 #include "utf.h"
 
+#include <limits.h>
+
 
 /*! \class ImapParser imapparser.h
     IMAP-specific ABNF parsing functions.
@@ -248,8 +250,8 @@ EString ImapParser::literal()
         return "";
     }
     if ( len > literalSizeLimit() ) {
-        setError( "Literal too big: " +
-                  fn( len ) + ">" + fn( literalSizeLimit() ) );
+        setTooBig( "Literal of " + fn( len ) + " bytes is bigger than the "
+                   "limit of " + fn( literalSizeLimit() ) );
         return "";
     }
 

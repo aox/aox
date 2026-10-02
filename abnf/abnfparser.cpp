@@ -8,7 +8,7 @@ class AbnfParserData
 {
 public:
     AbnfParserData( AbnfParserData * other = 0 )
-        : at( 0 ), next( 0 ), mark( 1 )
+        : at( 0 ), big( false ), next( 0 ), mark( 1 )
     {
         if ( other ) {
             at = other->at;
@@ -19,6 +19,7 @@ public:
 
     uint at;
     EString err;
+    bool big;
 
     AbnfParserData * next;
     uint mark;
@@ -98,6 +99,32 @@ void AbnfParser::setError( const EString & s )
 {
     if ( d->err.isEmpty() || s.isEmpty() )
         d->err = s;
+}
+
+
+/*! Records \a s as the error, like setError(), and remembers that it
+    was caused by something too big for us rather than by malformed
+    input.
+
+    This helps IMAP report [TOOBIG].
+*/
+
+void AbnfParser::setTooBig( const EString & s )
+{
+    bool first = d->err.isEmpty();
+    setError( s );
+    if ( first )
+        d->big = true;
+}
+
+
+/*! Returns true if the current error, if any, was set by
+    setTooBig(). Follows mark() and restore() like error() does.
+*/
+
+bool AbnfParser::tooBig() const
+{
+    return d->big;
 }
 
 

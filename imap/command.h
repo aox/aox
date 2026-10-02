@@ -62,6 +62,7 @@ public:
     char nextChar();
     void step( uint = 1 );
     bool present( const EString & );
+    void parseError();
     void require( const EString & );
     EString digits( uint, uint );
     EString letters( uint, uint );
