@@ -1,0 +1,71 @@
+depends messagemix
+send 1
+a1 sort (arrival) utf8 all
+receive 2
+* SORT 2 1 3
+a1 OK done
+send 1
+a2 sort (cc) utf8 all
+receive 2
+* SORT 1 2 3
+a2 OK done
+send 1
+a21 sort (cc arrival) utf8 all
+receive 2
+* SORT 2 1 3
+a21 OK done
+send 1
+a3 sort (date) utf8 all
+receive 2
+* SORT 2 1 3
+a3 OK done
+send 1
+a4 sort (from) utf8 all
+receive 2
+* SORT 1 2 3
+a4 OK done
+send 1
+a5 sort (size) utf8 all
+receive 2
+* SORT 2 1 3
+a5 OK done
+send 1
+a6 sort (subject) utf8 all
+receive 2
+* SORT 1 3 2
+a6 OK done
+send 1
+a7 sort (to) utf8 all
+receive 2
+* SORT 1 2 3
+a7 OK done
+# 'reverse to' should make no difference at all, since the implicit
+# uid sort is what actually orders the messages
+send 1
+a7b sort (reverse to) utf8 all
+receive 2
+* SORT 1 2 3
+a7b OK done
+# but reverse subject should matter
+send 1
+a6b sort (reverse subject) utf8 all
+receive 2
+* SORT 2 3 1
+a6b OK done
+# and the combination should work
+send 1
+a6c sort (to reverse subject) utf8 all
+receive 2
+* SORT 2 3 1
+a6c OK done
+send 1
+a6d sort (subject) utf8 from <arnt@
+receive 2
+* SORT 1 3 2
+a6d OK done
+send 1
+a8 sort (from) utf8 1:2
+receive 2
+* SORT 1 2
+a8 OK done
+end

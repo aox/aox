@@ -44,6 +44,7 @@
     RFC 5256: SORT,
     RFC 5258: LISTEXT,
     RFC 5465: NOTIFY,
+    RFC 5957: SORT=DISPLAY,
     RFC 6154: SPECIAL-USE,
     RFC 6855: UTF=ACCEPT,
     RFC 7162: QRESYNC,
@@ -124,6 +125,8 @@ EString Capability::capabilities( IMAP * i, bool all )
     if ( all || !login )
         c.append( "SASL-IR" );
     if ( all || login ) {
+        c.append( "SORT" );
+        c.append( "SORT=DISPLAY" );
         c.append( "SPECIAL-USE" );
     }
     if ( Configuration::toggle( Configuration::UseTls ) && !i->hasTls() )

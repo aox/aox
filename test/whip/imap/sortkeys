@@ -1,0 +1,367 @@
+# exercises each SORT key; the comments give the sort keys
+depends empty-inbox
+send 116
+a append INBOX () "05-Jun-2026 10:00:00 +0000" {545+}
+From: =?utf-8?q?Fran=C3=A7ois_Martin?= <francois@example.com>
+To: arnt@grå.org
+Cc: Bob <bob@example.com>
+Subject: banana
+Date: Mon, 01 Jun 2026 12:00:00 +0200
+
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+ () "03-Jun-2026 10:00:00 +0000" {121+}
+From: alice@example.com
+To: Zed <zed@example.com>
+Subject: Re: Apple
+Date: Mon, 01 Jun 2026 09:00:00 -0300
+
+Short.
+ () "04-Jun-2026 10:00:00 +0000" {2342+}
+From: Bob Smith <Bob@example.com>
+To: Alice <alice@example.com>
+Cc: carol@example.com, aaron@example.com
+Subject: apple
+Date: Sat, 30 May 2026 12:00:00 +0000
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=x
+
+--x
+
+The attachment has its own From, To, Cc and Subject.
+--x
+Content-Type: message/rfc822
+
+From: aaa@example.com
+To: aaa@example.com
+Cc: aaa@example.com
+Subject: AAA
+Date: Fri, 01 Jan 2016 00:00:00 +0000
+
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+--x--
+ () "03-Jun-2026 10:00:00 +0000" {881+}
+From: grå@grå.org
+To: =?utf-8?q?=C3=85dne?= <adne@example.com>
+Subject: Banana
+Date: Tue, 02 Jun 2026 08:00:00 +0200
+
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+ () "01-Jun-2026 10:00:00 +0000" {1272+}
+From: alice <zz@example.com>
+To: bob@example.com
+Cc: Anna <anna@example.com>
+Subject: cherry
+Date: Mon, 01 Jun 2026 12:00:00 +0200
+
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+The quick brown fox jumps over the lazy dog, again and again.
+
+receive 4
+* 5 EXISTS
+* 5 RECENT
+* OK [UIDNEXT 6] next uid
+a OK [APPENDUID 1 1:5] done
+# 1 jun 5, 2 jun 3, 3 jun 4, 4 jun 3, 5 jun 1
+send 1
+s1 sort (arrival) utf-8 all
+receive 2
+* SORT 5 2 4 3 1
+s1 OK done
+send 1
+s2 uid sort (arrival) utf-8 all
+receive 2
+* SORT 5 2 4 3 1
+s2 OK done
+# the 2/4 tie still goes by uid
+send 1
+s3 sort (reverse arrival) utf-8 all
+receive 2
+* SORT 1 3 2 4 5
+s3 OK done
+send 1
+s4 uid sort (reverse arrival) utf-8 all
+receive 2
+* SORT 1 3 2 4 5
+s4 OK done
+# 2 is 12:00Z, later than 1 and 5 at 10:00Z
+send 1
+s5 sort (date) utf-8 all
+receive 2
+* SORT 3 1 5 2 4
+s5 OK done
+send 1
+s6 uid sort (date) utf-8 all
+receive 2
+* SORT 3 1 5 2 4
+s6 OK done
+send 1
+s7 sort (reverse date) utf-8 all
+receive 2
+* SORT 4 2 1 5 3
+s7 OK done
+send 1
+s8 uid sort (reverse date) utf-8 all
+receive 2
+* SORT 4 2 1 5 3
+s8 OK done
+# raw subjects, so re: apple sorts after cherry
+send 1
+s9 sort (subject) utf-8 all
+receive 2
+* SORT 3 1 4 5 2
+s9 OK done
+send 1
+s10 uid sort (subject) utf-8 all
+receive 2
+* SORT 3 1 4 5 2
+s10 OK done
+send 1
+s11 sort (reverse subject) utf-8 all
+receive 2
+* SORT 2 5 1 4 3
+s11 OK done
+send 1
+s12 uid sort (reverse subject) utf-8 all
+receive 2
+* SORT 2 5 1 4 3
+s12 OK done
+# alice bob francois grå zz
+send 1
+s13 sort (from) utf-8 all
+receive 2
+* SORT 2 3 1 4 5
+s13 OK done
+send 1
+s14 uid sort (from) utf-8 all
+receive 2
+* SORT 2 3 1 4 5
+s14 OK done
+send 1
+s15 sort (reverse from) utf-8 all
+receive 2
+* SORT 5 4 1 3 2
+s15 OK done
+send 1
+s16 uid sort (reverse from) utf-8 all
+receive 2
+* SORT 5 4 1 3 2
+s16 OK done
+# adne alice arnt bob zed
+send 1
+s17 sort (to) utf-8 all
+receive 2
+* SORT 4 3 1 5 2
+s17 OK done
+send 1
+s18 uid sort (to) utf-8 all
+receive 2
+* SORT 4 3 1 5 2
+s18 OK done
+# anna bob carol (not aaron), then the two without cc
+send 1
+s19 sort (cc) utf-8 all
+receive 2
+* SORT 5 1 3 2 4
+s19 OK done
+send 1
+s20 uid sort (cc) utf-8 all
+receive 2
+* SORT 5 1 3 2 4
+s20 OK done
+send 1
+s21 sort (reverse cc) utf-8 all
+receive 2
+* SORT 2 4 3 1 5
+s21 OK done
+send 1
+s22 uid sort (reverse cc) utf-8 all
+receive 2
+* SORT 2 4 3 1 5
+s22 OK done
+send 1
+s23 sort (size) utf-8 all
+receive 2
+* SORT 2 1 4 5 3
+s23 OK done
+send 1
+s24 uid sort (size) utf-8 all
+receive 2
+* SORT 2 1 4 5 3
+s24 OK done
+send 1
+s25 sort (reverse size) utf-8 all
+receive 2
+* SORT 3 5 4 1 2
+s25 OK done
+send 1
+s26 uid sort (reverse size) utf-8 all
+receive 2
+* SORT 3 5 4 1 2
+s26 OK done
+# alice alice@example.com bob smith françois grå@grå.org
+send 1
+s27 sort (displayfrom) utf-8 all
+receive 2
+* SORT 5 2 3 1 4
+s27 OK done
+send 1
+s28 uid sort (displayfrom) utf-8 all
+receive 2
+* SORT 5 2 3 1 4
+s28 OK done
+# ådne alice arnt@grå.org bob@example.com zed (icu root order)
+send 1
+s29 sort (displayto) utf-8 all
+receive 2
+* SORT 4 3 1 5 2
+s29 OK done
+send 1
+s30 uid sort (displayto) utf-8 all
+receive 2
+* SORT 4 3 1 5 2
+s30 OK done
+# 1 and 5 have the same date
+send 1
+s31 sort (date reverse from) utf-8 all
+receive 2
+* SORT 3 5 1 2 4
+s31 OK done
+send 1
+s32 uid sort (date reverse from) utf-8 all
+receive 2
+* SORT 3 5 1 2 4
+s32 OK done
+# 1 and 4 differ only in case
+send 1
+s33 sort (subject arrival) utf-8 all
+receive 2
+* SORT 3 4 1 5 2
+s33 OK done
+send 1
+s34 uid sort (subject arrival) utf-8 all
+receive 2
+* SORT 3 4 1 5 2
+s34 OK done
+send 1
+s35 sort (cc subject) utf-8 all
+receive 2
+* SORT 5 1 3 4 2
+s35 OK done
+send 1
+s36 uid sort (cc subject) utf-8 all
+receive 2
+* SORT 5 1 3 4 2
+s36 OK done
+# search keys that join messages in the selector
+send 1
+s37 sort (size) utf-8 since 1-Jun-2026
+receive 2
+* SORT 2 1 4 5 3
+s37 OK done
+send 1
+s38 uid sort (size) utf-8 since 1-Jun-2026
+receive 2
+* SORT 2 1 4 5 3
+s38 OK done
+send 1
+s39 sort (size) utf-8 larger 333
+receive 2
+* SORT 1 4 5 3
+s39 OK done
+send 1
+s40 uid sort (size) utf-8 larger 333
+receive 2
+* SORT 1 4 5 3
+s40 OK done
+send 1
+s41 sort (arrival) utf-8 since 3-Jun-2026
+receive 2
+* SORT 2 4 3 1
+s41 OK done
+send 1
+s42 uid sort (arrival) utf-8 since 3-Jun-2026
+receive 2
+* SORT 2 4 3 1
+s42 OK done
+send 1
+s43 sort (date) utf-8 sentsince 1-Jun-2026
+receive 2
+* SORT 1 5 2 4
+s43 OK done
+send 1
+s44 uid sort (date) utf-8 sentsince 1-Jun-2026
+receive 2
+* SORT 1 5 2 4
+s44 OK done
+send 1
+s45 sort (from) utf-8 uid 2:4
+receive 2
+* SORT 2 3 4
+s45 OK done
+send 1
+s46 uid sort (from) utf-8 uid 2:4
+receive 2
+* SORT 2 3 4
+s46 OK done
+end

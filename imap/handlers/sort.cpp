@@ -5,6 +5,7 @@
 #include "user.h"
 #include "field.h"
 #include "codec.h"
+#include "postgres.h"
 #include "mailbox.h"
 #include "imapparser.h"
 #include "imapsession.h"
@@ -47,8 +48,9 @@ public:
 
     bool usingCriterionType( SortCriterionType );
 
-    void addCondition( EString &, class SortCriterion * );
-    void addJoin( EString &, const EString &, const EString &, bool );
+    EString key( SortCriterionType );
+    EString addressKey( uint, bool );
+    EString collation();
 };
 
 
@@ -154,7 +156,11 @@ void Sort::parse()
 }
 
 
-/*! This reimplementation hides Search::execute() entirely. */
+/*! This reimplementation hides Search::execute() entirely.
+
+    Selector's query becomes a subquery, so the sort keys can use
+    their own table names without colliding with Selector's.
+*/
 
 void Sort::execute()
 {
@@ -164,13 +170,21 @@ void Sort::execute()
     if ( !d->q ) {
         d->s->simplify();
         d->q = d->s->query( imap()->user(), session()->mailbox(),
-                            session(), this, true );
-        EString t = d->q->string();
+                            session(), this, false );
+        EString t = "select s.uid from (" + d->q->string() + ") s";
+        if ( d->usingCriterionType( SortData::Arrival ) ||
+             d->usingCriterionType( SortData::Size ) )
+            t.append( " join messages m on (m.id=s.message)" );
+        t.append( " order by " );
         List<SortData::SortCriterion>::Iterator c( d->c );
         while ( c ) {
-            d->addCondition( t, c );
+            t.append( d->key( c->t ) );
+            if ( c->reverse )
+                t.append( " desc" );
+            t.append( ", " );
             ++c;
         }
+        t.append( "s.uid" );
         d->q->setString( t );
         d->q->execute();
     }
@@ -190,126 +204,80 @@ void Sort::execute()
 }
 
 
-void SortData::addCondition( EString & t, class SortData::SortCriterion * c )
+/*! Returns an SQL expression for the sort key of type \a t, for use
+    in Sort::execute()'s order by clause.
+
+    The string keys are lower-cased and compared using collation().
+    RFC 5256 says i;ascii-casemap, but I think users prefer a natural
+    sort order to an RFC-compliant one. Each key is a subselect with
+    limit 1, so that a message with two From fields (or similar)
+    still yields just one row.
+*/
+
+EString SortData::key( SortCriterionType t )
 {
-    switch ( c->t ) {
+    switch ( t ) {
     case Arrival:
-        addJoin( t, "join messages marrdt on (marrdt.id=mm.message) ",
-                 "marrdt.idate", c->reverse );
-        break;
-    case Cc:
-        addJoin( t,
-                 "left join address_fields sccaf on "
-                 "(mm.message=sccaf.message and "
-                 " sccaf.part='' and sccaf.number=0 and"
-                 " sccaf.field=" + fn( HeaderField::Cc ) + ") "
-                 "left join addresses scca on (sccaf.address=scca.id) ",
-                 "scca.localpart",
-                 c->reverse );
-        break;
-    case Date:
-        addJoin( t,
-                 "left join date_fields sddf on (mm.message=sddf.message) ",
-                 "sddf.value",
-                 c->reverse );
-        break;
-    case From:
-        addJoin( t,
-                 "left join address_fields sfaf on "
-                 "(mm.message=sfaf.message and "
-                 " sfaf.part='' and sfaf.number=0 and"
-                 " sfaf.field=" + fn( HeaderField::From ) + ") "
-                 "join addresses sfa on (sfaf.address=sfa.id) ",
-                 "sfa.localpart",
-                 c->reverse );
-        break;
-    case DisplayFrom:
-        addJoin( t,
-                 "left join address_fields sdfaf on "
-                 "(mm.message=sdfaf.message and "
-                 " sdfaf.part='' and sdfaf.number=0 and"
-                 " sdfaf.field=" + fn( HeaderField::From ) + ") "
-                 "join addresses sdfa on (sdfaf.address=sdfa.id) ",
-                 "case "
-                 "when sdfa.name='' then sdfa.localpart||'@'||sdfa.domain "
-                 "else sdfa.name "
-                 "end",
-                 c->reverse );
-        break;
-    case DisplayTo:
-        addJoin( t,
-                 "left join address_fields sdtaf on "
-                 "(mm.message=sdtaf.message and "
-                 " sdtaf.part='' and sdtaf.number=0 and"
-                 " sdtaf.field=" + fn( HeaderField::To ) + ") "
-                 "join addresses sdta on (sdtaf.address=sdta.id) ",
-                 "case "
-                 "when sdta.name='' then sdta.localpart||'@'||sdta.domain "
-                 "else sdta.name "
-                 "end",
-                 c->reverse );
-        break;
+        return "m.idate";
     case Size:
-        addJoin( t,
-                 "join messages m on (m.id=mm.message) ",
-                 "m.rfc822size",
-                 c->reverse );
-        break;
+        return "m.rfc822size";
+    case Date:
+        return "(select value from date_fields"
+            " where message=s.message limit 1)";
     case Subject:
-        addJoin( t,
-                 "left join header_fields sshf on "
-                 "(mm.message=sshf.message and sshf.field=" +
-                 fn( HeaderField::Subject ) + ") ",
-                 "sshf.value",
-                 c->reverse );
-        break;
+        return "(select lower(value" + collation() + ")"
+            " from header_fields where message=s.message and part=''"
+            " and field=" + fn( HeaderField::Subject ) +
+            " order by position limit 1)" + collation();
+    case Cc:
+        return addressKey( HeaderField::Cc, false );
+    case From:
+        return addressKey( HeaderField::From, false );
     case To:
-        addJoin( t,
-                 "left join address_fields staf on "
-                 "(mm.message=staf.message and "
-                 " staf.part='' and staf.number=0 and"
-                 " staf.field=" + fn( HeaderField::To ) + ") "
-                 "left join addresses sta on (staf.address=sta.id) ",
-                 "sta.localpart",
-                 c->reverse );
-        break;
+        return addressKey( HeaderField::To, false );
+    case DisplayFrom:
+        return addressKey( HeaderField::From, true );
+    case DisplayTo:
+        return addressKey( HeaderField::To, true );
     case Unknown:
         break;
     }
+    return "s.uid";
 }
 
 
-void SortData::addJoin( EString & t,
-                        const EString & join, const EString & orderby,
-                        bool desc )
-{
-    int w = t.find( " where " );
-    if ( w < 0 )
-        return;
-    t = t.mid( 0, w+1 ) + join + t.mid( w+1 );
-    int o = t.find( " order by " );
-    if ( o < 0 )
-        return;
-    o += 10;
-    int c = t.length();
-    while ( c > o && t[c] != ',' )
-        c--;
-    if ( c > o )
-        t = t.mid( 0, c ) + ", " + orderby +
-            ( desc ? " desc" : "" ) +
-            t.mid( c );
-    else
-        t = t.mid( 0, o ) + orderby +
-            ( desc ? " desc, " : ", " ) +
-            t.mid( o );
+/*! Returns an SQL expression for the first address in the field \a
+    f. If \a display is false, the expression is the addr-mailbox
+    (RFC 5256), if true, the display name or address (RFC 5957).
+*/
 
-    // and include orderby in the return list so select distinct
-    // doesn't complain. why does select distinct do that anyway?
-    int s = t.find( "mm.uid" );
-    if ( s < 0 )
-        return;
-    s += 6;
-    t = t.mid( 0, s ) + ", " + orderby + t.mid( s );
+EString SortData::addressKey( uint f, bool display )
+{
+    EString v = "a.localpart::text";
+    if ( display )
+        v = "case when coalesce(a.name,'')='' "
+            "then a.localpart||'@'||a.domain "
+            "else a.name end";
+    return "(select lower((" + v + ")" + collation() + ")"
+        " from address_fields af"
+        " join addresses a on (af.address=a.id)"
+        " where af.message=s.message and af.part=''"
+        " and af.field=" + fn( f ) + " and af.number=0"
+        " order by af.position limit 1)" + collation();
+}
+
+
+/*! Returns a collate clause for ICU's root collation, or an empty
+    string on servers older than 10, which have no ICU. Those sort
+    using the database's default collation, which is usually a libc
+    locale and may be just C.
+*/
+
+EString SortData::collation()
+{
+    if ( Postgres::version() < 100000 )
+        return "";
+    return " collate \"und-x-icu\"";
 }
 
 

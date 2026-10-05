@@ -804,6 +804,10 @@ EString Selector::whereInternalDate()
         return m() +".idate>=$" + fn( n1 );
     }
     else if ( d->a == BeforeDate ) {
+        // RFC 3501 says earlier than the given day, but we include
+        // that day on purpose. Users don't grok the RFC's semantics,
+        // so returning a little more is better. At least that way
+        // the messages are in the result.
         uint n2 = placeHolder();
         root()->d->query->bind( n2, d2.unixTime() );
         return m() + ".idate<=$" + fn( n2 );
@@ -820,6 +824,11 @@ EString Selector::whereInternalDate()
 EString Selector::whereSent()
 {
     root()->d->needDateFields = true;
+
+    // RFC 3501 says to use the date as written in the Date field. We
+    // use the database's time zone instead, and SENTBEFORE includes
+    // midnight. Both are deliberate: users don't grok the RFC's
+    // semantics, so returning a little more is better.
 
     uint day = d->s8.mid( 0, 2 ).number( 0 );
     EString month = d->s8.mid( 3, 3 );
