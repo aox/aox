@@ -259,10 +259,22 @@ passwords, since SASL isn't always used. To disable plaintext
 passwords, use the
 .I allow-plaintext-passwords
 variable above.
-.IP auth-anonymous
-controls whether the servers offer anonymous login,
-.I disabled
+.IP auth-login
+controls whether the servers offer the LOGIN SASL mechanism.
+.I Disabled
 by default.
+.IP auth-anonymous
+controls whether the servers offer anonymous login.
+.I Disabled
+by default.
+.SS "LDAP Authentication"
+.IP ldap-server-address
+specifies the address of the LDAP server used for SASL authentication.
+The default is
+.IR 127.0.0.1 .
+.IP ldap-server-port
+specifies the port of the LDAP server. The default is
+.IR 389 .
 .SS "Mail delivery"
 .IP use-lmtp
 controls whether
@@ -540,7 +552,7 @@ means to listen on all available IPv4 and IPv6 addresses.
 specifies which port
 .BR archiveopteryx (8)
 should listen to. The default is
-.IR 2000 .
+.IR 4190 .
 .SS TLS
 .IP use-tls
 regulates whether Archiveopteryx supports TLS at all. The default is
@@ -554,6 +566,10 @@ If
 is not specified, tlsproxy generates a private key and a self-signed
 certificate at runtime and stores both in
 .IR $CONFIGDIR/automatic-key.pem .
+.IP tls-private-key
+is the absolute file name of the TLS private key. If not specified,
+the private key is expected to be in the same file as
+.IR tls-certificate .
 .IP tls-certificate-label
 is not used in 3.1.4.
 .SH SYNTAX
