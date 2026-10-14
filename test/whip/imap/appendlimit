@@ -1,0 +1,24 @@
+depends login
+send 1
+a status inbox (appendlimit)
+receive 2
+* STATUS INBOX (APPENDLIMIT 38400000)
+a OK done
+send 1
+b append inbox {400000000}
+receive 1
+b NO [TOOBIG] Literal of 400000000 bytes is bigger than the limit of 38400000
+send 6
+c append inbox () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+0001
+receive 1
+c OK [APPENDUID 1 1] done
+send 1
+d append inbox {400000000+}
+receive 1
+d NO [TOOBIG] Literal of 400000000 bytes is bigger than the limit of 38400000
+end

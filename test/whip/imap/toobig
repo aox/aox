@@ -1,0 +1,11 @@
+depends connect
+send 1
+a login script {123456789}
+receive 1
+a NO [TOOBIG] Literal of 123456789 bytes is bigger than the limit of 38400000
+send 1
+b logout
+receive 2
+* BYE logout
+b OK done
+end

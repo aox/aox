@@ -1,0 +1,11 @@
+# the same for a search key, which is where a malcontent would try it
+depends empty-inbox
+send 1
+a uid search from {123456789}
+receive 1
+a NO [TOOBIG] Literal of 123456789 bytes is bigger than the limit of 38400000
+send 1
+b noop
+receive 1
+b OK done
+end
