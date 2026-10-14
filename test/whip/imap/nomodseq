@@ -1,0 +1,17 @@
+# The name is a leftover: this used to check that we reported no
+# modseq. We support CONDSTORE now, so RFC7162 3.1.8 requires
+# HIGHESTMODSEQ here, and [NOMODSEQ] would be wrong.
+depends login
+send 1
+c select inbox (condstore)
+receive 9
+* 0 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 1] next uid
+* OK [HIGHESTMODSEQ 1] next modseq - 1
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+c OK [READ-WRITE] done
+end

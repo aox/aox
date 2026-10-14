@@ -1,0 +1,11 @@
+# each append takes a modseq of its own, and a mailbox starts at
+# nextmodseq 2, so three appends give 2, 3 and 4.
+depends messagemix
+send 1
+a fetch 1:3 (flags modseq)
+receive 4
+* 1 FETCH (FLAGS (\Recent) MODSEQ (2))
+* 2 FETCH (FLAGS (\Recent) MODSEQ (3))
+* 3 FETCH (FLAGS (\Recent) MODSEQ (4))
+a OK done
+end

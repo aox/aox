@@ -1,0 +1,122 @@
+# checks that store does its condstore processing correctly.
+# the 32 appends take a modseq each, starting at 2, and the copy
+# of all 32 takes a single one.
+depends preparebody
+send 1
+a copy 1:* inbox
+receive 4
+* 64 EXISTS
+* 64 RECENT
+* OK [UIDNEXT 65] next uid
+a OK [COPYUID 1 1:32 33:64] done
+send 1
+b fetch 1:* (modseq)
+receive 65
+* 1 FETCH (MODSEQ (2))
+* 2 FETCH (MODSEQ (3))
+* 3 FETCH (MODSEQ (4))
+* 4 FETCH (MODSEQ (5))
+* 5 FETCH (MODSEQ (6))
+* 6 FETCH (MODSEQ (7))
+* 7 FETCH (MODSEQ (8))
+* 8 FETCH (MODSEQ (9))
+* 9 FETCH (MODSEQ (10))
+* 10 FETCH (MODSEQ (11))
+* 11 FETCH (MODSEQ (12))
+* 12 FETCH (MODSEQ (13))
+* 13 FETCH (MODSEQ (14))
+* 14 FETCH (MODSEQ (15))
+* 15 FETCH (MODSEQ (16))
+* 16 FETCH (MODSEQ (17))
+* 17 FETCH (MODSEQ (18))
+* 18 FETCH (MODSEQ (19))
+* 19 FETCH (MODSEQ (20))
+* 20 FETCH (MODSEQ (21))
+* 21 FETCH (MODSEQ (22))
+* 22 FETCH (MODSEQ (23))
+* 23 FETCH (MODSEQ (24))
+* 24 FETCH (MODSEQ (25))
+* 25 FETCH (MODSEQ (26))
+* 26 FETCH (MODSEQ (27))
+* 27 FETCH (MODSEQ (28))
+* 28 FETCH (MODSEQ (29))
+* 29 FETCH (MODSEQ (30))
+* 30 FETCH (MODSEQ (31))
+* 31 FETCH (MODSEQ (32))
+* 32 FETCH (MODSEQ (33))
+* 33 FETCH (MODSEQ (34))
+* 34 FETCH (MODSEQ (34))
+* 35 FETCH (MODSEQ (34))
+* 36 FETCH (MODSEQ (34))
+* 37 FETCH (MODSEQ (34))
+* 38 FETCH (MODSEQ (34))
+* 39 FETCH (MODSEQ (34))
+* 40 FETCH (MODSEQ (34))
+* 41 FETCH (MODSEQ (34))
+* 42 FETCH (MODSEQ (34))
+* 43 FETCH (MODSEQ (34))
+* 44 FETCH (MODSEQ (34))
+* 45 FETCH (MODSEQ (34))
+* 46 FETCH (MODSEQ (34))
+* 47 FETCH (MODSEQ (34))
+* 48 FETCH (MODSEQ (34))
+* 49 FETCH (MODSEQ (34))
+* 50 FETCH (MODSEQ (34))
+* 51 FETCH (MODSEQ (34))
+* 52 FETCH (MODSEQ (34))
+* 53 FETCH (MODSEQ (34))
+* 54 FETCH (MODSEQ (34))
+* 55 FETCH (MODSEQ (34))
+* 56 FETCH (MODSEQ (34))
+* 57 FETCH (MODSEQ (34))
+* 58 FETCH (MODSEQ (34))
+* 59 FETCH (MODSEQ (34))
+* 60 FETCH (MODSEQ (34))
+* 61 FETCH (MODSEQ (34))
+* 62 FETCH (MODSEQ (34))
+* 63 FETCH (MODSEQ (34))
+* 64 FETCH (MODSEQ (34))
+b OK done
+send 1
+c store 1:* (unchangedsince 0) +flags a
+receive 1
+c OK [MODIFIED 1:64] done
+send 1
+d store 1:5 (unchangedsince 4) +flags a
+receive 7
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen a)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen a \*)] permanent flags
+* OK [HIGHESTMODSEQ 35] next modseq - 1
+* 1 FETCH (UID 1 FLAGS (\Recent a) MODSEQ (35))
+* 2 FETCH (UID 2 FLAGS (\Recent a) MODSEQ (35))
+* 3 FETCH (UID 3 FLAGS (\Recent a) MODSEQ (35))
+d OK [MODIFIED 4,5] done
+send 1
+e store 4:5 (unchangedsince 5) +flags.silent a
+receive 3
+* OK [HIGHESTMODSEQ 36] next modseq - 1
+* 4 FETCH (UID 4 MODSEQ (36))
+e OK [MODIFIED 5] done
+# this takes a modseq, but we hear about it only with the next
+# command: the untagged response comes after f's tagged OK.
+send 1
+f store 1 -flags \seen
+receive 1
+f OK done
+send 1
+g fetch 1 (uid modseq body[header.fields (none)])
+receive 6
+* OK [HIGHESTMODSEQ 37] next modseq - 1
+* 1 FETCH (UID 1 FLAGS (\Recent \Seen a) MODSEQ (37))
+* 1 FETCH (UID 1 MODSEQ (37) BODY[HEADER.FIELDS (None)] {2}
+
+)
+g OK done
+send 1
+g fetch 1 (uid modseq body[header.fields (none)])
+receive 4
+* 1 FETCH (UID 1 MODSEQ (37) BODY[HEADER.FIELDS (None)] {2}
+
+)
+g OK done
+end

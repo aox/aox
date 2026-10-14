@@ -1097,8 +1097,17 @@ IntegerSet Command::set( bool parseMsns = false )
             step();
         }
         else if ( ok() ) {
-            if ( n2 )
-                result.add( n1, n2 );
+            if ( n2 ) {
+                uint lo = n1 < n2 ? n1 : n2;
+                uint hi = n1 < n2 ? n2 : n1;
+                // 1:4294967295 is a lawful way of saying "everything",
+                // and a real strain, so let's not listen.
+                uint limit = Mailbox::largestUidnext();
+                if ( limit && hi > limit )
+                    hi = limit;
+                if ( hi >= lo )
+                    result.add( lo, hi );
+            }
             else
                 result.add( n1 );
             n1 = 0;

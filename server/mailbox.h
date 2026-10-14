@@ -26,6 +26,7 @@ public:
     uint id() const;
     void setId( uint ) const;
     uint uidnext() const;
+    static uint largestUidnext();
     uint uidvalidity() const;
     int64 nextModSeq() const;
     EString flag() const;

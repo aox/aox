@@ -25,6 +25,7 @@
 static Map<Mailbox> * mailboxes = 0;
 static UDict<Mailbox> * mailboxesByName = 0;
 static bool wiped = false;
+static uint biggestUidnext = 0;
 
 
 class MailboxData
@@ -147,6 +148,10 @@ void MailboxReader::execute() {
         }
         if ( !r->isNull( "owner" ) )
             m->setOwner( r->getInt( "owner" ) );
+
+        uint un = r->getInt( "uidnext" );
+        if ( un > ::biggestUidnext )
+            ::biggestUidnext = un;
 
         m->setUidnextAndNextModSeq( r->getInt( "uidnext" ),
                                     r->getBigint( "nextmodseq" ),
@@ -880,6 +885,22 @@ void Mailbox::relocate( const UString & n )
     }
 
     ::mailboxesByName->insert( n.titlecased(), this );
+}
+
+
+/*! Returns the largest uidnext() of any mailbox, or 0 if we have not
+    read the mailboxes yet. No UID anywhere can be this big, which
+    makes it the bound Command::set() needs: a client may ask about
+    1:4294967295, and expanding that into an IntegerSet costs about a
+    gigabyte.
+
+    Only ever grows. A mailbox that goes away does not make the bound
+    wrong, just looser than it needs to be.
+*/
+
+uint Mailbox::largestUidnext()
+{
+    return ::biggestUidnext;
 }
 
 

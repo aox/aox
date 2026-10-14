@@ -1,0 +1,46 @@
+# a mailbox starts at nextmodseq 2, so that an empty one can report
+# HIGHESTMODSEQ 1 as RFC7162 requires; the first append takes 2.
+depends search
+send 1
+a search modseq 1
+receive 2
+* SEARCH 1 2 3 4 5 6 (MODSEQ 7)
+a OK done
+send 1
+a fetch 1:* modseq
+receive 7
+* 1 FETCH (MODSEQ (2))
+* 2 FETCH (MODSEQ (3))
+* 3 FETCH (MODSEQ (4))
+* 4 FETCH (MODSEQ (5))
+* 5 FETCH (MODSEQ (6))
+* 6 FETCH (MODSEQ (7))
+a OK done
+send 1
+a search modseq 3
+receive 2
+* SEARCH 2 3 4 5 6 (MODSEQ 7)
+a OK done
+send 1
+a search 1:4 modseq 3
+receive 2
+* SEARCH 2 3 4 (MODSEQ 5)
+a OK done
+send 1
+a fetch 1 body.peek[header.fields (blah)]
+receive 4
+* 1 FETCH (BODY[HEADER.FIELDS (Blah)] {2}
+
+)
+a OK done
+send 1
+a search 1:4 modseq 3
+receive 2
+* SEARCH 2 3 4 (MODSEQ 5)
+a OK done
+send 1
+a search 1:4 modseq 3 unseen
+receive 2
+* SEARCH 2 3 4 (MODSEQ 5)
+a OK done
+end
