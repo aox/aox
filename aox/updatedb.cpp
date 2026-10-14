@@ -201,7 +201,7 @@ void UpdateDatabase::execute()
                              "message integer,"
                              "messageid text,"
                              "thread_root integer"
-                             ")", this );
+                             ") on commit drop", this );
         d->t->enqueue( d->temp );
         d->t->execute();
     }
@@ -263,7 +263,6 @@ void UpdateDatabase::execute()
                        "join md using (message)"
                        ")" );
         d->t->enqueue( "notify mailboxes_updated" );
-        d->t->enqueue( "drop table md" );
         d->t->commit();
     }
 }
