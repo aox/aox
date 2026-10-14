@@ -1,0 +1,10 @@
+# RFC7162 3.2.5: the QRESYNC select parameter is legal only once the
+# client has enabled QRESYNC, and using it without is a BAD rather than
+# an implicit enable. Enabling it implicitly would let a client that
+# forgot work here and then fail against a stricter server.
+depends login
+send 1
+a select inbox (qresync (1 1))
+receive 1
+a BAD QRESYNC must be enabled before it can be used
+end

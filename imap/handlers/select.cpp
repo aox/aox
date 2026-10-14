@@ -121,6 +121,8 @@ void Select::parseQResyncParams()
         }
     }
     require( ")" );
+    if ( !imap()->clientSupports( IMAP::QResync ) )
+        error( Bad, "QRESYNC must be enabled before it can be used" );
 }
 
 
@@ -138,8 +140,6 @@ void Select::execute()
     }
 
     if ( !d->permissions ) {
-        if ( d->qresync )
-            imap()->setClientSupports( IMAP::QResync );
         if ( d->condstore )
             imap()->setClientSupports( IMAP::Condstore );
         if ( d->mailbox->deleted() )

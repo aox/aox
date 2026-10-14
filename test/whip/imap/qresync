@@ -1,0 +1,55 @@
+# RFC7162. A client has to enable QRESYNC before it may use the select
+# parameter. Once it has, an expunge is reported as VANISHED rather
+# than EXPUNGE, and on a resync the server sends VANISHED (EARLIER)
+# before any FETCH, so the client can map message numbers to UIDs.
+depends 20
+send 1
+a enable qresync
+receive 2
+* ENABLED QRESYNC
+a OK done
+send 1
+b select inbox (qresync (1 2))
+receive 9
+* 20 EXISTS
+* 20 RECENT
+* OK [UIDNEXT 21] next uid
+* OK [HIGHESTMODSEQ 2] next modseq - 1
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+b OK [READ-WRITE] done
+send 1
+c store 4,11 +flags.silent \seen
+receive 2
+* OK [HIGHESTMODSEQ 3] next modseq - 1
+c OK done
+send 1
+d store 7 +flags.silent \deleted
+receive 2
+* OK [HIGHESTMODSEQ 4] next modseq - 1
+d OK done
+send 1
+e expunge
+receive 3
+* OK [HIGHESTMODSEQ 5] next modseq - 1
+* VANISHED 7
+e OK done
+send 1
+f select inbox (qresync (1 2))
+receive 13
+* OK [CLOSED] I, missa est
+* 19 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 21] next uid
+* OK [HIGHESTMODSEQ 5] next modseq - 1
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* VANISHED (EARLIER) 7
+* 4 FETCH (UID 4 FLAGS (\Seen) MODSEQ (3))
+* 10 FETCH (UID 11 FLAGS (\Seen) MODSEQ (3))
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+f OK [READ-WRITE] done
+end
