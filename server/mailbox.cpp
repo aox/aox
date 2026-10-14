@@ -865,7 +865,8 @@ void Mailbox::abortSessions( const EString & reason )
 
 void Mailbox::relocate( const UString & n )
 {
-    ::mailboxesByName->remove( d->name.titlecased() );
+    if ( ::mailboxesByName->find( d->name.titlecased() ) == this )
+        ::mailboxesByName->remove( d->name.titlecased() );
     if ( d->parent && d->parent->d->children )
         d->parent->d->children->remove( this );
 
