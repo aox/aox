@@ -160,3 +160,10 @@ begin
     alter table mailboxes drop flag;
     return 0;
 end;$$ language 'plpgsql';
+
+create or replace function downgrade_to_98()
+returns int as $$
+begin
+    alter table messages drop base_subject;
+    return 0;
+end;$$ language 'plpgsql';

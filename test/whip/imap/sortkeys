@@ -165,26 +165,27 @@ s8 uid sort (reverse date) utf-8 all
 receive 2
 * SORT 4 2 1 5 3
 s8 OK done
-# raw subjects, so re: apple sorts after cherry
+# base subjects (RFC5256), so Re: Apple sorts with apple and not under
+# r. Ties (apple/Apple, banana/Banana) are broken by UID.
 send 1
 s9 sort (subject) utf-8 all
 receive 2
-* SORT 3 1 4 5 2
+* SORT 2 3 1 4 5
 s9 OK done
 send 1
 s10 uid sort (subject) utf-8 all
 receive 2
-* SORT 3 1 4 5 2
+* SORT 2 3 1 4 5
 s10 OK done
 send 1
 s11 sort (reverse subject) utf-8 all
 receive 2
-* SORT 2 5 1 4 3
+* SORT 5 1 4 2 3
 s11 OK done
 send 1
 s12 uid sort (reverse subject) utf-8 all
 receive 2
-* SORT 2 5 1 4 3
+* SORT 5 1 4 2 3
 s12 OK done
 # alice bob francois grå zz
 send 1
@@ -296,22 +297,23 @@ s32 OK done
 send 1
 s33 sort (subject arrival) utf-8 all
 receive 2
-* SORT 3 4 1 5 2
+* SORT 2 3 4 1 5
 s33 OK done
 send 1
 s34 uid sort (subject arrival) utf-8 all
 receive 2
-* SORT 3 4 1 5 2
+* SORT 2 3 4 1 5
 s34 OK done
+# the two without cc sort last, and base subject breaks that tie
 send 1
 s35 sort (cc subject) utf-8 all
 receive 2
-* SORT 5 1 3 4 2
+* SORT 5 1 3 2 4
 s35 OK done
 send 1
 s36 uid sort (cc subject) utf-8 all
 receive 2
-* SORT 5 1 3 4 2
+* SORT 5 1 3 2 4
 s36 OK done
 # search keys that join messages in the selector
 send 1

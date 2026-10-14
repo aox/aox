@@ -31,6 +31,7 @@ public:
           lock( 0 ), seq( 0 ), update( 0 ), q( 0 ),
           t( 0 ),
           result( 0 ), unparsed( 0 ), upgrade( false ), commit( true ),
+          updatedb( false ),
           quid( 0 ), undel( 0 ), row( 0 ), lastMailbox( 0 ), count( 0 ),
           uidnext( 0 ), nextmodseq( 0 ), granter( 0 )
     {
@@ -48,6 +49,7 @@ public:
     Query * unparsed;
     bool upgrade;
     bool commit;
+    bool updatedb;
     EString version;
     EString dbuser;
     EString schema;
@@ -342,9 +344,11 @@ void Schema::execute()
                 s.append( ", but not committed" );
             s.append( "." );
 
-
             d->l->log( s, Log::Significant );
             d->result->setState( Query::Completed );
+            if ( d->commit && d->updatedb )
+                d->l->log( "Please run aox update database.",
+                           Log::Significant );
         }
 
         d->state = 8;
@@ -592,6 +596,8 @@ bool Schema::singleStep()
         c = stepTo97(); break;
     case 97:
         c = stepTo98(); break;
+    case 98:
+        c = stepTo99(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -4337,6 +4343,7 @@ bool Schema::stepTo95()
                    d->dbuser.unquoted() );
     d->t->enqueue( "drop table thread_members" );
     d->t->enqueue( "drop table threads" );
+    d->updatedb = true;
 
     return true;
 }
@@ -4418,5 +4425,16 @@ bool Schema::stepTo98()
 {
     describeStep( "Adding a single flag per mailbox." );
     d->t->enqueue( "alter table mailboxes add flag text" );
+    return true;
+}
+
+
+/*! Add the RFC5256 base subject, which SORT (SUBJECT) needs. */
+
+bool Schema::stepTo99()
+{
+    describeStep( "Adding messages.base_subject." );
+    d->t->enqueue( "alter table messages add base_subject text" );
+    d->updatedb = true;
     return true;
 }

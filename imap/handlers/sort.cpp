@@ -225,10 +225,17 @@ EString SortData::key( SortCriterionType t )
         return "(select value from date_fields"
             " where message=s.message limit 1)";
     case Subject:
-        return "(select lower(value" + collation() + ")"
+        // RFC5256 sorts by base subject, which Message::baseSubject()
+        // computes and the injector stores. base_subject is null for
+        // messages injected before it existed, so fall back to the
+        // unmodified subject for those: wrong per RFC, but no worse
+        // than what we did before, and "aox update database" fixes it.
+        return "coalesce((select lower(m.base_subject" + collation() + ")"
+            " from messages m where m.id=s.message)," +
+            "(select lower(value" + collation() + ")"
             " from header_fields where message=s.message and part=''"
             " and field=" + fn( HeaderField::Subject ) +
-            " order by position limit 1)" + collation();
+            " order by position limit 1))" + collation();
     case Cc:
         return addressKey( HeaderField::Cc, false );
     case From:

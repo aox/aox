@@ -14,6 +14,9 @@ public:
     void execute();
 
 private:
+    void backfillSubjects();
+
+private:
     class UpdateDatabaseData * d;
 };
 

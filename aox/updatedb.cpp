@@ -44,7 +44,10 @@ public:
           threader( 0 ),
           messages( 0 ), byMessageId( 0 ),
           report( 0 ), temp( 0 ), update( 0 ),
-          sofar( 0 ), threading( true )
+          sofar( 0 ), threading( true ),
+          subjectReport( 0 ), findSubjects( 0 ),
+          subjectTemp( 0 ), subjectUpdate( 0 ),
+          subjectSofar( 0 ), subjects( true )
         {}
 
     Transaction * t;
@@ -60,6 +63,16 @@ public:
     uint sofar;
 
     bool threading;
+
+    Query * subjectReport;
+    Query * findSubjects;
+    Query * subjectTemp;
+    Query * subjectUpdate;
+    List<DbMessage> * subjectMessages;
+
+    uint subjectSofar;
+
+    bool subjects;
 };
 
 
@@ -85,8 +98,10 @@ UpdateDatabase::UpdateDatabase( EStringList * args )
 
 void UpdateDatabase::execute()
 {
-    if ( !d->threading )
+    if ( !d->threading ) {
+        backfillSubjects();
         return;
+    }
 
     if ( !d->report ) {
         database( true );
@@ -171,7 +186,8 @@ void UpdateDatabase::execute()
     if ( d->messages->isEmpty() ) {
         d->threading = false;
         printf( "All messages are now threaded.\n" );
-        finish();
+        d->t = 0;
+        backfillSubjects();
         return;
     }
 
@@ -248,6 +264,113 @@ void UpdateDatabase::execute()
                        ")" );
         d->t->enqueue( "notify mailboxes_updated" );
         d->t->enqueue( "drop table md" );
+        d->t->commit();
+    }
+}
+
+
+/*! Fills in messages.base_subject for messages injected before that
+    column existed. RFC5256's base subject needs 144 lines of C++ in
+    Message::baseSubject(), so we fetch subjects, compute, and write
+    back, 4096 messages at a time.
+
+    No modseq is bumped: base_subject changes how SORT (SUBJECT)
+    orders messages, but no client can fetch it, so there is nothing
+    for a client to have cached wrongly.
+*/
+
+void UpdateDatabase::backfillSubjects()
+{
+    if ( !d->subjects )
+        return;
+
+    if ( !d->subjectReport ) {
+        database( true );
+        d->subjectReport
+            = new Query( "select count(*)::integer as nobase "
+                         "from messages where base_subject is null",
+                         this );
+        d->subjectReport->execute();
+    }
+    if ( !d->subjectReport->done() )
+        return;
+    if ( d->subjectReport->hasResults() ) {
+        Row * r = d->subjectReport->nextRow();
+        printf( "Messages that need a base subject: %d.\n",
+                r->getInt( "nobase" ) );
+    }
+
+    if ( d->t && d->t->done() ) {
+        if ( d->t->failed() )
+            error( "Transaction failed: " + d->t->error() );
+        d->t = 0;
+        if ( d->subjectUpdate && d->subjectUpdate->rows() )
+            printf( "Gave %d messages a base subject.\n"
+                    "Committed transaction.\n",
+                    d->subjectUpdate->rows() );
+    }
+
+    if ( !d->t ) {
+        d->t = new Transaction( this );
+        d->findSubjects
+            = new Query( "select m.id, "
+                         "(select hf.value from header_fields hf "
+                         " where hf.message=m.id and hf.part='' "
+                         " and hf.field=$2 "
+                         " order by hf.position limit 1) as subject "
+                         "from messages m "
+                         "where m.base_subject is null and m.id>$1 "
+                         "order by m.id limit 4096", this );
+        d->findSubjects->bind( 1, d->subjectSofar );
+        d->findSubjects->bind( 2, HeaderField::Subject );
+        d->t->enqueue( d->findSubjects );
+        d->subjectTemp
+            = new Query( "create temporary table bs ("
+                         "message integer,"
+                         "base_subject text"
+                         ") on commit drop", this );
+        d->t->enqueue( d->subjectTemp );
+        d->t->execute();
+        d->subjectMessages = new List<DbMessage>;
+        d->subjectUpdate = 0;
+    }
+
+    while ( d->findSubjects->hasResults() ) {
+        Row * r = d->findSubjects->nextRow();
+        DbMessage * m = new DbMessage;
+        m->id = r->getInt( "id" );
+        if ( m->id > d->subjectSofar )
+            d->subjectSofar = m->id;
+        if ( !r->isNull( "subject" ) )
+            m->s = Message::baseSubject( r->getUString( "subject" ) );
+        d->subjectMessages->append( m );
+    }
+
+    if ( !d->findSubjects->done() || !d->subjectTemp->done() )
+        return;
+
+    if ( d->subjectMessages->isEmpty() ) {
+        d->subjects = false;
+        printf( "All messages now have a base subject.\n" );
+        finish();
+        return;
+    }
+
+    if ( !d->subjectUpdate ) {
+        Query * q = new Query( "copy bs( message, base_subject ) "
+                               "from stdin with binary", 0 );
+        List<DbMessage>::Iterator i( d->subjectMessages );
+        while ( i ) {
+            q->bind( 1, i->id );
+            q->bind( 2, i->s );
+            q->submitLine();
+            ++i;
+        }
+        d->t->enqueue( q );
+        d->subjectUpdate = new Query( "update messages set "
+                                      "base_subject=bs.base_subject "
+                                      "from bs where id=bs.message", this );
+        d->t->enqueue( d->subjectUpdate );
         d->t->commit();
     }
 }

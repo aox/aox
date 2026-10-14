@@ -148,6 +148,11 @@ void Thread::execute()
         EString ts;
         if ( d->threadAlg == ThreadData::References ||
              d->threadAlg == ThreadData::OrderedSubject ) {
+            // base_subject is what we want, but it is null for
+            // messages injected before the column existed, so fetch
+            // the raw subject too and compute those the slow way
+            // until "aox update database" has been run.
+            want->append( "m.base_subject as basesubject" );
             want->append( "tsubj.value as subject" );
             ts = "left join header_fields tsubj on"
                  " (m.id=tsubj.message and"
@@ -190,7 +195,9 @@ void Thread::execute()
             n->references = r->getEString( "references" );
         if ( !r->isNull( "messageid" ) )
             n->messageId = r->getEString( "messageid" );
-        if ( !r->isNull( "subject" ) )
+        if ( !r->isNull( "basesubject" ) )
+            n->subject = r->getUString( "basesubject" );
+        else if ( !r->isNull( "subject" ) )
             n->subject = Message::baseSubject( r->getUString( "subject" ) );
 
         d->result.append( n );

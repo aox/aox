@@ -1371,7 +1371,7 @@ void Injector::selectMessageIds()
 
     Query * copy
         = new Query( "copy messages "
-                     "(id,rfc822size,idate,thread_root) "
+                     "(id,rfc822size,idate,thread_root,base_subject) "
                      "from stdin with binary", this );
 
     List<Injectee>::Iterator m( d->messages );
@@ -1393,6 +1393,13 @@ void Injector::selectMessageIds()
         else {
             copy->bindNull( 4 );
         }
+        // always a value, never null: null means "not computed yet",
+        // which is what "aox update database" looks for.
+        UString subject;
+        HeaderField * sf = m->header()->field( HeaderField::Subject );
+        if ( sf )
+            subject = sf->value();
+        copy->bind( 5, Message::baseSubject( subject ) );
         copy->submitLine();
         ++m;
     }
