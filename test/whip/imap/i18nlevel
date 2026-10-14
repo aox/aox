@@ -1,0 +1,55 @@
+# test I18NLEVEL=1, which we ought to pass already
+depends empty-inbox
+send 21
+a append INBOX () {113+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Abhijit Menon-Sen <ams@oryx.com>
+Subject: Re: =?utf-8?q?=C3=84?=
+
+ {113+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Abhijit Menon-Sen <ams@oryx.com>
+Subject: Re: =?utf-8?q?=C3=8B?=
+
+ {113+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Abhijit Menon-Sen <ams@oryx.com>
+Subject: Re: =?utf-8?q?=C3=A4?=
+
+ {113+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Abhijit Menon-Sen <ams@oryx.com>
+Subject: Re: =?utf-8?q?=C3=AB?=
+
+
+receive 4
+* 4 EXISTS
+* 4 RECENT
+* OK [UIDNEXT 5] next uid
+a OK [APPENDUID 1 1:4] done
+# first check basic searches
+send 2
+b1 search charset utf-8 subject {2+}
+ë
+receive 2
+* SEARCH 2 4
+b1 OK done
+send 2
+b2 search charset utf-8 subject {2+}
+ä
+receive 2
+* SEARCH 1 3
+b2 OK done
+# next check sorting. order should be 1 3 2 4.  1 and 3 come before 2
+# and 4, the UID ties within each pair.
+send 1
+c1 sort (subject) utf8 all
+receive 2
+* SORT 1 3 2 4
+c1 OK done
+send 1
+c2 sort (reverse subject) utf8 all
+receive 2
+* SORT 2 4 1 3
+c2 OK done
+end
