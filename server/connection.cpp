@@ -541,6 +541,18 @@ void Connection::close()
 }
 
 
+/*! Shuts this connection down, telling the peer \a reason if the
+    protocol has any way to say so. The default is a bare close();
+    subclasses that can be polite about it should be, since a client
+    that is merely told the socket died tends to log an error.
+*/
+
+void Connection::abort( const EString & )
+{
+    close();
+}
+
+
 /*! Reads waiting input from the connected socket. Does nothing in
     case the Connection isn't valid(). */
 

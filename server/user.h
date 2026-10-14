@@ -34,7 +34,7 @@ public:
 
     UString ldapdn() const;
 
-    void setInbox( Mailbox * & );
+    void setInbox( Mailbox * );
     Mailbox * inbox() const;
 
     void setAddress( Address * );

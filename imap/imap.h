@@ -40,6 +40,7 @@ public:
     bool idle() const;
 
     void setSession( class Session * );
+    void abort( const EString & );
 
     static void setup();
 

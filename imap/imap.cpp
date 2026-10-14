@@ -166,6 +166,17 @@ IMAP::IMAP( int s )
 }
 
 
+/*! Tells the client \a reason and logs it out. The BYE is an ordinary
+    queued response, so a command in progress still gets its tagged
+    response first, provided that the response can be sent in time.
+*/
+
+void IMAP::abort( const EString & reason )
+{
+    (void)new ImapByeResponse( this, "BYE " + reason );
+}
+
+
 /*! Handles the incoming event \a e as appropriate for its type. */
 
 void IMAP::react( Event e )

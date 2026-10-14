@@ -68,6 +68,7 @@ public:
     bool isTlsShuttingDown() const;
 
     virtual void close();
+    virtual void abort( const EString & );
     virtual void read();
     virtual void write();
     virtual bool canWrite();

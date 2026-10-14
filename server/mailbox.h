@@ -72,12 +72,14 @@ public:
     Query * remove( class Transaction * );
     static void refreshMailboxes( class Transaction * );
 
-    void abortSessions();
+    void abortSessions( const EString & );
     List<class Session> * sessions() const;
 
     static bool refreshing();
 
 private:
+    void relocate( const UString & );
+
     class MailboxData * d;
     friend class MailboxReader;
 };

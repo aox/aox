@@ -149,6 +149,21 @@ UString User::ldapdn() const
 }
 
 
+/*! Records that this user's inbox is \a m. Rename has to say so when
+    it renames the inbox: the alias in the database is updated in the
+    same transaction, but this object has the old one cached.
+*/
+
+void User::setInbox( Mailbox * m )
+{
+    d->inbox = m;
+    if ( m )
+        d->inboxId = m->id();
+    else
+        d->inboxId = 0;
+}
+
+
 /*! Returns a pointer to the user's inbox, or a null pointer if this
     object doesn't know it or if the user has none.
 */

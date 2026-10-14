@@ -1,0 +1,42 @@
+# RFC2180 section 3 lets us refuse RENAME of a mailbox another session
+# has selected. We don't, and haven't since 2008: the mailbox keeps its
+# id, its uidvalidity and its UIDs, so both sessions carry on under the
+# new name.
+#
+# Renaming inbox leaves a new, empty inbox behind. It inherits uidnext
+# and uidvalidity from the mailbox we moved away, so that a client which
+# cached inbox and never noticed the rename cannot be handed UIDs it has
+# already seen attached to different messages.
+depends 2180base
+send 1
+a rename inbox x
+receive 1
+a OK done
+send 1
+b uid fetch 1:* (uid)
+receive 5
+* 1 FETCH (UID 1)
+* 2 FETCH (UID 2)
+* 3 FETCH (UID 3)
+* 4 FETCH (UID 4)
+b OK done
+send 1
+c status x (messages uidnext uidvalidity)
+receive 2
+* STATUS x (MESSAGES 4 UIDNEXT 5 UIDVALIDITY 1)
+c OK done
+send 1
+d status inbox (messages uidnext uidvalidity)
+receive 2
+* STATUS INBOX (MESSAGES 0 UIDNEXT 5 UIDVALIDITY 1)
+d OK done
+use watcher
+send 1
+e uid fetch 1:* (uid)
+receive 5
+* 1 FETCH (UID 1)
+* 2 FETCH (UID 2)
+* 3 FETCH (UID 3)
+* 4 FETCH (UID 4)
+e OK done
+end

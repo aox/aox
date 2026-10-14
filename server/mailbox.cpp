@@ -116,7 +116,18 @@ void MailboxReader::execute() {
         UString n = r->getUString( "name" );
         uint id = r->getInt( "id" );
         Mailbox * m = ::mailboxes->find( id );
-        if ( !m || m->name() != n ) {
+        if ( m && m->d->name != n ) {
+            // renamed. keep the object, sessions and all.
+            m->relocate( n );
+        }
+        else if ( !m ) {
+            // the name may still be held by the mailbox that used to
+            // have it, whose own row we have not seen yet - rows come
+            // in no particular order. take the name away rather than
+            // steal the object; that row will relocate() it by id.
+            Mailbox * old = ::mailboxesByName->find( n.titlecased() );
+            if ( old && old->id() && old->id() != id )
+                ::mailboxesByName->remove( n.titlecased() );
             m = Mailbox::obtain( n );
             if ( n != m->d->name )
                 m->d->name = n;
@@ -132,7 +143,7 @@ void MailboxReader::execute() {
         uint uidvalidity = r->getInt( "uidvalidity" );
         if ( m->d->uidvalidity != uidvalidity ) {
             m->d->uidvalidity = uidvalidity;
-            m->abortSessions();
+            m->abortSessions( "Mailbox uidvalidity changed" );
         }
         if ( !r->isNull( "owner" ) )
             m->setOwner( r->getInt( "owner" ) );
@@ -285,7 +296,7 @@ void Mailbox::setType( Type t )
 {
     d->type = t;
     if ( t == Deleted )
-        abortSessions();
+        abortSessions( "Mailbox deleted" );
 }
 
 
@@ -826,17 +837,49 @@ bool Mailbox::refreshing()
     is deleted.
 */
 
-void Mailbox::abortSessions()
+void Mailbox::abortSessions( const EString & reason )
 {
     List<Connection> * connections = EventLoop::global()->connections();
     List<Connection>::Iterator i( connections );
     while ( i ) {
         Session * s = i->session();
         if ( s && s->mailbox() == this ) {
-            i->close();
+            i->abort( reason );
         }
         ++i;
     }
+}
+
+
+/*! Moves this Mailbox to \a n, which is what the database tells us
+    when someone has renamed it. The object is kept, so that sessions
+    on the mailbox carry on under the new name: RENAME leaves the
+    mailbox id, the uidvalidity and the UIDs alone, so nothing a client
+    has cached becomes invalid.
+*/
+
+void Mailbox::relocate( const UString & n )
+{
+    ::mailboxesByName->remove( d->name.titlecased() );
+    if ( d->parent && d->parent->d->children )
+        d->parent->d->children->remove( this );
+
+    d->name = n;
+
+    uint i = n.length();
+    while ( i > 0 && n[i-1] != '/' )
+        i--;
+    Mailbox * p = 0;
+    if ( n.length() > 1 )
+        p = obtain( n.mid( 0, i > 1 ? i - 1 : 1 ), true );
+    d->parent = p;
+    if ( p ) {
+        if ( !p->d->children )
+            p->d->children = new List<Mailbox>;
+        p->d->children->append( this );
+    }
+
+    ::mailboxesByName->insert( n.titlecased(), this );
 }
 
 

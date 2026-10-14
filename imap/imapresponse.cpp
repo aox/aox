@@ -237,4 +237,5 @@ void ImapByeResponse::setSent()
 {
     imap()->setSession( 0 );
     imap()->setState( IMAP::Logout );
+    imap()->setTimeoutAfter( 1 );
 }

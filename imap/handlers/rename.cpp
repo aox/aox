@@ -21,6 +21,7 @@ public:
 public:
     Mailbox * from;
     UString toName;
+    UString inboxName;
 
     Rename * c;
     bool ready;
@@ -172,6 +173,7 @@ void Rename::execute()
         d->process( p, 0, transaction() );
 
         if ( ok() && d->from == imap()->user()->inbox() ) {
+            d->inboxName = d->from->name();
             Query * q =
                 new Query( "update aliases set "
                            "mailbox=(select id from mailboxes where name=$1) "
@@ -208,6 +210,15 @@ void Rename::execute()
     if ( Mailbox::refreshing() ) {
         (void)new Timer( this, 1 );
         return;
+    }
+
+    // the inbox we renamed keeps its id, and the new inbox we left in
+    // its place has a new one, so the User's cached inbox is now the
+    // renamed mailbox. point it at the right one.
+    if ( !d->inboxName.isEmpty() ) {
+        Mailbox * i = Mailbox::obtain( d->inboxName, false );
+        if ( i )
+            imap()->user()->setInbox( i );
     }
 
     finish();
