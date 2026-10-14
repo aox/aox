@@ -1,0 +1,43 @@
+# a message/rfc822 part with a content-disposition: the mime
+# fields of that part should include the content-disposition
+depends empty-inbox
+send 24
+a append INBOX () {519+}
+From: Arnt Gulbrandsen <arnt@example.com>
+To: info@example.com
+Subject: Fw: the original
+Date: Tue, 06 Oct 2026 10:00:00 +0200
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=b
+
+--b
+Content-Type: text/plain
+
+Please find attached the complete message.
+--b
+Content-Type: message/rfc822
+Content-Disposition: attachment; filename=original.eml
+
+From: info@example.com
+To: Arnt Gulbrandsen <arnt@example.com>
+Subject: the original
+Date: Mon, 05 Oct 2026 09:00:00 +0200
+
+Anything at all.
+--b--
+
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+b fetch 1 (body.peek[2.mime])
+receive 6
+* 1 FETCH (BODY[2.MIME] {88}
+Content-Type: message/rfc822
+Content-Disposition: attachment; filename=original.eml
+
+)
+b OK done
+end
