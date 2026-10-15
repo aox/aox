@@ -1556,23 +1556,29 @@ EString Selector::whereSet( const IntegerSet & s )
         return "false";
 
     uint u = placeHolder();
-    uint c = s.count();
 
-    if ( c > 2 ) {
+    if ( !s.isSingleRange() ) {
+        // this renders every value in the set into the query text
         root()->d->query->bind( u, s );
         return mm() + ".uid=any($" + fn( u ) + ")";
     }
 
-    if ( c == 2 ) {
-        uint u2 = placeHolder();
-        root()->d->query->bind( u, s.smallest() );
-        root()->d->query->bind( u2, s.largest() );
+    // the planner does more with = than with >= and <=, so say = while
+    // the range is short enough to allow it
+    uint lo = s.smallest();
+    uint hi = s.largest();
+    root()->d->query->bind( u, lo );
+    if ( lo == hi )
+        return mm() + ".uid=$" + fn( u );
+
+    uint u2 = placeHolder();
+    root()->d->query->bind( u2, hi );
+    if ( lo + 1 == hi )
         return "(" + mm() + ".uid=$" + fn( u ) +
             " or " + mm() + ".uid=$" + fn( u2 ) + ")";
-    }
 
-    root()->d->query->bind( u, s.smallest() );
-    return mm() + ".uid=$" + fn( u );
+    return "(" + mm() + ".uid>=$" + fn( u ) +
+        " and " + mm() + ".uid<=$" + fn( u2 ) + ")";
 }
 
 

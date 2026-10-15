@@ -193,6 +193,19 @@ void Select::execute()
                                     "where mailbox=$1 and modseq > $2",
                                     this );
         }
+        else if ( d->knownUids.isSingleRange() ) {
+            // (which it usually is) we can ask for a range
+            d->updated = new Query( "select uid from deleted_messages "
+                                    "where mailbox=$1 and modseq > $2 "
+                                    "and uid >= $3 and uid <= $4"
+                                    " union "
+                                    "select uid from mailbox_messages "
+                                    "where mailbox=$1 and modseq > $2 "
+                                    "and uid >= $3 and uid <= $4",
+                                    this );
+            d->updated->bind( 3, d->knownUids.smallest() );
+            d->updated->bind( 4, d->knownUids.largest() );
+        }
         else {
             d->updated = new Query( "select uid from deleted_messages "
                                     "where mailbox=$1 and modseq > $2 "

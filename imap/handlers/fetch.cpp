@@ -536,6 +536,35 @@ void Fetch::parseBody( bool binary )
 }
 
 
+/*! Returns SQL matching \a column against \a s, using placeholder \a
+    n and, if \a s is a single range, \a n2 as well.
+*/
+
+static EString uidClause( const EString & column, const IntegerSet & s,
+                          uint n, uint n2 )
+{
+    if ( s.isSingleRange() )
+        return column + ">=$" + fn( n ) + " and " + column + "<=$" + fn( n2 );
+    return column + "=any($" + fn( n ) + ")";
+}
+
+
+/*! Binds \a s into \a q in a way hat matches uidClause(), using \a n and
+    \a n2.
+*/
+
+static void bindUids( Query * q, const IntegerSet & s, uint n, uint n2 )
+{
+    if ( s.isSingleRange() ) {
+        q->bind( n, s.smallest() );
+        q->bind( n2, s.largest() );
+    }
+    else {
+        q->bind( n, s );
+    }
+}
+
+
 void Fetch::execute()
 {
     if ( state() != Executing )
@@ -553,15 +582,15 @@ void Fetch::execute()
             setTransaction( new Transaction( this ) );
 
         if ( d->vanished && d->changedSince > 0 && !d->deleted ) {
+            IntegerSet gone( d->set );
+            gone.remove( session()->messages() );
             d->deleted = new Query( "select uid from deleted_messages "
                                      "where mailbox=$1 and modseq>$2 "
-                                     "and uid=any($3)",
+                                     "and " + uidClause( "uid", gone, 3, 4 ),
                                      this );
             d->deleted->bind( 1, s->mailbox()->id() );
             d->deleted->bind( 2, d->changedSince );
-            IntegerSet s( d->set );
-            s.remove( session()->messages() );
-            d->deleted->bind( 3, s );
+            bindUids( d->deleted, gone, 3, 4 );
             transaction()->enqueue( d->deleted );
         }
 
@@ -571,11 +600,12 @@ void Fetch::execute()
             if ( d->changedSince ) {
                 d->those = new Query( "select uid, message "
                                       "from mailbox_messages "
-                                      "where mailbox=$1 and uid=any($2) "
-                                      "and modseq>$3",
+                                      "where mailbox=$1 and " +
+                                      uidClause( "uid", d->set, 2, 4 ) +
+                                      " and modseq>$3",
                                       this );
                 d->those->bind( 1, s->mailbox()->id() );
-                d->those->bind( 2, d->set );
+                bindUids( d->those, d->set, 2, 4 );
             }
             else if ( d->modseq ||
                       d->needsAddresses || d->needsHeader ||
@@ -596,10 +626,11 @@ void Fetch::execute()
                 if ( !r.isEmpty() ) {
                     d->those = new Query( "select uid, message "
                                           "from mailbox_messages "
-                                          "where mailbox=$1 and uid=any($2)",
+                                          "where mailbox=$1 and " +
+                                          uidClause( "uid", d->set, 2, 3 ),
                                           this );
                     d->those->bind( 1, session()->mailbox()->id() );
-                    d->those->bind( 2, d->set );
+                    bindUids( d->those, d->set, 2, 3 );
                 }
             }
             if ( d->those ) {
@@ -1565,19 +1596,19 @@ void Fetch::sendFlagQuery()
 {
     d->seenDeletedFetcher = new Query(
         "select uid, seen, deleted from mailbox_messages "
-        "where mailbox=$1 and uid=any($2)",
+        "where mailbox=$1 and " + uidClause( "uid", d->set, 2, 3 ),
         this );
     d->seenDeletedFetcher->bind( 1, session()->mailbox()->id() );
-    d->seenDeletedFetcher->bind( 2, d->set );
+    bindUids( d->seenDeletedFetcher, d->set, 2, 3 );
     enqueue( d->seenDeletedFetcher );
 
     d->flagFetcher = new Query(
         "select f.uid, fn.name from flags f "
         "join flag_names fn on (f.flag=fn.id) "
-        "where f.mailbox=$1 and f.uid=any($2)",
+        "where f.mailbox=$1 and " + uidClause( "f.uid", d->set, 2, 3 ),
         this );
     d->flagFetcher->bind( 1, session()->mailbox()->id() );
-    d->flagFetcher->bind( 2, d->set );
+    bindUids( d->flagFetcher, d->set, 2, 3 );
     enqueue( d->flagFetcher );
 }
 
@@ -1589,10 +1620,10 @@ void Fetch::sendModSeqQuery()
     d->modseqFetcher = new Query(
         "select uid, modseq "
         "from mailbox_messages "
-        "where mailbox=$1 and uid=any($2)",
+        "where mailbox=$1 and " + uidClause( "uid", d->set, 2, 3 ),
         this );
     d->modseqFetcher->bind( 1, session()->mailbox()->id() );
-    d->modseqFetcher->bind( 2, d->set );
+    bindUids( d->modseqFetcher, d->set, 2, 3 );
     enqueue( d->modseqFetcher );
 }
 

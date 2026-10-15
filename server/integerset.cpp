@@ -53,7 +53,7 @@ class SetData
     : public Garbage
 {
 public:
-    SetData() {}
+    SetData(): single( false ), s1( 0 ), s2( 0 ) {}
 
     class Block
         : public Garbage
@@ -110,7 +110,33 @@ public:
     };
 
     Map<Block> b;
+
+    // [s1,s2] is this set, if single. Knowing that lets a caller
+    // avoid expanding the set where a range will do.
+    bool single;
+    uint s1;
+    uint s2;
 };
+
+
+/*! Returns the smallest value in \a b, or 0 if it is empty. Like
+    IntegerSet::smallest(), but without the recount() that would
+    recurse if called from recount().
+*/
+
+static uint smallestIn( SetData::Block * b )
+{
+    uint i = 0;
+    while ( i < ArraySize && !b->contents[i] )
+        i++;
+    if ( i >= ArraySize )
+        return 0;
+    uint x = b->contents[i];
+    uint j = 0;
+    while ( !(x & 1 << j) )
+        j++;
+    return b->start + i * BitsPerUint + j;
+}
 
 
 /*! \class IntegerSet integerset.h
@@ -154,6 +180,9 @@ IntegerSet& IntegerSet::operator=( const IntegerSet & other )
         d->b.insert( i->start, new SetData::Block( *i ) );
         ++i;
     }
+    d->single = other.d->single;
+    d->s1 = other.d->s1;
+    d->s2 = other.d->s2;
     return *this;
 }
 
@@ -177,6 +206,8 @@ void IntegerSet::add( uint n1, uint n2 )
         return;
     }
 
+    bool wasEmpty = d->b.isEmpty();
+
     uint n = n1;
     uint s = n - (n%BlockSize);
     SetData::Block * b = d->b.find( s );
@@ -197,6 +228,22 @@ void IntegerSet::add( uint n1, uint n2 )
         }
         b->insert( n );
     }
+
+    if ( wasEmpty ) {
+        d->single = true;
+        d->s1 = n1;
+        d->s2 = n2;
+    }
+    else if ( d->single && n1 - 1 <= d->s2 && n2 >= d->s1 - 1 ) {
+        // touches or overlaps what we had, so it is still one range
+        if ( n1 < d->s1 )
+            d->s1 = n1;
+        if ( n2 > d->s2 )
+            d->s2 = n2;
+    }
+    else {
+        d->single = false;
+    }
 }
 
 
@@ -208,6 +255,9 @@ void IntegerSet::add( const IntegerSet & set )
         *this = set;
         return;
     }
+    if ( set.isEmpty() )
+        return;
+
     Map<SetData::Block>::Iterator i( set.d->b );
     while( i ) {
         SetData::Block * b = d->b.find( i->start );
@@ -218,6 +268,17 @@ void IntegerSet::add( const IntegerSet & set )
 
         ++i;
     }
+
+    if ( d->single && set.d->single &&
+         set.d->s1 - 1 <= d->s2 && set.d->s2 >= d->s1 - 1 ) {
+        if ( set.d->s1 < d->s1 )
+            d->s1 = set.d->s1;
+        if ( set.d->s2 > d->s2 )
+            d->s2 = set.d->s2;
+    }
+    else {
+        d->single = false;
+    }
 }
 
 
@@ -227,6 +288,8 @@ void IntegerSet::add( const IntegerSet & set )
 
 uint IntegerSet::smallest() const
 {
+    if ( d->single )
+        return d->s1;
     return value( 1 );
 }
 
@@ -237,6 +300,8 @@ uint IntegerSet::smallest() const
 
 uint IntegerSet::largest() const
 {
+    if ( d->single )
+        return d->s2;
     SetData::Block * b = d->b.last();
     if ( !b )
         return 0;
@@ -255,6 +320,8 @@ uint IntegerSet::largest() const
 
 uint IntegerSet::count() const
 {
+    if ( d->single )
+        return d->s2 + 1 - d->s1;
     recount();
     uint c = 0;
     Map<SetData::Block>::Iterator i( d->b );
@@ -383,6 +450,9 @@ void IntegerSet::remove( uint value )
         b->count--;
         if ( !b->count )
             d->b.remove( b->start );
+        // we could work out that removing an end leaves a range, but
+        // recount() does that for us when anyone next asks.
+        d->single = false;
     }
     else {
         recount();
@@ -404,6 +474,8 @@ void IntegerSet::remove( uint v1, uint v2 )
 
 void IntegerSet::remove( const IntegerSet & other )
 {
+    d->single = false;
+
     Map<SetData::Block>::Iterator mine( d->b );
     Map<SetData::Block>::Iterator hers( other.d->b );
     while ( mine && hers ) {
@@ -437,6 +509,21 @@ void IntegerSet::remove( const IntegerSet & other )
 IntegerSet IntegerSet::intersection( const IntegerSet & other ) const
 {
     IntegerSet r;
+
+    // Two ranges intersect to a range, and saying so here is what
+    // lets a caller use a range in SQL without first provoking a
+    // recount: we insert blocks directly below, so nothing else
+    // would notice.
+    if ( d->single && other.d->single ) {
+        uint lo = d->s1 > other.d->s1 ? d->s1 : other.d->s1;
+        uint hi = d->s2 < other.d->s2 ? d->s2 : other.d->s2;
+        if ( hi >= lo ) {
+            r.d->single = true;
+            r.d->s1 = lo;
+            r.d->s2 = hi;
+        }
+    }
+
     Map<SetData::Block>::Iterator mine( d->b );
     Map<SetData::Block>::Iterator hers( other.d->b );
     while ( mine && hers ) {
@@ -577,6 +664,7 @@ EString IntegerSet::csl() const
 
 void IntegerSet::recount() const
 {
+    uint total = 0;
     Map<SetData::Block>::Iterator i( d->b );
     while ( i ) {
         SetData::Block * b = i;
@@ -585,6 +673,20 @@ void IntegerSet::recount() const
             b->recount();
         if ( !b->count )
             d->b.remove( b->start );
+        else
+            total += b->count;
+    }
+
+    d->single = false;
+    if ( total ) {
+        Map<SetData::Block>::Iterator f( d->b );
+        uint lo = smallestIn( f );
+        uint hi = largest();
+        if ( lo && total == hi + 1 - lo ) {
+            d->single = true;
+            d->s1 = lo;
+            d->s2 = hi;
+        }
     }
 }
 
@@ -616,3 +718,18 @@ bool IntegerSet::contains( const IntegerSet & other ) const
     }
     return true;
 }
+
+
+/*! Returns true if this set is a single non-empty range, and false if
+    it's either empty, contains a hole, or the composition isn't
+    known.
+
+    Note that this may return false even though the set is a single
+    range, if the construction was complicated enough.
+*/
+
+bool IntegerSet::isSingleRange() const
+{
+    return d->single;
+}
+

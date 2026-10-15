@@ -40,6 +40,8 @@ public:
 
     IntegerSet intersection( const IntegerSet & ) const;
 
+    bool isSingleRange() const;
+
 private:
     class SetData * d;
     void recount() const;
