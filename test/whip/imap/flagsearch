@@ -1,0 +1,84 @@
+depends append
+send 1
+a store 1,3 +flags.silent \seen
+receive 1
+a OK done
+send 1
+b search seen
+receive 2
+* SEARCH 1 2 3
+b OK done
+send 1
+c store 3,4 +flags.silent notexactlyseen
+receive 3
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen notexactlyseen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen notexactlyseen \*)] permanent flags
+c OK done
+send 1
+d search seen
+receive 2
+* SEARCH 1 2 3
+d OK done
+send 1
+e search unseen
+receive 2
+* SEARCH 4
+e OK done
+send 1
+f store 2 -flags.silent \seen
+receive 1
+f OK done
+send 1
+g search seen
+receive 2
+* SEARCH 1 3
+g OK done
+send 1
+h search unseen
+receive 2
+* SEARCH 2 4
+h OK done
+send 3
+i1 store 1:* flags.silent ()
+i2 store 1,2 +flags.silent (muh)
+i3 store 1,3 +flags.silent (feh)
+# each new flag makes the server re-announce the mailbox flag list
+receive 7
+i1 OK done
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen muh notexactlyseen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen muh notexactlyseen \*)] permanent flags
+i2 OK done
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen feh muh notexactlyseen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen feh muh notexactlyseen \*)] permanent flags
+i3 OK done
+send 4
+j1 search keyword muh keyword feh
+j2 search keyword muh unkeyword feh
+j3 search unkeyword muh keyword feh
+j4 search unkeyword muh unkeyword feh
+receive 8
+* SEARCH 1
+j1 OK done
+* SEARCH 2
+j2 OK done
+* SEARCH 3
+j3 OK done
+* SEARCH 4
+j4 OK done
+send 2
+k1 search or keyword muh keyword feh
+k2 search or unkeyword muh unkeyword feh
+receive 4
+* SEARCH 1 2 3
+k1 OK done
+* SEARCH 2 3 4
+k2 OK done
+send 1
+l fetch 1:* flags
+receive 5
+* 1 FETCH (FLAGS (\Recent feh muh))
+* 2 FETCH (FLAGS (\Recent muh))
+* 3 FETCH (FLAGS (\Recent feh))
+* 4 FETCH (FLAGS (\Recent))
+l OK done
+end

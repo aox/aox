@@ -1,0 +1,14 @@
+depends append
+send 1
+a store 1 +flags.silent f1
+# f1 is new to the mailbox, so the flag list is announced
+receive 3
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen f1)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen f1 \*)] permanent flags
+a OK done
+send 1
+b fetch 1 flags
+receive 2
+* 1 FETCH (FLAGS (\Recent f1))
+b OK done
+end

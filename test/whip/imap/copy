@@ -1,0 +1,85 @@
+depends append
+send 1
+a create INBOX/copy
+receive 1
+a OK done
+send 1
+b copy 1:2 INBOX/copy
+receive 1
+b OK [COPYUID 1 1,2 1,2] done
+send 1
+c copy 1,3 INBOX/copy
+receive 1
+c OK [COPYUID 1 1,3 3,4] done
+send 1
+d copy 1:2 INBOX
+receive 4
+* 6 EXISTS
+* 6 RECENT
+* OK [UIDNEXT 7] next uid
+d OK [COPYUID 1 1,2 5,6] done
+send 2
+e store 1:2 +flags.silent \deleted
+f uid expunge 1:2
+receive 4
+e OK done
+* 1 EXPUNGE
+* 1 EXPUNGE
+f OK done
+send 1
+g uid copy 3 INBOX/copy
+receive 1
+g OK [COPYUID 1 3 5] done
+send 1
+h uid store 3 +flags.silent \seen
+receive 1
+h OK done
+send 1
+g copy 1 INBOX/copy
+receive 1
+g OK [COPYUID 1 3 6] done
+send 1
+h fetch 1 (rfc822 internaldate)
+receive 9
+* 1 FETCH (INTERNALDATE "12-Feb-2005 10:13:14 +0000" RFC822 {128}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 27 May 2004 14:28:51 +0200
+
+asdf
+a
+)
+h OK done
+send 1
+i select INBOX/copy
+receive 9
+* OK [CLOSED] I, missa est
+* 6 EXISTS
+* 6 RECENT
+* OK [UIDNEXT 7] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+i OK [READ-WRITE] done
+send 1
+j fetch 5:6 (flags body.peek[] internaldate)
+receive 17
+* 5 FETCH (FLAGS (\Recent) INTERNALDATE "12-Feb-2005 10:13:14 +0000" BODY[] {128}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 27 May 2004 14:28:51 +0200
+
+asdf
+a
+)
+* 6 FETCH (FLAGS (\Recent \Seen) INTERNALDATE "12-Feb-2005 10:13:14 +0000" BODY[] {128}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 27 May 2004 14:28:51 +0200
+
+asdf
+a
+)
+j OK done
+end

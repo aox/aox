@@ -18,7 +18,10 @@ a OK done
 use watcher
 send 1
 a search from arnt@
-receive 2
+# main's silent store reached us as soon as it happened
+receive 4
+* 1 FETCH (UID 1 FLAGS (\Deleted))
+* 2 FETCH (UID 2 FLAGS (\Deleted \Seen))
 * SEARCH 3 4
 a OK done
 send 1

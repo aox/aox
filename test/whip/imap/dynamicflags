@@ -1,0 +1,54 @@
+depends append
+send 1
+a store 1 +flags custom
+receive 4
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen custom)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen custom \*)] permanent flags
+* 1 FETCH (UID 1 FLAGS (\Recent custom))
+a OK done
+send 1
+c select inbox
+receive 9
+* OK [CLOSED] I, missa est
+* 4 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 5] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen custom)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen custom \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+c OK [READ-WRITE] done
+send 1
+d store 1 +flags custom
+receive 1
+d OK done
+send 1
+e select inbox
+receive 9
+* OK [CLOSED] I, missa est
+* 4 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 5] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen custom)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen custom \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+e OK [READ-WRITE] done
+send 1
+f store 1 -flags custom
+receive 2
+* 1 FETCH (UID 1 FLAGS ())
+f OK done
+send 1
+g select inbox
+receive 9
+* OK [CLOSED] I, missa est
+* 4 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 5] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen custom)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen custom \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+g OK [READ-WRITE] done
+end

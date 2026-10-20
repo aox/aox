@@ -28,7 +28,11 @@ a OK done
 use watcher
 send 1
 a copy 1:3 other
-receive 3
+# main's silent store reached us as soon as it happened, so its flag
+# updates come before the expunges this copy is allowed to carry.
+receive 5
+* 1 FETCH (UID 1 FLAGS (\Deleted))
+* 2 FETCH (UID 2 FLAGS (\Deleted \Seen))
 * 1 EXPUNGE
 * 1 EXPUNGE
 a OK [COPYUID 1 3 1] done

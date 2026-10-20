@@ -306,7 +306,9 @@ void ImapSession::emitFlagUpdates( Transaction * t )
 {
     sendFlagUpdate();
 
-    if ( unannounced().isEmpty() )
+    IntegerSet s( unannounced().intersection( messages() ) );
+
+    if ( s.isEmpty() )
         return;
 
     if ( d->cms == 0 ) {
@@ -314,36 +316,28 @@ void ImapSession::emitFlagUpdates( Transaction * t )
         return;
     }
 
-    List<Command>::Iterator c( d->i->commands() );
-    if ( !c || c->state() != Command::Executing )
-        return;
+    // No check for a command in progress: RFC3501 7.4.2 lets us send a
+    // FETCH response whenever we like - it is EXPUNGE that has to wait
+    // - and runCommands() will run the Fetch below even if it is the
+    // only command on the connection. Waiting for the client to say
+    // something would make the update arrive at a time that depends on
+    // the client rather than on us.
 
-    while ( !d->ignorable.isEmpty() ) {
-        List<int64>::Iterator i( d->ignorable );
-        bool f = false;
-        while ( i ) {
-            if ( d->cms > *i ) {
-                d->ignorable.take( i );
-            }
-            else if ( d->cms == *i ) {
-                log( "Not sending flag updates about modseq " + fn( d->cms ),
-                     Log::Debug );
-                d->ignorable.take( i );
-                f = true;
-            }
-            else {
-                ++i;
-            }
-        }
-        if ( f )
-            d->cms++;
+    // Suppressing a .silent store is the Fetch's job, one message at
+    // a time, so that a modseq is either wholly suppressed or wholly
+    // reported. Doing it here, by moving the window we ask for, could
+    // only ever exclude a modseq at the window's edge - and the window
+    // covers everything since we last reported, which is usually more
+    // than one modseq.
+    List<int64>::Iterator stale( d->ignorable );
+    while ( stale ) {
+        if ( *stale < d->cms )
+            d->ignorable.take( stale );
         else
-            d->ignorable.clear();
+            ++stale;
     }
 
-    Fetch * f = new Fetch( true, false,
-                           unannounced().intersection( messages() ),
-                           d->cms - 1, d->i, t );
+    Fetch * f = new Fetch( true, false, s, d->cms - 1, d->i, t );
     d->cms = d->nms;
     f->setState( Command::Executing );
 }
@@ -366,6 +360,33 @@ void ImapSession::recordExpungedFetch( const IntegerSet & set )
                                "BYE [CLIENTBUG] "
                                "These messages have been expunged: " +
                                set.set() );
+}
+
+
+/*! Returns true if ignoreModSeq() has asked us to say nothing about
+    messages whose modseq is \a ms, and false if not.
+*/
+
+bool ImapSession::ignorable( int64 ms ) const
+{
+    List<int64>::Iterator i( d->ignorable );
+    while ( i ) {
+        if ( *i == ms )
+            return true;
+        ++i;
+    }
+    return false;
+}
+
+
+/*! Returns true if there is anything to suppress at all. Fetch uses
+    this to decide whether it needs each message's modseq, which it
+    otherwise wants only for a CONDSTORE client.
+*/
+
+bool ImapSession::hasIgnorable() const
+{
+    return !d->ignorable.isEmpty();
 }
 
 

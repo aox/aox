@@ -14,13 +14,12 @@ receive 3
 * 1 EXPUNGE
 a OK done
 use watcher
-# main expunged 1:2 above, which took a modseq, so .silent no longer
-# lines up with what this session has reported and the store is echoed
-# back. Sending too much is better than too little, so expect it.
 send 1
 a store 1:3 +flags.silent \deleted
-receive 2
-* 3 FETCH (UID 3 FLAGS (\Deleted))
+# main's silent store reached us as soon as it happened
+receive 3
+* 1 FETCH (UID 1 FLAGS (\Deleted))
+* 2 FETCH (UID 2 FLAGS (\Deleted \Seen))
 a OK done
 # RFC 2180:
 # 4.2.2. If the ".SILENT" suffix is not used, and only expunged messages

@@ -28,6 +28,8 @@ public:
     void recordExpungedFetch( const IntegerSet & );
 
     void ignoreModSeq( int64 );
+    bool ignorable( int64 ) const;
+    bool hasIgnorable() const;
 
     void clearExpunged( uint );
 

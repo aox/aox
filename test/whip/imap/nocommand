@@ -1,0 +1,74 @@
+# if two connections are open, we may send (a few) flag updates and EXIST,
+# but not EXPUNGE.
+depends 2180base
+use main
+send 1
+a store 1:2 +flags.silent \deleted
+receive 1
+a OK done
+send 1
+a uid expunge 1:2
+receive 3
+* 1 EXPUNGE
+* 1 EXPUNGE
+a OK done
+send 1
+a uid store 3:4 +flags.silent \deleted
+receive 1
+a OK done
+use watcher
+send 1
+a fetch 4 flags
+receive 6
+* 1 FETCH (UID 1 FLAGS (\Deleted))
+* 2 FETCH (UID 2 FLAGS (\Deleted \Seen))
+* 3 FETCH (UID 3 FLAGS (\Deleted))
+* 4 FETCH (UID 4 FLAGS (\Deleted))
+* 4 FETCH (FLAGS (\Deleted))
+a OK done
+send 1
+b noop
+receive 3
+* 1 EXPUNGE
+* 1 EXPUNGE
+b OK done
+use main
+send 6
+x append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+asdf
+receive 4
+* 3 EXISTS
+* 2 RECENT
+* OK [UIDNEXT 6] next uid
+x OK [APPENDUID 1 5] done
+send 6
+x append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+asdf
+receive 3
+* 4 EXISTS
+* OK [UIDNEXT 7] next uid
+x OK [APPENDUID 1 6] done
+use watcher
+# both appends reach us while we sit idle, so there is nothing left
+# for the noop to tell us
+receive 6
+* 3 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 6] next uid
+* 4 EXISTS
+* 2 RECENT
+* OK [UIDNEXT 7] next uid
+send 1
+a noop
+receive 1
+a OK done
+end
+

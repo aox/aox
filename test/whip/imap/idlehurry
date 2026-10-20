@@ -1,0 +1,13 @@
+depends 2180idle
+receive 1
++ idling
+send 2
+done
+a uid store 3:4 +flags.silent (idlehurry)
+# the new flag makes the server re-announce the mailbox flag list
+receive 4
+i OK done
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen idlehurry)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen idlehurry \*)] permanent flags
+a OK done
+end

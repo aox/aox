@@ -1,0 +1,37 @@
+depends 2180base
+use main
+send 1
+a1 store 1:* +flags \deleted
+receive 5
+* 1 FETCH (UID 1 FLAGS (\Deleted \Recent))
+* 2 FETCH (UID 2 FLAGS (\Deleted \Recent \Seen))
+* 3 FETCH (UID 3 FLAGS (\Deleted \Recent))
+* 4 FETCH (UID 4 FLAGS (\Deleted \Recent))
+a1 OK done
+use watcher
+send 1
+w noop
+receive 5
+* 1 FETCH (UID 1 FLAGS (\Deleted))
+* 2 FETCH (UID 2 FLAGS (\Deleted \Seen))
+* 3 FETCH (UID 3 FLAGS (\Deleted))
+* 4 FETCH (UID 4 FLAGS (\Deleted))
+w OK done
+use main
+send 1
+a2 search undeleted
+use watcher
+send 1
+d expunge
+use main
+receive 2
+* SEARCH
+a2 OK done
+use watcher
+receive 5
+* 1 EXPUNGE
+* 1 EXPUNGE
+* 1 EXPUNGE
+* 1 EXPUNGE
+d OK done
+end

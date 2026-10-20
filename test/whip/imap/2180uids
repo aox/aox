@@ -16,7 +16,10 @@ a OK done
 use watcher
 send 1
 d uid fetch 2,4 uid
-receive 5
+# main's silent store reached us as soon as it happened
+receive 7
+* 1 FETCH (UID 1 FLAGS (\Deleted))
+* 3 FETCH (UID 3 FLAGS (\Deleted))
 * 2 FETCH (UID 2)
 * 4 FETCH (UID 4)
 * 1 EXPUNGE

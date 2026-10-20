@@ -38,14 +38,15 @@ class FetchData
 {
 public:
     FetchData()
-        : state( 0 ), peek( true ), processed( 0 ),
+        : trigger( 0 ),
+          state( 0 ), peek( true ), processed( 0 ),
           changedSince( 0 ), those( 0 ), findIds( 0 ),
           deleted( 0 ), store( 0 ),
           uid( false ),
           flags( false ), envelope( false ),
           body( false ), bodystructure( false ),
           internaldate( false ), rfc822size( false ),
-          modseq( false ),
+          modseq( false ), needModseqs( false ),
           databaseId( false ), threadId( false ), vanished( false ),
           needsHeader( false ), needsAddresses( false ),
           needsBody( false ), needsPartNumbers( false ),
@@ -61,6 +62,7 @@ public:
     Map<Message> messages;
     uint processed;
     int64 changedSince;
+    Command * trigger;
     Query * those;
     Query * findIds;
     Query * deleted;
@@ -75,6 +77,7 @@ public:
     bool internaldate;
     bool rfc822size;
     bool modseq;
+    bool needModseqs;
     bool databaseId;
     bool threadId;
     bool vanished;
@@ -148,6 +151,11 @@ Fetch::Fetch( bool f, bool v, const IntegerSet & set,
     d->set = set;
     d->changedSince = limit;
     d->modseq = i->clientSupports( IMAP::Condstore );
+    // we need each message's modseq to tell whether it is part of a
+    // .silent store this session asked us to keep quiet about, even
+    // when the client would not understand MODSEQ in a response
+    ImapSession * is = (ImapSession *)i->session();
+    d->needModseqs = d->modseq || ( is && is->hasIgnorable() );
     d->vanished = v;
     if ( t )
         setTransaction( t->subTransaction( this ) );
@@ -164,7 +172,6 @@ Fetch::Fetch( bool f, bool v, const IntegerSet & set,
     while ( c && c->tag().isEmpty() )
         ++c;
     if ( c &&
-         ( ( parent && parent == c->transaction() ) || c->group() > 0 ) &&
          ( c->state() == Command::Blocked ||
            c->state() == Command::Finished ||
            c->state() == Command::Executing ) ) {
@@ -172,6 +179,7 @@ Fetch::Fetch( bool f, bool v, const IntegerSet & set,
              " and UIDs " + set.set() + " before " +
              c->tag() + " " + c->name() );
         i->commands()->insert( c, this );
+        d->trigger = c;
         if ( c->group() == 1 || c->group() == 2 )
             setGroup( c->group() );
     }
@@ -576,7 +584,7 @@ void Fetch::execute()
     if ( !d->peek && s->readOnly() )
         d->peek = true;
 
-    if ( d->state == 0 && group() == 2 )
+    if ( d->state == 0 && group() == 2 && !tag().isEmpty() )
         d->expunged = s->expunged().intersection( d->set );
 
     if ( d->state == 0 ) {
@@ -747,7 +755,7 @@ void Fetch::execute()
         sendFetchQueries();
         if ( d->flags )
             sendFlagQuery();
-        if ( d->modseq )
+        if ( d->modseq || d->needModseqs )
             sendModSeqQuery();
         if ( transaction() )
             transaction()->commit();
@@ -1514,7 +1522,20 @@ void Fetch::pickup()
             d->processed = uid;
             d->remaining.remove( uid );
             done++;
-            waitFor( new ImapFetchResponse( s, this, uid ) );
+            // A .silent store is suppressed here, message by message,
+            // so that a modseq is either wholly suppressed or wholly
+            // reported. Only for our own implicit fetches: a client
+            // that asks for flags gets them.
+            FetchData::DynamicData * dd = d->dynamics.find( uid );
+            if ( tag().isEmpty() && dd && dd->modseq &&
+                 s->ignorable( dd->modseq ) )
+                continue;
+            ImapResponse * r = new ImapFetchResponse( s, this, uid );
+            waitFor( r );
+            // and the command that provoked us waits too, so that a
+            // client polling with NOOP sees the updates before its OK
+            if ( d->trigger && d->trigger->state() != Command::Retired )
+                d->trigger->waitFor( r );
         }
     }
 
