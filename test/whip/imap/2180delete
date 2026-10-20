@@ -1,0 +1,8 @@
+# RFC 2180 section 3.1 says we can fail DELETE/RENAME. that's what we
+# do for now.
+depends 2180base
+send 1
+a delete inbox
+receive 1
+a NO Cannot delete INBOX
+end

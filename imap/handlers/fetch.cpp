@@ -540,10 +540,10 @@ void Fetch::parseBody( bool binary )
     n and, if \a s is a single range, \a n2 as well.
 */
 
-static EString uidClause( const EString & column, const IntegerSet & s,
+static EString uidClause( const EString & column, bool range,
                           uint n, uint n2 )
 {
-    if ( s.isSingleRange() )
+    if ( range )
         return column + ">=$" + fn( n ) + " and " + column + "<=$" + fn( n2 );
     return column + "=any($" + fn( n ) + ")";
 }
@@ -553,9 +553,10 @@ static EString uidClause( const EString & column, const IntegerSet & s,
     \a n2.
 */
 
-static void bindUids( Query * q, const IntegerSet & s, uint n, uint n2 )
+static void bindUids( Query * q, const IntegerSet & s, bool range,
+                      uint n, uint n2 )
 {
-    if ( s.isSingleRange() ) {
+    if ( range ) {
         q->bind( n, s.smallest() );
         q->bind( n2, s.largest() );
     }
@@ -575,6 +576,9 @@ void Fetch::execute()
     if ( !d->peek && s->readOnly() )
         d->peek = true;
 
+    if ( d->state == 0 && group() == 2 )
+        d->expunged = s->expunged().intersection( d->set );
+
     if ( d->state == 0 ) {
         if ( !transaction() &&
              ( !d->peek ||
@@ -584,13 +588,14 @@ void Fetch::execute()
         if ( d->vanished && d->changedSince > 0 && !d->deleted ) {
             IntegerSet gone( d->set );
             gone.remove( session()->messages() );
+            bool range = gone.isSingleRange();
             d->deleted = new Query( "select uid from deleted_messages "
                                      "where mailbox=$1 and modseq>$2 "
-                                     "and " + uidClause( "uid", gone, 3, 4 ),
+                                     "and " + uidClause( "uid", range, 3, 4 ),
                                      this );
             d->deleted->bind( 1, s->mailbox()->id() );
             d->deleted->bind( 2, d->changedSince );
-            bindUids( d->deleted, gone, 3, 4 );
+            bindUids( d->deleted, gone, range, 3, 4 );
             transaction()->enqueue( d->deleted );
         }
 
@@ -598,14 +603,15 @@ void Fetch::execute()
         if ( !d->those ) {
             d->set = d->set.intersection( session()->messages() );
             if ( d->changedSince ) {
+                bool range = d->set.isSingleRange();
                 d->those = new Query( "select uid, message "
                                       "from mailbox_messages "
                                       "where mailbox=$1 and " +
-                                      uidClause( "uid", d->set, 2, 4 ) +
+                                      uidClause( "uid", range, 2, 4 ) +
                                       " and modseq>$3",
                                       this );
                 d->those->bind( 1, s->mailbox()->id() );
-                bindUids( d->those, d->set, 2, 4 );
+                bindUids( d->those, d->set, range, 2, 4 );
             }
             else if ( d->modseq ||
                       d->needsAddresses || d->needsHeader ||
@@ -624,13 +630,14 @@ void Fetch::execute()
                         r.add( uid );
                 }
                 if ( !r.isEmpty() ) {
+                    bool range = d->set.isSingleRange();
                     d->those = new Query( "select uid, message "
                                           "from mailbox_messages "
                                           "where mailbox=$1 and " +
-                                          uidClause( "uid", d->set, 2, 3 ),
+                                          uidClause( "uid", range, 2, 3 ),
                                           this );
                     d->those->bind( 1, session()->mailbox()->id() );
-                    bindUids( d->those, d->set, 2, 3 );
+                    bindUids( d->those, d->set, range, 2, 3 );
                 }
             }
             if ( d->those ) {
@@ -702,8 +709,6 @@ void Fetch::execute()
     }
 
     if ( d->state == 1 ) {
-        if ( group() == 2 ) // then RFC 2180 section 4.1.2 applies
-            d->expunged = s->expunged().intersection( d->set );
         shrink( &d->set );
         d->remaining = d->set;
         d->state = 2;
@@ -1594,21 +1599,22 @@ Message * Fetch::message( uint uid ) const
 
 void Fetch::sendFlagQuery()
 {
+    bool range = d->set.isSingleRange();
     d->seenDeletedFetcher = new Query(
         "select uid, seen, deleted from mailbox_messages "
-        "where mailbox=$1 and " + uidClause( "uid", d->set, 2, 3 ),
+        "where mailbox=$1 and " + uidClause( "uid", range, 2, 3 ),
         this );
     d->seenDeletedFetcher->bind( 1, session()->mailbox()->id() );
-    bindUids( d->seenDeletedFetcher, d->set, 2, 3 );
+    bindUids( d->seenDeletedFetcher, d->set, range, 2, 3 );
     enqueue( d->seenDeletedFetcher );
 
     d->flagFetcher = new Query(
         "select f.uid, fn.name from flags f "
         "join flag_names fn on (f.flag=fn.id) "
-        "where f.mailbox=$1 and " + uidClause( "f.uid", d->set, 2, 3 ),
+        "where f.mailbox=$1 and " + uidClause( "f.uid", range, 2, 3 ),
         this );
     d->flagFetcher->bind( 1, session()->mailbox()->id() );
-    bindUids( d->flagFetcher, d->set, 2, 3 );
+    bindUids( d->flagFetcher, d->set, range, 2, 3 );
     enqueue( d->flagFetcher );
 }
 
@@ -1617,13 +1623,14 @@ void Fetch::sendFlagQuery()
 
 void Fetch::sendModSeqQuery()
 {
+    bool range = d->set.isSingleRange();
     d->modseqFetcher = new Query(
         "select uid, modseq "
         "from mailbox_messages "
-        "where mailbox=$1 and " + uidClause( "uid", d->set, 2, 3 ),
+        "where mailbox=$1 and " + uidClause( "uid", range, 2, 3 ),
         this );
     d->modseqFetcher->bind( 1, session()->mailbox()->id() );
-    bindUids( d->modseqFetcher, d->set, 2, 3 );
+    bindUids( d->modseqFetcher, d->set, range, 2, 3 );
     enqueue( d->modseqFetcher );
 }
 

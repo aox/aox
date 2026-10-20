@@ -1,0 +1,52 @@
+# check that changedsince filters out messages before 2180 4.1.* acts on
+# the remaining set. A mailbox starts at nextmodseq 2, so the four
+# appends take 2:5, the store 6, the expunge 7 and the last store 8.
+depends 2180base
+send 1
+d fetch 1:* modseq
+receive 5
+* 1 FETCH (MODSEQ (2))
+* 2 FETCH (MODSEQ (3))
+* 3 FETCH (MODSEQ (4))
+* 4 FETCH (MODSEQ (5))
+d OK done
+send 1
+a store 1:2 +flags.silent \deleted
+receive 1
+a OK done
+send 1
+a uid expunge 1:2
+receive 3
+* 1 EXPUNGE
+* 1 EXPUNGE
+a OK done
+# the expunge above took a modseq, so .silent no longer lines up with
+# what this session has reported and we echo the store back. Sending
+# too much is better than too little, so expect it.
+send 1
+a store 1 +flags.silent \deleted
+receive 2
+* 1 FETCH (UID 3 FLAGS (\Deleted \Recent))
+a OK done
+use watcher
+send 1
+c fetch 1:3 (uid body.peek[header.fields (date)])
+# this session is never told that main set \Deleted on UID 3 - see
+# zeromodseq, which is about that and still fails. It is beside the
+# point here, so do not expect it.
+receive 5
+* 3 FETCH (UID 3 BODY[HEADER.FIELDS (Date)] {41}
+Date: Thu, 27 May 2004 14:28:51 +0200
+
+)
+c NO UID(s) 1,2 has/have been expunged
+send 1
+c fetch 1:3 (uid body.peek[header.fields (date)]) (changedsince 8)
+# MSN 3 has MS 8, so the changedsince filters out the only message we
+# could have returned. 1:2 are still expunged, so 4.1.2 still applies,
+# and asking a second time after being told earns the CLIENTBUG bye.
+receive 3
+* BYE [CLIENTBUG] These messages have been expunged: 1,2
+* OK [CLOSED] I, missa est
+c NO UID(s) 1,2 has/have been expunged
+end
