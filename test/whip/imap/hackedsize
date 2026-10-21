@@ -4,9 +4,8 @@ receive 1
 220 LMTP imapscript.test.oryx.com
 send 1
 LHLO imapscript.test.oryx.com
-receive 10
+receive 9
 250-imapscript.test.oryx.com
-250-BURL IMAP IMAP://imapscript.test.oryx.com
 250-ENHANCEDSTATUSCODES
 250-BINARYMIME
 250-PIPELINING

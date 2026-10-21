@@ -2,7 +2,6 @@
 
 #include "smtpdata.h"
 
-#include "imapurlfetcher.h"
 #include "configuration.h"
 #include "addressfield.h"
 #include "smtpmailrcpt.h"
@@ -11,7 +10,6 @@
 #include "smtpparser.h"
 #include "injector.h"
 #include "address.h"
-#include "imapurl.h"
 #include "mailbox.h"
 #include "buffer.h"
 #include "graph.h"
@@ -42,7 +40,7 @@ public:
 
 /*! \class SmtpData smtpdata.h
 
-    This is also the superclass for SmtpBdat and SmtpBurl, and does
+    This is also the superclass for SmtpBdat, and does
     the injection.
 */
 
@@ -51,7 +49,7 @@ public:
 /*! Constructs a SMTP DATA handler. \a s must be the SMTP server, as
     usual, and \a p may be either null or a parser to be used for
     parsing DATA. If it's null, this function assumes it's really
-    working on a BDAT/BURL command.
+    working on a BDAT command.
 */
 
 SmtpData::SmtpData( SMTP * s, SmtpParser * p )
@@ -63,7 +61,7 @@ SmtpData::SmtpData( SMTP * s, SmtpParser * p )
     Scope x( log() );
     p->end();
     d->state = 0;
-    // d->state starts at 2 for bdat/burl, and at 0 for data.
+    // d->state starts at 2 for bdat, and at 0 for data.
 }
 
 
@@ -71,7 +69,7 @@ static GraphableCounter * messagesWrapped = 0;
 static GraphableCounter * messagesSubmitted = 0;
 
 
-/*! Does input for DATA and injection for DATA, BDAT and BURL. */
+/*! Does input for DATA and injection for DATA and BDAT. */
 
 void SmtpData::execute()
 {
@@ -152,7 +150,7 @@ void SmtpData::execute()
         }
     }
 
-    // bdat/burl start at state 2.
+    // bdat starts at state 2.
 
     // state 2: have received CR LF "." CR LF, have not started injection
     if ( d->state == 2 ) {
@@ -562,9 +560,7 @@ public:
 /*! \class SmtpBdat smtpdata.h
 
     The BDAT command is an alternative to DATA, defined by RFC
-    3030. It doesn't seem to have much point on its own, but together
-    with BURL (RFC 4468) and URLAUTH (RFC 4467) it allows
-    forward-without-download.
+    3030. It doesn't seem to have much point on its own.
 */
 
 
@@ -612,92 +608,6 @@ void SmtpBdat::execute()
 }
 
 
-class SmtpBurlData
-    : public Garbage
-{
-public:
-    SmtpBurlData() : last( false ), url( 0 ), fetcher( 0 ) {}
-
-    bool last;
-    ImapUrl * url;
-    ImapUrlFetcher * fetcher;
-};
-
-
-/*! \class SmtpBurl smtpdata.h
-
-    The BURL command is defined in RFC 4468, and allows a client to
-    instruct a submit server to include content from an IMAP server
-    (using a URLAUTH-authorized URL).
-*/
-
-SmtpBurl::SmtpBurl( SMTP * s, SmtpParser * p )
-    : SmtpData( s, 0 ), d( new SmtpBurlData )
-{
-    p->whitespace();
-    EString u;
-    while ( !p->atEnd() && p->nextChar() != ' ' ) {
-        u.append( p->nextChar() );
-        p->step();
-    }
-    d->url = new ImapUrl( u );
-    if ( !d->url->valid() ) {
-        respond( 501, "Can't parse that URL", "5.5.4" );
-        finish();
-        return;
-    }
-    EString a = d->url->access().lower();
-    u.truncate();
-    if ( server()->user() )
-        u = server()->user()->login().utf8().lower();
-    if ( !( a == "anonymous" ||
-            ( server()->user() && ( a == "authuser" ||
-                                    a == "user+" + u ||
-                                    a == "submit+" + u ) ) ) ) {
-        respond( 554, "Do not have permission to read that URL", "5.7.0" );
-        finish();
-        return;
-    }
-    if ( !p->atEnd() ) {
-        p->whitespace();
-        p->require( "last" );
-        d->last = true;
-    }
-    p->end();
-
-    List<ImapUrl> * l = new List<ImapUrl>;
-    l->append( d->url );
-    d->fetcher = new ImapUrlFetcher( l, this, true );
-    d->fetcher->execute();
-}
-
-
-void SmtpBurl::execute()
-{
-    if ( !d->fetcher )
-        return;
-    if ( !d->fetcher->done() )
-        return;
-    if ( d->fetcher->failed() ) {
-        respond( 554, "URL resolution problem: " + d->fetcher->error(),
-                 "5.5.0" );
-        finish();
-        return;
-    }
-    if ( !server()->isFirstCommand( this ) )
-        return;
-
-    EString b( server()->body() );
-    b.append( d->url->text() );
-    server()->setBody( b );
-    if ( d->last ) {
-        SmtpData::execute();
-    }
-    else {
-        respond( 250, "OK", "2.0.0" );
-        finish();
-    }
-}
 
 
 /*! Writes a copy of the incoming message to the file system. \a soft is

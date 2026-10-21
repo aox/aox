@@ -68,7 +68,7 @@ public:
     This class implements SMTP as specified by RFC 2821, with the
     extensions specified by RFC 1651 (EHLO), RFC 1652 (8BITMIME), RFC
     2487 (STARTTLS), RFC 2554 (AUTH), RFC 3030 (BINARYMIME and
-    CHUNKING) and RFC 4468 (BURL).
+    CHUNKING).
 */
 
 /*! \class LMTP smtp.h

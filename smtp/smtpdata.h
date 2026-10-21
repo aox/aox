@@ -41,18 +41,6 @@ private:
 };
 
 
-class SmtpBurl
-    : public SmtpData
-{
-public:
-    SmtpBurl( SMTP *, SmtpParser * );
-
-    void execute();
-
-private:
-    class SmtpBurlData * d;
-};
-
 
 
 

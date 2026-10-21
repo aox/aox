@@ -33,9 +33,7 @@
     RFC 2831: AUTH=DIGEST-MD5,
     RFC 3348: CHILDREN,
     RFC 3516: BINARY,
-    RFC 4469: CATENATE,
     RFC 4551: CONDSTORE,
-    RFC 4467: URLAUTH,
     RFC 4731: ESEARCH (also from RFC 4466),
     RFC 4959: SASL-IR,
     RFC 4978: COMPRESS=DEFLATE,
@@ -86,7 +84,6 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "ACL" );
         c.append( "APPENDLIMIT=" + fn( ImapParser::literalSizeLimit() ) );
         c.append( "BINARY" );
-        c.append( "CATENATE" );
         c.append( "CHILDREN" );
     }
     if ( i->readBuffer()->compression() == Buffer::None )
@@ -139,7 +136,6 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "UIDONLY" );
         c.append( "UIDPLUS" );
         c.append( "UNSELECT" );
-        c.append( "URLAUTH" );
         c.append( "UTF8=ACCEPT" );
         c.append( "WITHIN" );
     }

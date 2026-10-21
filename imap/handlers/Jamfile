@@ -13,7 +13,6 @@ Build imap :
     enable.cpp
     expunge.cpp
     fetch.cpp
-    genurlauth.cpp
     id.cpp
     idle.cpp
     listext.cpp
@@ -26,7 +25,6 @@ Build imap :
     notify.cpp
     quota.cpp
     rename.cpp
-    resetkey.cpp
     search.cpp
     select.cpp
     sort.cpp
@@ -36,5 +34,4 @@ Build imap :
     subscribe.cpp
     thread.cpp
     unselect.cpp
-    urlfetch.cpp
     ;

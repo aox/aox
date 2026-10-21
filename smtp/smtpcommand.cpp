@@ -195,9 +195,6 @@ SmtpCommand * SmtpCommand::create( SMTP * server, const EString & command )
     else if ( c == "bdat" ) {
         r = new SmtpBdat( server, p );
     }
-    else if ( c == "burl" ) {
-        r = new SmtpBurl( server, p );
-    }
     else if ( c == "noop" ) {
         r = new SmtpNoop( server, p );
     }

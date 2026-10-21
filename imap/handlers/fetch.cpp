@@ -38,9 +38,8 @@ class FetchData
 {
 public:
     FetchData()
-        : trigger( 0 ),
-          state( 0 ), peek( true ), processed( 0 ),
-          changedSince( 0 ), those( 0 ), findIds( 0 ),
+        : state( 0 ), peek( true ), processed( 0 ),
+          changedSince( 0 ), trigger( 0 ), those( 0 ), findIds( 0 ),
           deleted( 0 ), store( 0 ),
           uid( false ),
           flags( false ), envelope( false ),
@@ -824,8 +823,7 @@ void Fetch::sendFetchQueries()
 
 
 /*! This function returns the text of that portion of the Message \a m
-    that is described by the Section \a s. It is publicly available so
-    that Append may use it for CATENATE.
+    that is described by the Section \a s.
 
     If \a unicodable is true, the result may contain unquoted unicode.
 */

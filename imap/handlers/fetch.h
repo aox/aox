@@ -27,7 +27,6 @@ public:
     void execute();
 
     void parseAttribute( bool );
-    static Section * parseSection( ImapParser *, bool = false );
     static EString sectionData( Section *, Message *, bool );
     EString flagList( uint );
 
@@ -37,6 +36,7 @@ public:
     void forget( uint );
 
 private:
+    static Section * parseSection( ImapParser *, bool = false );
     void parseFetchModifier();
     void parseBody( bool );
     void sendFetchQueries();

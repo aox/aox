@@ -27,7 +27,6 @@
 #include "handlers/enable.h"
 #include "handlers/expunge.h"
 #include "handlers/fetch.h"
-#include "handlers/genurlauth.h"
 #include "handlers/id.h"
 #include "handlers/idle.h"
 #include "handlers/listext.h"
@@ -40,7 +39,6 @@
 #include "handlers/noop.h"
 #include "handlers/quota.h"
 #include "handlers/rename.h"
-#include "handlers/resetkey.h"
 #include "handlers/search.h"
 #include "handlers/select.h"
 #include "handlers/sort.h"
@@ -50,7 +48,6 @@
 #include "handlers/subscribe.h"
 #include "handlers/thread.h"
 #include "handlers/unselect.h"
-#include "handlers/urlfetch.h"
 
 #include <sys/time.h> // gettimeofday, struct timeval
 
@@ -271,12 +268,6 @@ Command * Command::create( IMAP * imap,
             c = new Acl( Acl::ListRights );
         else if ( n == "myrights" )
             c = new Acl( Acl::MyRights );
-        else if ( n == "resetkey" )
-            c = new ResetKey;
-        else if ( n == "genurlauth" )
-            c = new GenUrlauth;
-        else if ( n == "urlfetch" )
-            c = new UrlFetch;
         else if ( n == "notify" )
             c = new Notify;
         else if ( n == "compress" )

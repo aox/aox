@@ -10,10 +10,8 @@
 #include "injector.h"
 #include "annotation.h"
 #include "imapsession.h"
-#include "imapurlfetcher.h"
 #include "imapparser.h"
 #include "recipient.h"
-#include "imapurl.h"
 #include "section.h"
 #include "message.h"
 #include "estring.h"
@@ -23,33 +21,15 @@
 #include "flag.h"
 
 
-struct Textpart
-    : public Garbage
-{
-    Textpart()
-        : type( Text ), url( 0 )
-    {}
-
-    enum Type { Text, Url };
-
-    Type type;
-    EString s;
-    ImapUrl * url;
-};
-
-
 struct Appendage
     : public Garbage
 {
     Appendage()
         : Garbage(),
           message( 0 ),
-          textparts( 0 ), urlFetcher( 0 ),
           annotations( 0 )
     {}
     Injectee * message;
-    List<Textpart> * textparts;
-    ImapUrlFetcher * urlFetcher;
     EString text;
     EStringList flags;
     List<Annotation> * annotations;
@@ -103,7 +83,6 @@ void Append::parse()
     // append-ext-name = tagged-ext-label
     // append-ext-value= tagged-ext-val
     // append-data     = literal / literal8 / append-data-ext /
-    //                   "CATENATE" SP "(" cat-part *(SP cat-part) ")" /
     //                   "UTF8" SP "(" literal8 ")"
     // append-data-ext = tagged-ext / att-annotate
     // append-opts     = [SP flag-list] [SP date-time] *(SP append-ext)
@@ -232,37 +211,7 @@ void Append::parse()
             space();
         }
 
-        if ( present( "CATENATE " ) ) {
-            h->textparts = new List<Textpart>;
-            require( "(" );
-
-            bool done = false;
-
-            do {
-                Textpart * tp = new Textpart;
-                if ( present( "URL " ) ) {
-                    tp->type = Textpart::Url;
-                    tp->s = astring();
-                }
-                else if ( present( "TEXT " ) ) {
-                    tp->type = Textpart::Text;
-                    tp->s = literal();
-                }
-                else {
-                    error( Bad, "Expected cat-part, got: " + following() );
-                }
-                h->textparts->append( tp );
-
-                if ( nextChar() == ' ' )
-                    space();
-                else
-                    done = true;
-            }
-            while ( !done );
-
-            require( ")" );
-        }
-        else if ( present( "UTF8 " ) ) {
+        if ( present( "UTF8 " ) ) {
             require( "(" );
             h->text = literal();
             require( ")" );
@@ -353,48 +302,6 @@ void Append::process( class Appendage * h )
 {
     if ( h->message )
         return;
-
-    if ( !h->urlFetcher ) {
-        List<ImapUrl> * urls = new List<ImapUrl>;
-        List<Textpart>::Iterator it( h->textparts );
-        while ( it ) {
-            Textpart * tp = it;
-            if ( tp->type == Textpart::Url ) {
-                // We require that this be a URL relative to the current
-                // IMAP session; that's all CATENATE allows for.
-                tp->url = new ImapUrl( imap(), tp->s );
-                if ( !tp->url->valid() ) {
-                    setRespTextCode( "BADURL " + tp->s );
-                    error( No, "invalid URL" );
-                    return;
-                }
-                urls->append( tp->url );
-            }
-            ++it;
-        }
-
-        h->urlFetcher = new ImapUrlFetcher( urls, this, true );
-        h->urlFetcher->execute();
-    }
-
-    if ( !h->urlFetcher->done() || h->message )
-        return;
-
-    if ( h->urlFetcher->failed() ) {
-        setRespTextCode( "BADURL " + h->urlFetcher->badUrl() );
-        error( No, h->urlFetcher->error() );
-        return;
-    }
-
-    List<Textpart>::Iterator it( h->textparts );
-    while ( it ) {
-        Textpart * tp = it;
-        if ( tp->type == Textpart::Text )
-            h->text.append( tp->s );
-        else
-            h->text.append( tp->url->text() );
-        h->textparts->take( it );
-    }
 
     h->message = new Injectee;
     h->message->setInternalDate( h->date.unixTime() );
