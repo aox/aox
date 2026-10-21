@@ -46,7 +46,10 @@ void Create::parse()
         require( ")" );
     }
     end();
-    if ( d->name.titlecased() == imap()->user()->inbox()->name().titlecased() )
+    // An authenticated user may still lack an inbox.
+    User * u = imap()->user();
+    if ( u && u->inbox() &&
+         d->name.titlecased() == u->inbox()->name().titlecased() )
         error( No, "INBOX always exists" );
     if ( imap()->clientSupports( IMAP::Unicode ) ) {
         // The name arrived as UTF-8. If the same octets are also valid

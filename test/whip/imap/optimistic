@@ -1,0 +1,49 @@
+# Commands that need authentication must be rejected before login, no
+# matter which state they really want. A few per connection: the server
+# slows down a client that collects errors, so a long run of these on
+# one connection would take minutes. The connections overlap instead.
+protocol imap c1
+send 3
+a select inbox
+b status inbox (messages)
+c fetch 1:* (uid flags)
+protocol imap c2
+send 3
+a create /ernest/mja
+b getacl inbox
+c uid search all
+protocol imap c3
+send 3
+a list "" %
+b getquotaroot inbox
+c sort (date) utf-8 all
+protocol imap c4
+send 3
+a lsub "" %
+b myrights inbox
+c store 1 +flags \seen
+use c1
+receive 4
+* OK [CAPABILITY IMAP4rev1 AUTH=ANONYMOUS AUTH=CRAM-MD5 AUTH=DIGEST-MD5 AUTH=PLAIN AUTH=LOGIN COMPRESS=DEFLATE ENABLE ID SASL-IR STARTTLS] imapscript.test.oryx.com Archiveopteryx IMAP Server (security checking disabled)
+a BAD Not permitted before authentication
+b BAD Not permitted before authentication
+c BAD Not permitted before authentication
+use c2
+receive 4
+* OK [CAPABILITY IMAP4rev1 AUTH=ANONYMOUS AUTH=CRAM-MD5 AUTH=DIGEST-MD5 AUTH=PLAIN AUTH=LOGIN COMPRESS=DEFLATE ENABLE ID SASL-IR STARTTLS] imapscript.test.oryx.com Archiveopteryx IMAP Server (security checking disabled)
+a BAD Not permitted before authentication
+b BAD Not permitted before authentication
+c BAD Not permitted before authentication
+use c3
+receive 4
+* OK [CAPABILITY IMAP4rev1 AUTH=ANONYMOUS AUTH=CRAM-MD5 AUTH=DIGEST-MD5 AUTH=PLAIN AUTH=LOGIN COMPRESS=DEFLATE ENABLE ID SASL-IR STARTTLS] imapscript.test.oryx.com Archiveopteryx IMAP Server (security checking disabled)
+a BAD Not permitted before authentication
+b BAD Not permitted before authentication
+c BAD Not permitted before authentication
+use c4
+receive 4
+* OK [CAPABILITY IMAP4rev1 AUTH=ANONYMOUS AUTH=CRAM-MD5 AUTH=DIGEST-MD5 AUTH=PLAIN AUTH=LOGIN COMPRESS=DEFLATE ENABLE ID SASL-IR STARTTLS] imapscript.test.oryx.com Archiveopteryx IMAP Server (security checking disabled)
+a BAD Not permitted before authentication
+b BAD Not permitted before authentication
+c BAD Not permitted before authentication
+end

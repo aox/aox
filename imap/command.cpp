@@ -1477,6 +1477,20 @@ void Command::setAllowedState( IMAP::State s  ) const
 }
 
 
+/*! Returns true if this command may be executed in the connection's
+    current state, and false if not.
+
+    The caller has to check this before parse(), since a command that
+    wants a mailbox session generally dereferences it while parsing,
+    and would die if the client sent the command too early.
+*/
+
+bool Command::inAllowedState() const
+{
+    return d->permittedStates & ( 1 << imap()->state() );
+}
+
+
 /*! Returns a pointer to the Session for this Command. The Session is
     the one that applied when the Command started running. If there
     isn't one, then session() logs an error and throws an exception

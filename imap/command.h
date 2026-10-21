@@ -37,6 +37,7 @@ public:
     void setState( State );
 
     void setAllowedState( IMAP::State ) const;
+    bool inAllowedState() const;
 
     EString tag() const;
     EString name() const;

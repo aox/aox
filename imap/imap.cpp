@@ -44,6 +44,7 @@ public:
           bytesArrived( 0 ),
           eventMap( new EventMap ),
           lastBadTime( 0 ),
+          possiblyOutlook( true ),
           nextOkTime( 0 )
     {
         uint i = 0;
@@ -86,6 +87,8 @@ public:
     EventMap * eventMap;
 
     uint lastBadTime;
+
+    bool possiblyOutlook;
 
     class BadBouncer
         : public EventHandler
@@ -391,6 +394,8 @@ void IMAP::addCommand()
 
     d->commands.append( cmd );
     d->nextOkTime = time( 0 ) + 117;
+    if ( tag.length() != 4 || tag.contains( '.' ) )
+        d->possiblyOutlook = false;
 
     Scope x( cmd->log() );
     if ( name.lower() != "login" && name.lower() != "authenticate" )
@@ -484,15 +489,7 @@ void IMAP::setUser( User * user, const EString & mechanism )
     SaslConnection::setUser( user, mechanism );
     setState( Authenticated );
 
-    bool possiblyOutlook = true;
-    List< Command >::Iterator i( d->commands );
-    while ( i && possiblyOutlook ) {
-        EString tag = i->tag();
-        ++i;
-        if ( tag.length() != 4 || tag.contains( '.' ) )
-            possiblyOutlook = false;
-    }
-    if ( possiblyOutlook )
+    if ( d->possiblyOutlook )
         setClientBug( Nat );
     setTimeoutAfter( 1860 );
 }
@@ -515,10 +512,9 @@ void IMAP::reserve( Command * command )
 
 void IMAP::unblockCommands()
 {
-    if ( d->state != NotAuthenticated )
-        while ( d->commands.firstElement() &&
-                d->commands.firstElement()->state() == Command::Retired )
-            d->commands.shift();
+    while ( d->commands.firstElement() &&
+            d->commands.firstElement()->state() == Command::Retired )
+        d->commands.shift();
     if ( d->runningCommands )
         d->runCommandsAgain = true;
     else
@@ -594,7 +590,8 @@ void IMAP::runCommands()
         if ( first && first->state() != Command::Retired ) {
             Scope x( first->log() );
             ++i;
-            if ( first->state() == Command::Unparsed )
+            if ( first->state() == Command::Unparsed &&
+                 first->inAllowedState() )
                 first->parse();
             if ( !first->ok() )
                 first->setState( Command::Finished );
@@ -604,6 +601,14 @@ void IMAP::runCommands()
             if ( first->state() != Command::Executing )
                 first = 0;
         }
+        else {
+            // A retired command is no group leader. One stays at the
+            // head of the list until setUser() has looked at its tag,
+            // and the loop below would otherwise process it as both
+            // leader and follower, pushing it back to Finished and
+            // emitting its tagged response a second time.
+            first = 0;
+        }
 
         // if we have a leading command, we can parse and execute
         // followers in the same group.
@@ -612,7 +617,8 @@ void IMAP::runCommands()
                 Command * c = i;
                 Scope x( c->log() );
                 ++i;
-                if ( c->state() == Command::Unparsed )
+                if ( c->state() == Command::Unparsed &&
+                     c->inAllowedState() )
                     c->parse();
                 if ( !c->ok() )
                     c->setState( Command::Finished );
