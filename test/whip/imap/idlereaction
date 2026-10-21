@@ -1,0 +1,31 @@
+depends 2180idle
+# at this point we've expunged a couple of messages. we now append a
+# new message, expect a new EXISTS, and react to the EXISTS with a UID
+# FETCH.
+receive 1
++ idling
+use main
+send 6
+a append INBOX () {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+asdf
+receive 3
+* 5 EXISTS
+* OK [UIDNEXT 7] next uid
+a OK [APPENDUID 1 6] done
+use watcher
+receive 3
+* 5 EXISTS
+* 2 RECENT
+* OK [UIDNEXT 7] next uid
+send 2
+done
+b uid fetch 5 (uid modseq flags)
+receive 3
+i OK done
+* 4 FETCH (UID 5 FLAGS (\Recent) MODSEQ (8))
+b OK done
+end

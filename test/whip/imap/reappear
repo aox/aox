@@ -1,0 +1,38 @@
+depends login
+send 6
+b append inbox (\Seen) {123+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+asdf
+receive 1
+b OK [APPENDUID 1 1] done
+send 1
+c select inbox
+receive 8
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+c OK [READ-WRITE] done
+send 1
+d uid store 1 +flags (\Deleted \Seen)
+receive 2
+* 1 FETCH (UID 1 FLAGS (\Deleted \Recent \Seen))
+d OK done
+send 1
+e fetch 1 flags
+receive 2
+* 1 FETCH (FLAGS (\Deleted \Recent \Seen))
+e OK done
+send 1
+f logout
+receive 3
+* OK [CLOSED] I, missa est
+* BYE logout
+f OK done
+end

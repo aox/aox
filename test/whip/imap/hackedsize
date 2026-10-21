@@ -1,0 +1,73 @@
+depends empty-inbox
+protocol lmtp send
+receive 1
+220 LMTP imapscript.test.oryx.com
+send 1
+LHLO imapscript.test.oryx.com
+receive 10
+250-imapscript.test.oryx.com
+250-BURL IMAP IMAP://imapscript.test.oryx.com
+250-ENHANCEDSTATUSCODES
+250-BINARYMIME
+250-PIPELINING
+250-8BITMIME
+250-CHUNKING
+250-SMTPUTF8
+250-STARTTLS
+250 DSN
+send 1
+mail from:<ams@toroid.org> x-oryx-id=1 x-oryx-time=1181649536
+receive 1
+250 2.1.0 Accepted message from ams@toroid.org
+send 1
+rcpt to:<script@test.oryx.com>
+receive 1
+250 2.1.5 Will send to script@test.oryx.com
+send 1
+data
+receive 1
+354 Go ahead (1 local recipients)
+send 8
+From: nobody@example.com
+To: somebody@example.com
+Subject: Test 
+Date: Fri, 17 Feb 2006 08:55:02 +0100
+
+         1         2         3         4         5         6         7
+1234567890123456789012345678901234567890123456789012345678901234567890123456789
+.
+receive 1
+250 2.1.5 script@test.oryx.com: OK
+use main
+send 1
+x noop
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+x OK done
+send 1
+c fetch 1 (rfc822.size body[header.fields.not (Received)] body[header.fields (Received)]<25.31> body[1])
+# The sender supplied no Message-Id, so the server adds one: an MD5 of
+# the message, which means that editing the message above changes the
+# id, the literal's size and RFC822.SIZE too.
+receive 18
+* 1 FETCH (UID 1 FLAGS (\Recent \Seen))
+* 1 FETCH (RFC822.SIZE 647 BODY[HEADER.FIELDS.NOT (Received)] {305}
+Return-Path: <ams@toroid.org>
+From: nobody@example.com
+To: somebody@example.com
+Subject: Test
+Date: Fri, 17 Feb 2006 08:55:02 +0100
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0
+Message-Id: <m6/kC0Fttc3b8FVMZ6Euh.md5@buggy-sender.no-message-id.invalid>
+
+ BODY[HEADER.FIELDS (Received)]<25> "(HELO imapscript.test.oryx.com)" BODY[1] {156}
+         1         2         3         4         5         6         7
+1234567890123456789012345678901234567890123456789012345678901234567890123=
+456789
+)
+c OK done
+end

@@ -1,0 +1,264 @@
+depends empty-inbox
+# sends the kind of messages thunderbird likes to send for when
+# forwarding, then checks them.
+send 15
+a1 append INBOX () {380+}
+From: root@example.com
+To: root@example.com
+Subject: Fwd: MTI YAMON Rom Monitor
+Date: Tue, 29 Jun 2004 16:07:25 -0700
+Mime-Version: 1.0
+Content-Type: message/rfc822; name="forwarded message"
+Content-Disposition: inline
+
+From: random@example.com
+To: root@example.com
+Subject: MTI YAMON Rom Monitor
+Date: Tue, 29 Jun 2004 16:01:16 -0700
+
+Text of forwarded message here.
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a1 OK [APPENDUID 1 1] done
+send 1
+f1 fetch 1 body.peek[]
+receive 17
+* 1 FETCH (BODY[] {382}
+From: root@example.com
+To: root@example.com
+Subject: Fwd: MTI YAMON Rom Monitor
+Date: Tue, 29 Jun 2004 16:07:25 -0700
+Mime-Version: 1.0
+Content-Type: message/rfc822; name="forwarded message"
+Content-Disposition: inline
+
+From: random@example.com
+To: root@example.com
+Subject: MTI YAMON Rom Monitor
+Date: Tue, 29 Jun 2004 16:01:16 -0700
+
+Text of forwarded message here.
+)
+f1 OK done
+send 1
+fb1 fetch 1 bodystructure
+receive 2
+* 1 FETCH (BODYSTRUCTURE ("message" "rfc822" ("name" "forwarded message") NIL NIL "7BIT" 154 ("Tue, 29 Jun 2004 16:01:16 -0700" "MTI YAMON Rom Monitor" ((NIL NIL "random" "example.com")) NIL NIL ((NIL NIL "root" "example.com")) NIL NIL NIL NIL) ("text" "plain" NIL NIL NIL "7BIT" 33 1 NIL NIL NIL NIL) 6 NIL ("inline" NIL) NIL NIL))
+fb1 OK done
+send 1
+fp1 fetch 1 (body.peek[1] body.peek[1.1])
+receive 11
+* 1 FETCH (BODY[1] {154}
+From: random@example.com
+To: root@example.com
+Subject: MTI YAMON Rom Monitor
+Date: Tue, 29 Jun 2004 16:01:16 -0700
+
+Text of forwarded message here.
+ BODY[1.1] {33}
+Text of forwarded message here.
+)
+fp1 OK done
+send 26
+a2 append INBOX () {609+}
+From: root@example.com
+To: root@example.com
+Subject: Fwd: MTI YAMON Rom Monitor
+Date: Tue, 29 Jun 2004 16:07:25 -0700
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary="Boundary-00=_tYf4A+I/BoSdtzU"
+
+--Boundary-00=_tYf4A+I/BoSdtzU
+
+Text about the forwarded message.
+--
+Signature.
+
+--Boundary-00=_tYf4A+I/BoSdtzU
+Content-Type: message/rfc822; name="forwarded message"
+Content-Disposition: inline
+
+From: random@example.com
+To: root@example.com
+Subject: MTI YAMON Rom Monitor
+Date: Tue, 29 Jun 2004 16:01:16 -0700
+
+Text of forwarded message here.
+
+--Boundary-00=_tYf4A+I/BoSdtzU--
+receive 4
+* 2 EXISTS
+* 2 RECENT
+* OK [UIDNEXT 3] next uid
+a2 OK [APPENDUID 1 2] done
+send 1
+f2 fetch 2 body.peek[]
+receive 30
+* 2 FETCH (BODY[] {684}
+From: root@example.com
+To: root@example.com
+Subject: Fwd: MTI YAMON Rom Monitor
+Date: Tue, 29 Jun 2004 16:07:25 -0700
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary="Boundary-00=_tYf4A+I/BoSdtzU"
+
+--Boundary-00=_tYf4A+I/BoSdtzU
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+
+Text about the forwarded message.
+=2D-
+Signature.
+
+--Boundary-00=_tYf4A+I/BoSdtzU
+Content-Type: message/rfc822; name="forwarded message"
+Content-Disposition: inline
+
+From: random@example.com
+To: root@example.com
+Subject: MTI YAMON Rom Monitor
+Date: Tue, 29 Jun 2004 16:01:16 -0700
+
+Text of forwarded message here.
+
+--Boundary-00=_tYf4A+I/BoSdtzU--
+)
+f2 OK done
+send 1
+fb2 fetch 2 bodystructure
+receive 2
+* 2 FETCH (BODYSTRUCTURE (("text" "plain" NIL NIL NIL "QUOTED-PRINTABLE" 53 3 NIL NIL NIL NIL)("message" "rfc822" ("name" "forwarded message") NIL NIL "7BIT" 154 ("Tue, 29 Jun 2004 16:01:16 -0700" "MTI YAMON Rom Monitor" ((NIL NIL "random" "example.com")) NIL NIL ((NIL NIL "root" "example.com")) NIL NIL NIL NIL) ("text" "plain" NIL NIL NIL "7BIT" 33 1 NIL NIL NIL NIL) 6 NIL ("inline" NIL) NIL NIL) "mixed" ("boundary" "Boundary-00=_tYf4A+I/BoSdtzU") NIL NIL NIL))
+fb2 OK done
+send 1
+s2 search body "Text of forwarded"
+receive 2
+* SEARCH 1 2
+s2 OK done
+send 1
+fp2 fetch 2 (body.peek[1] body.peek[2] body.peek[2.1])
+receive 15
+* 2 FETCH (BODY[1] {53}
+Text about the forwarded message.
+=2D-
+Signature.
+ BODY[2] {154}
+From: random@example.com
+To: root@example.com
+Subject: MTI YAMON Rom Monitor
+Date: Tue, 29 Jun 2004 16:01:16 -0700
+
+Text of forwarded message here.
+ BODY[2.1] {33}
+Text of forwarded message here.
+)
+fp2 OK done
+send 37
+a3 append INBOX () {888+}
+From: root@example.com
+To: root@example.com
+Subject: Fwd: MTI YAMON Rom Monitor
+Date: Tue, 29 Jun 2004 16:07:25 -0700
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary="Boundary-00=_tYf4A+I/BoSdtzU"
+
+--Boundary-00=_tYf4A+I/BoSdtzU
+
+Text about the forwarded message.
+--
+Signature.
+
+--Boundary-00=_tYf4A+I/BoSdtzU
+Content-Type: message/rfc822; name="forwarded message"
+Content-Disposition: inline
+
+From: random@example.com
+To: root@example.com
+Subject: MTI YAMON Rom Monitor
+Date: Tue, 29 Jun 2004 16:01:16 -0700
+
+Text of forwarded message 1 here.
+
+--Boundary-00=_tYf4A+I/BoSdtzU
+Content-Type: message/rfc822; name="forwarded message"
+Content-Disposition: inline
+
+From: random@example.com
+To: root@example.com
+Subject: MTI YAMON Rom Monitor
+Date: Tue, 29 Jun 2004 16:01:17 -0700
+
+Text of forwarded message 2 here.
+
+--Boundary-00=_tYf4A+I/BoSdtzU--
+receive 4
+* 3 EXISTS
+* 3 RECENT
+* OK [UIDNEXT 4] next uid
+a3 OK [APPENDUID 1 3] done
+send 1
+f3 fetch 3 body.peek[]
+receive 41
+* 3 FETCH (BODY[] {963}
+From: root@example.com
+To: root@example.com
+Subject: Fwd: MTI YAMON Rom Monitor
+Date: Tue, 29 Jun 2004 16:07:25 -0700
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary="Boundary-00=_tYf4A+I/BoSdtzU"
+
+--Boundary-00=_tYf4A+I/BoSdtzU
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+
+Text about the forwarded message.
+=2D-
+Signature.
+
+--Boundary-00=_tYf4A+I/BoSdtzU
+Content-Type: message/rfc822; name="forwarded message"
+Content-Disposition: inline
+
+From: random@example.com
+To: root@example.com
+Subject: MTI YAMON Rom Monitor
+Date: Tue, 29 Jun 2004 16:01:16 -0700
+
+Text of forwarded message 1 here.
+
+--Boundary-00=_tYf4A+I/BoSdtzU
+Content-Type: message/rfc822; name="forwarded message"
+Content-Disposition: inline
+
+From: random@example.com
+To: root@example.com
+Subject: MTI YAMON Rom Monitor
+Date: Tue, 29 Jun 2004 16:01:17 -0700
+
+Text of forwarded message 2 here.
+
+--Boundary-00=_tYf4A+I/BoSdtzU--
+)
+f3 OK done
+send 1
+fp3 fetch 3 (body.peek[1] body.peek[2] body.peek[2.1] body.peek[3.1])
+receive 17
+* 3 FETCH (BODY[1] {53}
+Text about the forwarded message.
+=2D-
+Signature.
+ BODY[2] {156}
+From: random@example.com
+To: root@example.com
+Subject: MTI YAMON Rom Monitor
+Date: Tue, 29 Jun 2004 16:01:16 -0700
+
+Text of forwarded message 1 here.
+ BODY[2.1] {35}
+Text of forwarded message 1 here.
+ BODY[3.1] {35}
+Text of forwarded message 2 here.
+)
+fp3 OK done
+end

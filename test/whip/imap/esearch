@@ -1,0 +1,61 @@
+# checks that the esearch modifiers work. we assume that all else is
+# tested by search and other tests.
+depends messagemix
+send 1
+a uid fetch 1:* modseq
+receive 4
+* 1 FETCH (UID 1 MODSEQ (2))
+* 2 FETCH (UID 2 MODSEQ (3))
+* 3 FETCH (UID 3 MODSEQ (4))
+a OK done
+send 1
+b uid search return () all
+receive 2
+* ESEARCH (TAG "b") UID ALL 1:3
+b OK done
+send 1
+c uid search return () modseq 1
+receive 2
+* ESEARCH (TAG "c") UID ALL 1:3 MODSEQ 4
+c OK done
+send 1
+d uid search return (min) modseq 1
+receive 2
+* ESEARCH (TAG "d") UID MIN 1 MODSEQ 2
+d OK done
+send 1
+e uid search return (max) modseq 1
+receive 2
+* ESEARCH (TAG "e") UID MAX 3 MODSEQ 4
+e OK done
+send 1
+f uid search return (min max) modseq 1
+receive 2
+* ESEARCH (TAG "f") UID MIN 1 MAX 3 MODSEQ 4
+f OK done
+send 1
+g uid search return (count) modseq 1
+receive 2
+* ESEARCH (TAG "g") UID COUNT 3 MODSEQ 4
+g OK done
+send 1
+h uid search return (count) 2
+receive 2
+* ESEARCH (TAG "h") UID COUNT 1
+h OK done
+send 1
+h uid search return (count) 2 modseq 1
+receive 2
+* ESEARCH (TAG "h") UID COUNT 1 MODSEQ 3
+h OK done
+send 1
+i uid search return (count) 2 modseq 4
+receive 2
+* ESEARCH (TAG "i") UID COUNT 0
+i OK done
+send 1
+j uid search return (min max count) 2 modseq 4
+receive 2
+* ESEARCH (TAG "j") UID COUNT 0
+j OK done
+end

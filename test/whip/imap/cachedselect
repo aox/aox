@@ -1,0 +1,73 @@
+depends subscribe
+#
+# check that select works in a loop, as used by roundcube and qtopia mail
+#
+send 1
+fs1 lsub "" *
+receive 6
+* LSUB () "/" INBOX
+* LSUB () "/" "inbox/a/1"
+* LSUB () "/" "inbox/b/2"
+* LSUB () "/" "inbox/c/3"
+* LSUB () "/" "INBOX/subscribe"
+fs1 OK done
+send 1
+fs2a select INBOX
+receive 8
+* 0 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 1] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+fs2a OK [READ-WRITE] done
+send 1
+fs2b select "inbox/a/1"
+receive 9
+* OK [CLOSED] I, missa est
+* 0 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 1] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+fs2b OK [READ-WRITE] done
+send 1
+fs2c select "inbox/b/2"
+receive 9
+* OK [CLOSED] I, missa est
+* 0 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 1] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+fs2c OK [READ-WRITE] done
+send 1
+fs2d select "inbox/c/3"
+receive 9
+* OK [CLOSED] I, missa est
+* 0 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 1] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+fs2d OK [READ-WRITE] done
+send 1
+fs2e select "inbox/subscribe"
+receive 9
+* OK [CLOSED] I, missa est
+* 0 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 1] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+fs2e OK [READ-WRITE] done
+end

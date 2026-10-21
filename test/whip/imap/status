@@ -1,0 +1,131 @@
+depends append
+send 1
+0 status iNboX (recent)
+receive 2
+* STATUS INBOX (RECENT 4)
+0 OK done
+send 1
+a unselect
+receive 2
+* OK [CLOSED] I, missa est
+a OK done
+send 1
+b status inboX (uidnext)
+receive 2
+* STATUS INBOX (UIDNEXT 5)
+b OK done
+send 1
+c status iNboX (uidNext)
+receive 2
+* STATUS INBOX (UIDNEXT 5)
+c OK done
+send 1
+d status iNboX ()
+receive 1
+d BAD Expected at least 1 more letters, but saw: )
+send 1
+e status iNboX (recent)
+receive 2
+* STATUS INBOX (RECENT 0)
+e OK done
+send 1
+f status INBOX (messages)
+receive 2
+* STATUS INBOX (MESSAGES 4)
+f OK done
+send 1
+g status INBOX (uidvalidity)
+receive 2
+* STATUS INBOX (UIDVALIDITY 1)
+g OK done
+send 1
+i status INBOX (unseen)
+receive 2
+* STATUS INBOX (UNSEEN 3)
+i OK done
+send 1
+j status INBOX (Message)
+receive 1
+j BAD Unknown STATUS item: message
+send 1
+k status INBOX (MESSAGES RECENT UIDNEXT UIDVALIDITY UNSEEN)
+receive 2
+* STATUS INBOX (MESSAGES 4 RECENT 0 UIDNEXT 5 UIDVALIDITY 1 UNSEEN 3)
+k OK done
+send 1
+l status INBOX (UNSEEN UIDVALIDITY UIDNEXT RECENT MESSAGES)
+receive 2
+* STATUS INBOX (MESSAGES 4 RECENT 0 UIDNEXT 5 UIDVALIDITY 1 UNSEEN 3)
+l OK done
+send 6
+c1 create inbox/1
+c2 create inbox/2
+c3 create inbox/3
+c4 create inbox/4
+c5 create inbox/5
+c6 create inbox/6
+receive 6
+c1 OK done
+c2 OK done
+c3 OK done
+c4 OK done
+c5 OK done
+c6 OK done
+# because status can be executed in parallel, sending all these almost
+# guarantees that the responses come back in the wrong order.
+# send 6
+# s1 status inbox/1 (unseen uidnext)
+# s2 status inbox/2 (unseen uidnext)
+# s3 status inbox/3 (unseen uidnext)
+# s4 status inbox/4 (unseen uidnext)
+# s5 status inbox/5 (unseen uidnext)
+# s6 status inbox/6 (unseen uidnext)
+# receive 12
+# * STATUS inbox/1 (UIDNEXT 1 UNSEEN 0)
+# s1 OK done
+# * STATUS inbox/2 (UIDNEXT 1 UNSEEN 0)
+# s2 OK done
+# * STATUS inbox/3 (UIDNEXT 1 UNSEEN 0)
+# s3 OK done
+# * STATUS inbox/4 (UIDNEXT 1 UNSEEN 0)
+# s4 OK done
+# * STATUS inbox/5 (UIDNEXT 1 UNSEEN 0)
+# s5 OK done
+# * STATUS inbox/6 (UIDNEXT 1 UNSEEN 0)
+# s6 OK done
+send 1
+s1 status inbox/1 (unseen uidnext)
+receive 2
+* STATUS "inbox/1" (UIDNEXT 1 UNSEEN 0)
+s1 OK done
+send 1
+s2 status inbox/2 (unseen uidnext)
+receive 2
+* STATUS "inbox/2" (UIDNEXT 1 UNSEEN 0)
+s2 OK done
+send 1
+s3 status inbox/3 (unseen uidnext)
+receive 2
+* STATUS "inbox/3" (UIDNEXT 1 UNSEEN 0)
+s3 OK done
+send 1
+s4 status inbox/4 (unseen uidnext)
+receive 2
+* STATUS "inbox/4" (UIDNEXT 1 UNSEEN 0)
+s4 OK done
+send 1
+s5 status inbox/5 (unseen uidnext)
+receive 2
+* STATUS "inbox/5" (UIDNEXT 1 UNSEEN 0)
+s5 OK done
+send 1
+s6 status inbox/6 (unseen uidnext highestmodseq)
+receive 2
+* STATUS "inbox/6" (UIDNEXT 1 UNSEEN 0 HIGHESTMODSEQ 1)
+s6 OK done
+send 1
+m status INBOX (highestmodseq)
+receive 2
+* STATUS INBOX (HIGHESTMODSEQ 5)
+m OK done
+end

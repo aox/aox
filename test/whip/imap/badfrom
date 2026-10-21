@@ -1,0 +1,59 @@
+# check that if we receive mail with a nice envelope sender and a
+# no-bounce from field, we mix the two to create a less broken from
+# field.
+depends empty-inbox
+protocol lmtp submit
+receive 1
+220 LMTP imapscript.test.oryx.com
+send 1
+LHLO localhost
+receive 10
+250-imapscript.test.oryx.com
+250-BURL IMAP IMAP://imapscript.test.oryx.com
+250-ENHANCEDSTATUSCODES
+250-BINARYMIME
+250-PIPELINING
+250-8BITMIME
+250-CHUNKING
+250-SMTPUTF8
+250-STARTTLS
+250 DSN
+send 1
+mail from:<whatever@test.oryx.com> x-oryx-id=1 x-oryx-time=1181649536
+receive 1
+250 2.1.0 Accepted message from whatever@test.oryx.com
+send 1
+rcpt to:<script@test.oryx.com>
+receive 1
+250 2.1.5 Will send to script@test.oryx.com
+send 1
+data
+receive 1
+354 Go ahead (1 local recipients)
+send 7
+From: "Do Not Reply" <>
+To: script@test.oryx.com
+Date: Wed, 7 Sep 2005 16:53:18 -0000
+Message-ID: <41432431243242314234231432432431242343243243432423143241234231423@test.oryx.com>
+
+Woo!
+.
+receive 1
+250 2.1.5 script@test.oryx.com: OK
+use main
+send 1
+a noop
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK done
+send 1
+b fetch 1 body.peek[header.fields (from)]
+receive 5
+* 1 FETCH (BODY[HEADER.FIELDS (From)] {32}
+From: whatever@test.oryx.com
+
+)
+b OK done
+end
