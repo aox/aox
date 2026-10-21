@@ -234,7 +234,11 @@ void Listext::execute()
             if ( !p.startsWith( "/" ) ) {
                 p = d->reference->name();
                 if ( !i->isEmpty() ) {
-                    p.append( "/" );
+                    // the root's name is "/", so it supplies the
+                    // separator itself; the matcher below works the
+                    // same way
+                    if ( !p.endsWith( "/" ) )
+                        p.append( "/" );
                     p.append( *i );
                 }
             }

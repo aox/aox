@@ -1395,9 +1395,12 @@ EString Command::imapQuoted( Mailbox * m, Mailbox * r )
         else if ( imap()->prefersAbsoluteMailboxes() )
             rel = false; // past commands used absolute names
     }
-    // find the actual name to return
+    // find the actual name to return. the length test keeps the
+    // absolute name for the base mailbox itself, since relative to
+    // itself it would be the empty string, which no client can use.
     UString n = m->name();
-    if ( rel && base != Mailbox::root() )
+    if ( rel && base != Mailbox::root() &&
+         n.length() > base->name().length() )
         n = n.mid( base->name().length() + 1 );
     // pick the right way to encode the string
     Codec * c = 0;

@@ -1,0 +1,239 @@
+depends subscribe
+send 1
+a0 list "" ""
+receive 2
+* LIST () "/" ""
+a0 OK done
+send 1
+a1 list "/" ""
+receive 2
+* LIST () "/" "/"
+a1 OK done
+send 1
+a2 list "" ("" "/")
+receive 3
+* LIST (\haschildren) "/" "/"
+* LIST (\haschildren) "/" "/users/script"
+a2 OK done
+send 1
+a list "" *
+receive 9
+* LIST (\haschildren) "/" INBOX
+* LIST (\haschildren) "/" "inbox/a"
+* LIST (\hasnochildren) "/" "inbox/a/1"
+* LIST (\haschildren) "/" "inbox/b"
+* LIST (\hasnochildren) "/" "inbox/b/2"
+* LIST (\haschildren) "/" "inbox/c"
+* LIST (\hasnochildren) "/" "inbox/c/3"
+* LIST (\hasnochildren) "/" "INBOX/subscribe"
+a OK done
+send 2
+b subscribe inbox
+c list (subscribed) "" *
+receive 7
+b OK done
+* LIST (\haschildren \subscribed) "/" INBOX
+* LIST (\hasnochildren \subscribed) "/" "inbox/a/1"
+* LIST (\hasnochildren \subscribed) "/" "inbox/b/2"
+* LIST (\hasnochildren \subscribed) "/" "inbox/c/3"
+* LIST (\hasnochildren \subscribed) "/" "INBOX/subscribe"
+c OK done
+send 1
+d list (remote) "" *
+receive 9
+* LIST (\haschildren) "/" INBOX
+* LIST (\haschildren) "/" "inbox/a"
+* LIST (\hasnochildren) "/" "inbox/a/1"
+* LIST (\haschildren) "/" "inbox/b"
+* LIST (\hasnochildren) "/" "inbox/b/2"
+* LIST (\haschildren) "/" "inbox/c"
+* LIST (\hasnochildren) "/" "inbox/c/3"
+* LIST (\hasnochildren) "/" "INBOX/subscribe"
+d OK done
+send 1
+e list (recursivematch subscribed) "" %
+receive 2
+* LIST (\haschildren \subscribed) "/" INBOX (("childinfo" ("subscribed")))
+e OK done
+send 1
+f list "" % return (subscribed)
+receive 2
+* LIST (\haschildren \subscribed) "/" INBOX
+f OK done
+send 1
+g list (recursivematch subscribed) "" * return (subscribed)
+receive 9
+* LIST (\haschildren \subscribed) "/" INBOX (("childinfo" ("subscribed")))
+* LIST (\haschildren) "/" "inbox/a" (("childinfo" ("subscribed")))
+* LIST (\hasnochildren \subscribed) "/" "inbox/a/1"
+* LIST (\haschildren) "/" "inbox/b" (("childinfo" ("subscribed")))
+* LIST (\hasnochildren \subscribed) "/" "inbox/b/2"
+* LIST (\haschildren) "/" "inbox/c" (("childinfo" ("subscribed")))
+* LIST (\hasnochildren \subscribed) "/" "inbox/c/3"
+* LIST (\hasnochildren \subscribed) "/" "INBOX/subscribe"
+g OK done
+send 1
+x create pqr
+receive 1
+x OK done
+send 1
+x create pqr/rfb
+receive 1
+x OK done
+send 1
+h list pqr %
+receive 2
+* LIST (\hasnochildren) "/" "pqr/rfb"
+h OK done
+send 1
+i list pqr/ %
+receive 2
+* LIST (\hasnochildren) "/" "pqr/rfb"
+i OK done
+send 1
+x delete pqr/rfb
+receive 1
+x OK done
+send 1
+x delete pqr
+receive 1
+x OK done
+send 1
+j LIST "" /users/script
+receive 2
+* LIST (\haschildren) "/" "/users/script"
+j OK done
+send 1
+k LIST "" /users/s*
+receive 10
+* LIST (\haschildren) "/" "/users/script"
+* LIST (\haschildren) "/" INBOX
+* LIST (\haschildren) "/" "inbox/a"
+* LIST (\hasnochildren) "/" "inbox/a/1"
+* LIST (\haschildren) "/" "inbox/b"
+* LIST (\hasnochildren) "/" "inbox/b/2"
+* LIST (\haschildren) "/" "inbox/c"
+* LIST (\hasnochildren) "/" "inbox/c/3"
+* LIST (\hasnochildren) "/" "INBOX/subscribe"
+k OK done
+send 1
+l LIST "/" /users/s*
+receive 10
+* LIST (\haschildren) "/" "/users/script"
+* LIST (\haschildren) "/" INBOX
+* LIST (\haschildren) "/" "inbox/a"
+* LIST (\hasnochildren) "/" "inbox/a/1"
+* LIST (\haschildren) "/" "inbox/b"
+* LIST (\hasnochildren) "/" "inbox/b/2"
+* LIST (\haschildren) "/" "inbox/c"
+* LIST (\hasnochildren) "/" "inbox/c/3"
+* LIST (\hasnochildren) "/" "INBOX/subscribe"
+l OK done
+send 1
+m LIST "/" users/s*
+receive 10
+* LIST (\haschildren) "/" "/users/script"
+* LIST (\haschildren) "/" INBOX
+* LIST (\haschildren) "/" "inbox/a"
+* LIST (\hasnochildren) "/" "inbox/a/1"
+* LIST (\haschildren) "/" "inbox/b"
+* LIST (\hasnochildren) "/" "inbox/b/2"
+* LIST (\haschildren) "/" "inbox/c"
+* LIST (\hasnochildren) "/" "inbox/c/3"
+* LIST (\hasnochildren) "/" "INBOX/subscribe"
+m OK done
+send 1
+n LIST "/users" s*
+receive 10
+* LIST (\haschildren) "/" "/users/script"
+* LIST (\haschildren) "/" INBOX
+* LIST (\haschildren) "/" "inbox/a"
+* LIST (\hasnochildren) "/" "inbox/a/1"
+* LIST (\haschildren) "/" "inbox/b"
+* LIST (\hasnochildren) "/" "inbox/b/2"
+* LIST (\haschildren) "/" "inbox/c"
+* LIST (\hasnochildren) "/" "inbox/c/3"
+* LIST (\hasnochildren) "/" "INBOX/subscribe"
+n OK done
+send 1
+o LIST "/Users" s*
+receive 10
+* LIST (\haschildren) "/" "/users/script"
+* LIST (\haschildren) "/" INBOX
+* LIST (\haschildren) "/" "inbox/a"
+* LIST (\hasnochildren) "/" "inbox/a/1"
+* LIST (\haschildren) "/" "inbox/b"
+* LIST (\hasnochildren) "/" "inbox/b/2"
+* LIST (\haschildren) "/" "inbox/c"
+* LIST (\hasnochildren) "/" "inbox/c/3"
+* LIST (\hasnochildren) "/" "INBOX/subscribe"
+o OK done
+send 1
+p LIST "/users/" s*
+receive 10
+* LIST (\haschildren) "/" "/users/script"
+* LIST (\haschildren) "/" INBOX
+* LIST (\haschildren) "/" "inbox/a"
+* LIST (\hasnochildren) "/" "inbox/a/1"
+* LIST (\haschildren) "/" "inbox/b"
+* LIST (\hasnochildren) "/" "inbox/b/2"
+* LIST (\haschildren) "/" "inbox/c"
+* LIST (\hasnochildren) "/" "inbox/c/3"
+* LIST (\hasnochildren) "/" "INBOX/subscribe"
+p OK done
+send 1
+q LIST "/Users/" S*
+receive 10
+* LIST (\haschildren) "/" "/users/script"
+* LIST (\haschildren) "/" INBOX
+* LIST (\haschildren) "/" "inbox/a"
+* LIST (\hasnochildren) "/" "inbox/a/1"
+* LIST (\haschildren) "/" "inbox/b"
+* LIST (\hasnochildren) "/" "inbox/b/2"
+* LIST (\haschildren) "/" "inbox/c"
+* LIST (\hasnochildren) "/" "inbox/c/3"
+* LIST (\hasnochildren) "/" "INBOX/subscribe"
+q OK done
+send 1
+r LIST "/Users/" "S*"
+receive 10
+* LIST (\haschildren) "/" "/users/script"
+* LIST (\haschildren) "/" INBOX
+* LIST (\haschildren) "/" "inbox/a"
+* LIST (\hasnochildren) "/" "inbox/a/1"
+* LIST (\haschildren) "/" "inbox/b"
+* LIST (\hasnochildren) "/" "inbox/b/2"
+* LIST (\haschildren) "/" "inbox/c"
+* LIST (\hasnochildren) "/" "inbox/c/3"
+* LIST (\hasnochildren) "/" "INBOX/subscribe"
+r OK done
+send 1
+s list "" *inbox*
+receive 9
+* LIST (\haschildren) "/" INBOX
+* LIST (\haschildren) "/" "inbox/a"
+* LIST (\hasnochildren) "/" "inbox/a/1"
+* LIST (\haschildren) "/" "inbox/b"
+* LIST (\hasnochildren) "/" "inbox/b/2"
+* LIST (\haschildren) "/" "inbox/c"
+* LIST (\hasnochildren) "/" "inbox/c/3"
+* LIST (\hasnochildren) "/" "INBOX/subscribe"
+s OK done
+send 1
+t1 create testnew.16/test3/test4
+receive 1
+t1 OK done
+send 1
+t2 list "" testnew.16/*test4
+receive 2
+* LIST (\hasnochildren) "/" "testnew.16/test3/test4"
+t2 OK done
+send 1
+c list (subscribed recursivematch) "" inbox/%
+receive 5
+* LIST (\haschildren) "/" "inbox/a" (("childinfo" ("subscribed")))
+* LIST (\haschildren) "/" "inbox/b" (("childinfo" ("subscribed")))
+* LIST (\haschildren) "/" "inbox/c" (("childinfo" ("subscribed")))
+* LIST (\hasnochildren \subscribed) "/" "INBOX/subscribe"
+c OK done
+end
