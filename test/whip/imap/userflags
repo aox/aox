@@ -1,0 +1,29 @@
+depends store
+send 1
+a store 1:* +flags inventive
+receive 5
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen a1 a2 a3 a4 a5 a6 a7 inventive)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen a1 a2 a3 a4 a5 a6 a7 inventive \*)] permanent flags
+* 1 FETCH (UID 1 FLAGS (\Deleted \Recent a1 a2 a3 a4 inventive))
+* 2 FETCH (UID 3 FLAGS (\Deleted \Recent \Seen a1 a2 a3 a4 inventive))
+a OK done
+send 1
+b fetch 2 flags
+receive 2
+* 2 FETCH (FLAGS (\Deleted \Recent \Seen a1 a2 a3 a4 inventive))
+b OK done
+send 1
+c uid search keyword inventive
+receive 2
+* SEARCH 1 3
+c OK done
+send 1
+d uid search seen keyword inventive
+receive 2
+* SEARCH 3
+d OK done
+send 1
+e store 1 -flags.silent inventive
+receive 1
+e OK done
+end

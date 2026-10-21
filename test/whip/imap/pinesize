@@ -1,0 +1,133 @@
+depends empty-inbox
+send 40
+a append INBOX () "09-FEB-2006 16:41:00 +0200" {1813+}
+Received: from 127.0.0.1 (HELO localhost) by dock17 with lmtp id
+    1138747697-17222-2; Tue, 31 Jan 2006 22:48:17 +0000
+Received: from alster.froglogic.com [192.168.0.7]
+	by localhost with POP3 (fetchmail-6.2.5)
+	for porten@froglogic.com (single-drop); Tue, 31 Jan 2006 23:48:17 +0100 (CET)
+Received: from webmail.hansenet.de (mail02.hansenet.de [213.191.73.62])
+	by alster.froglogic.com (8.12.6/8.12.6/SuSE Linux 0.6) with ESMTP
+    id k0VMPKW9024253
+	for <porten@froglogic.com>; Tue, 31 Jan 2006 23:25:20 +0100
+Received: from localhost.localdomain (85.176.93.188) by webmail.hansenet.de
+    (7.2.059) (authenticated as harri.porten@hanse.net)
+        id 43D624570021A92B for porten@froglogic.com; Tue,
+     31 Jan 2006 18:58:28 +0100
+Received: from porten by localhost.localdomain with local (Exim 4.50)
+	id 1F3zkT-0001sK-IH
+	for porten@froglogic.com; Tue, 31 Jan 2006 18:57:01 +0100
+From: Cron Daemon <root@froglogic.com>
+To: porten@froglogic.com
+Subject: Cron <porten@dock17> cd /var/www/eventum/misc; php -q
+ process_mail_queue.php
+X-Cron-Env: <SHELL=/bin/sh>
+X-Cron-Env: <HOME=/home/porten>
+X-Cron-Env: <PATH=/usr/bin:/bin>
+X-Cron-Env: <LOGNAME=porten>
+Message-Id: <E1F3zkT-0001sK-IH@localhost.localdomain>
+Date: Tue, 31 Jan 2006 18:57:01 +0100
+X-Spam-Checker-Version: SpamAssassin 2.63 (2004-01-11) on
+    alster.froglogic.com
+X-Spam-Status: No, hits=-4.7 required=5.0 tests=AWL,BAYES_00 autolearn=ham
+	version=2.63
+X-Spam-Level: 
+X-Uidl: X:O!!nOp"!Dki"!D'!#!
+Status: RO
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain
+Mime-Version: 1.0
+Return-Path: <porten@froglogic.com>
+
+ERROR: There is already a process (pid=5433) of this script running. If this is not accurate, you may fix it by running this script with '--fix-lock' as the only parameter.
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+b fetch 1 rfc822.size
+receive 2
+* 1 FETCH (RFC822.SIZE 1819)
+b OK done
+send 1
+c fetch 1 rfc822
+receive 45
+* 1 FETCH (UID 1 FLAGS (\Recent \Seen))
+* 1 FETCH (RFC822 {1819}
+Received: from 127.0.0.1 (HELO localhost) by dock17 with lmtp id
+    1138747697-17222-2; Tue, 31 Jan 2006 22:48:17 +0000
+Received: from alster.froglogic.com [192.168.0.7]
+	by localhost with POP3 (fetchmail-6.2.5)
+	for porten@froglogic.com (single-drop); Tue, 31 Jan 2006 23:48:17 +0100 (CET)
+Received: from webmail.hansenet.de (mail02.hansenet.de [213.191.73.62])
+	by alster.froglogic.com (8.12.6/8.12.6/SuSE Linux 0.6) with ESMTP
+    id k0VMPKW9024253
+	for <porten@froglogic.com>; Tue, 31 Jan 2006 23:25:20 +0100
+Received: from localhost.localdomain (85.176.93.188) by webmail.hansenet.de
+    (7.2.059) (authenticated as harri.porten@hanse.net)
+        id 43D624570021A92B for porten@froglogic.com; Tue,
+     31 Jan 2006 18:58:28 +0100
+Received: from porten by localhost.localdomain with local (Exim 4.50)
+	id 1F3zkT-0001sK-IH
+	for porten@froglogic.com; Tue, 31 Jan 2006 18:57:01 +0100
+From: Cron Daemon <root@froglogic.com>
+To: porten@froglogic.com
+Subject: Cron <porten@dock17> cd /var/www/eventum/misc; php -q
+ process_mail_queue.php
+X-Cron-Env: <SHELL=/bin/sh>
+X-Cron-Env: <HOME=/home/porten>
+X-Cron-Env: <PATH=/usr/bin:/bin>
+X-Cron-Env: <LOGNAME=porten>
+Message-Id: <E1F3zkT-0001sK-IH@localhost.localdomain>
+Date: Tue, 31 Jan 2006 18:57:01 +0100
+X-Spam-Checker-Version: SpamAssassin 2.63 (2004-01-11) on
+    alster.froglogic.com
+X-Spam-Status: No, hits=-4.7 required=5.0 tests=AWL,BAYES_00 autolearn=ham
+	version=2.63
+X-Spam-Level: 
+X-Uidl: X:O!!nOp"!Dki"!D'!#!
+Status: RO
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain
+Mime-Version: 1.0
+Return-Path: <porten@froglogic.com>
+
+ERROR: There is already a process (pidT33) of this script running. If =
+this is not accurate, you may fix it by running this script with =
+'--fix-lock' as the only parameter.
+)
+c OK done
+send 8
+d append INBOX () "09-FEB-2006 16:41:00 +0200" {261+}
+From: nobody@example.com
+To: porten@froglogic.com
+Subject: Test 
+Date: Fri, 17 Feb 2006 08:55:02 +0100
+
+         1         2         3         4         5         6         7
+1234567890123456789012345678901234567890123456789012345678901234567890123456789
+receive 4
+* 2 EXISTS
+* 2 RECENT
+* OK [UIDNEXT 3] next uid
+d OK [APPENDUID 1 2] done
+send 1
+e fetch 2 (rfc822 rfc822.size)
+receive 15
+* 2 FETCH (UID 2 FLAGS (\Recent \Seen))
+* 2 FETCH (RFC822.SIZE 354 RFC822 {354}
+From: nobody@example.com
+To: porten@froglogic.com
+Subject: Test
+Date: Fri, 17 Feb 2006 08:55:02 +0100
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0
+
+         1         2         3         4         5         6         7
+1234567890123456789012345678901234567890123456789012345678901234567890123=
+456789
+)
+e OK done
+end

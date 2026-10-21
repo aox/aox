@@ -1,0 +1,51 @@
+# checks that flag handling is case insensitive, as it should be.
+#
+# depends on obliterate to remove both lowercase, LOWERCASE abd
+# LoWeRCaSe from flag_names before the store.
+#
+depends append
+send 1
+a fetch 1 flags
+receive 2
+* 1 FETCH (FLAGS (\Recent))
+a OK done
+send 1
+b store 1 +flags lowercase LOWERCASE LoWeRCaSe
+receive 4
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen lowercase)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen lowercase \*)] permanent flags
+* 1 FETCH (UID 1 FLAGS (\Recent lowercase))
+b OK done
+send 3
+c store 1 +flags lowercase
+c store 1 +flags lowercase
+c store 1 +flags lowercase
+receive 3
+c OK done
+c OK done
+c OK done
+# The first store of a new flag goes alone. Three at once would race to
+# create it, two could both write, and the number of FETCH responses
+# would depend on the timing.
+send 1
+d store 1 +flags UPPERCASE
+receive 4
+* FLAGS (UPPERCASE \Answered \Deleted \Draft \Flagged \Seen lowercase)
+* OK [PERMANENTFLAGS (UPPERCASE \Answered \Deleted \Draft \Flagged \Seen lowercase \*)] permanent flags
+* 1 FETCH (UID 1 FLAGS (\Recent lowercase UPPERCASE))
+d OK done
+send 2
+d store 1 +flags UPPERCASE
+d store 1 +flags UPPERCASE
+receive 2
+d OK done
+d OK done
+send 3
+e store 1 +flags Uppercase
+e store 1 +flags UPpercase
+e store 1 +flags UPPercase
+receive 3
+e OK done
+e OK done
+e OK done
+end
