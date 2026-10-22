@@ -344,10 +344,7 @@ void Query::bind( uint n, const EStringList & l )
         EStringList::Iterator it( l );
         while ( it ) {
             EString t( *it );
-            if ( t.boring() )
-                s.append( t );
-            else
-                s.append( t.quoted() );
+            s.append( t.quoted() );
             ++it;
             if ( it )
                 s.append( "," );
@@ -377,10 +374,7 @@ void Query::bind( uint n, const UStringList & l )
         UStringList::Iterator it( l );
         while ( it ) {
             EString t( p.fromUnicode( *it ) );
-            if ( t.boring() )
-                s.append( t );
-            else
-                s.append( t.quoted() );
+            s.append( t.quoted() );
             ++it;
             if ( it )
                 s.append( "," );

@@ -1,0 +1,31 @@
+depends empty-inbox
+send 10
+a append inbox () {276+}
+From: Arnt Gulbrandsen <arnt@example.com>
+To: Arnt Gulbrandsen <arnt@example.com>
+Subject: a header field named null
+Date: Tue, 1 Sep 2026 01:27:04 +0000
+Message-Id: <nullfield.1@example.com>
+null: null
+
+Apple mailers send that header, and it used to hang the server.
+
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+b fetch 1 envelope
+receive 2
+* 1 FETCH (ENVELOPE ("Tue, 1 Sep 2026 01:27:04 +0000" "a header field named null" (("Arnt Gulbrandsen" NIL "arnt" "example.com")) NIL NIL (("Arnt Gulbrandsen" NIL "arnt" "example.com")) NIL NIL NIL "<nullfield.1@example.com>"))
+b OK done
+send 1
+c fetch 1 body.peek[header.fields (null)]
+receive 5
+* 1 FETCH (BODY[HEADER.FIELDS (Null)] {14}
+Null: null
+
+)
+c OK done
+end
