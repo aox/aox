@@ -847,12 +847,23 @@ EString Fetch::sectionData( Section * s, Message * m, bool unicodable )
         data.reserve( 80 * s->fields.count() ); // suboptimal for .not, but...
 
         Header * hdr = m->header();
+        bool mimeOnly = false;
         if ( !s->part.isEmpty() ) {
             Bodypart * bp = m->bodypart( s->part, false );
             if ( bp && bp->header() )
                 hdr = bp->header();
             else
                 hdr = 0;
+            // The sole part of a non-multipart message has no MIME
+            // header of its own: the message's Content-* fields
+            // describe it. Its other fields describe the message, not
+            // the part, so they stay out.
+            if ( s->id == "mime" && bp &&
+                 ( !m->header()->contentType() ||
+                   m->header()->contentType()->type() != "multipart" ) ) {
+                hdr = m->header();
+                mimeOnly = true;
+            }
         }
 
         List< HeaderField >::Iterator it;
@@ -869,6 +880,23 @@ EString Fetch::sectionData( Section * s, Message * m, bool unicodable )
                     include = !listed;
                 else
                     include = listed;
+            }
+            if ( include && mimeOnly ) {
+                switch ( it->type() ) {
+                case HeaderField::ContentType:
+                case HeaderField::ContentTransferEncoding:
+                case HeaderField::ContentDisposition:
+                case HeaderField::ContentDescription:
+                case HeaderField::ContentId:
+                case HeaderField::ContentLanguage:
+                case HeaderField::ContentLocation:
+                case HeaderField::ContentMd5:
+                case HeaderField::MimeVersion:
+                    break;
+                default:
+                    include = false;
+                    break;
+                }
             }
             if ( include ) {
                 EString n = it->name().headerCased();
