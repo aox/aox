@@ -3,10 +3,13 @@
 # id, its uidvalidity and its UIDs, so both sessions carry on under the
 # new name.
 #
-# Renaming inbox leaves a new, empty inbox behind. It inherits uidnext
-# and uidvalidity from the mailbox we moved away, so that a client which
-# cached inbox and never noticed the rename cannot be handed UIDs it has
-# already seen attached to different messages.
+# Renaming inbox leaves a new, empty inbox behind. That is a different
+# mailbox holding the same name, and the UIDs that used to live under
+# the name went with the mailbox we moved away, so it gets a higher
+# uidvalidity: RFC3501 2.3.1.1 requires one when the UIDs do not
+# persist. It inherits uidnext as well, so that a client which cached
+# inbox and never noticed the rename cannot be handed a UID it has
+# already seen attached to a different message.
 depends 2180base
 send 1
 a rename inbox x
@@ -28,7 +31,7 @@ c OK done
 send 1
 d status inbox (messages uidnext uidvalidity)
 receive 2
-* STATUS INBOX (MESSAGES 0 UIDNEXT 5 UIDVALIDITY 1)
+* STATUS INBOX (MESSAGES 0 UIDNEXT 5 UIDVALIDITY 2)
 d OK done
 use watcher
 send 1

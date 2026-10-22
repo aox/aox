@@ -126,7 +126,11 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent,
 
     // insert a deleted placeholder to ensure that uidnext/uidvalidity
     // will be okay if a new mailbox is created with the same name as
-    // this one used to have
+    // this one used to have. the uids that lived under this name have
+    // moved to the new name, so whatever holds this name next must
+    // not claim them: RFC3501 2.3.1.1 requires a higher uidvalidity.
+    // RENAME INBOX makes this visible at once, since it un-deletes
+    // this very row to serve as the new, empty INBOX.
     if ( to ) {
         // if we have the old mailbox, use it
         q = new Query( "update mailboxes "
@@ -142,7 +146,7 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent,
     }
     q->bind( 1, p->from->name() );
     q->bind( 2, p->from->uidnext() );
-    q->bind( 3, p->from->uidvalidity() );
+    q->bind( 3, p->from->uidvalidity() + 1 );
     t->enqueue( q );
 
     // process the from mailbox' children recursively

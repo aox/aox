@@ -1,0 +1,128 @@
+depends empty-inbox
+send 1
+x create foo
+receive 1
+x OK done
+send 1
+x list "" foo*
+receive 2
+* LIST (\hasnochildren) "/" foo
+x OK done
+send 1
+a rename nonexistent broken
+receive 1
+a NO No such mailbox: /users/script/nonexistent
+send 1
+b rename foo INBOX
+receive 1
+b NO [ALREADYEXISTS] Destination mailbox exists: /users/script/INBOX
+send 1
+c rename foo baz
+receive 1
+c OK done
+send 1
+x list "" foo*
+receive 1
+x OK done
+send 1
+x delete baz
+receive 1
+x OK done
+send 1
+x create foo
+receive 1
+x OK done
+send 1
+x create foo/foo
+receive 1
+x OK done
+send 1
+x create foo/bar
+receive 1
+x OK done
+# No test for renaming onto a parent that was created implicitly,
+# as a side effect of creating its child. Such a parent is an
+# ordinary mailbox, so the rename fails the same way as onto any
+# other existing mailbox.
+send 1
+e rename foo bar
+receive 1
+e OK done
+send 1
+x delete bar
+receive 1
+x OK done
+send 1
+x delete bar/foo
+receive 1
+x OK done
+send 1
+x delete bar/bar
+receive 1
+x OK done
+send 7
+x append INBOX () "07-NOV-2005 18:02:43 +0530" {126+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Fri, 11 Nov 2005 18:02:43 +0530
+
+asdf
+a
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+x OK [APPENDUID 1 1] done
+# Renaming INBOX while it is selected is allowed: the session stays
+# with the mailbox, which keeps its messages, uids and uidvalidity
+# under the new name. The new INBOX is a different mailbox that
+# happens to hold the same name, so it needs a higher uidvalidity,
+# or a client would reuse a cache that no longer describes it.
+send 1
+f rename INBOX moved
+receive 1
+f OK done
+send 1
+f2 status INBOX (messages uidvalidity)
+receive 2
+* STATUS INBOX (MESSAGES 0 UIDVALIDITY 2)
+f2 OK done
+send 1
+f3 status moved (messages uidvalidity)
+receive 2
+* STATUS moved (MESSAGES 1 UIDVALIDITY 1)
+f3 OK done
+# Both mailboxes carry on allocating UIDs from the counter the new
+# INBOX inherited, so the next message in each gets UID 2. The only
+# thing that keeps them apart in a client's cache is the uidvalidity,
+# and this session still believes it is reading INBOX.
+send 7
+g append moved () "07-NOV-2005 18:02:43 +0530" {126+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Fri, 11 Nov 2005 18:02:43 +0530
+
+asdf
+a
+receive 4
+* 2 EXISTS
+* 2 RECENT
+* OK [UIDNEXT 3] next uid
+g OK [APPENDUID 1 2] done
+send 7
+h append INBOX () "07-NOV-2005 18:02:43 +0530" {126+}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Fri, 11 Nov 2005 18:02:43 +0530
+
+asdf
+a
+receive 1
+h OK [APPENDUID 2 2] done
+send 1
+x list "" *
+receive 3
+* LIST (\hasnochildren) "/" INBOX
+* LIST (\hasnochildren) "/" moved
+x OK done
+end
