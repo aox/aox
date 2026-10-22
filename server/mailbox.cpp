@@ -502,7 +502,7 @@ Mailbox * Mailbox::closestParent( const UString & name )
         Mailbox * m = obtain( n );
         if ( m->isHome() )
             return m;
-        if ( !m->deleted() )
+        if ( !m->deleted() && m->id() )
             return m;
     } while ( true );
 

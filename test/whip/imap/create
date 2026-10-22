@@ -1,0 +1,34 @@
+depends login
+send 1
+a create INBOX
+receive 1
+a NO INBOX always exists
+send 1
+a create InBox
+receive 1
+a NO INBOX always exists
+send 1
+a create inbox
+receive 1
+a NO INBOX always exists
+send 1
+a create /users/script/INBOX
+receive 1
+a NO INBOX always exists
+send 1
+a create /newtoplevel
+receive 1
+a NO Not permitted. Mailbox: / Missing right: Create Mailboxes
+send 1
+a create /users/doesnotexist
+receive 1
+a NO Not permitted. Mailbox: /users Missing right: Create Mailboxes
+send 1
+a create /users/heidi/INBOX/blah
+receive 1
+a NO Not permitted. Mailbox: /users Missing right: Create Mailboxes
+send 1
+a create /users/script//test1
+receive 1
+a BAD Syntax error in mailbox name: /users/script//test1
+end
