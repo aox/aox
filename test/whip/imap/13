@@ -188,10 +188,28 @@ Rm9vYmFyLg==
 --Y--
 )
 d OK done
+# 3 is a message/rfc822 part, so 3.HEADER is the header of the message
+# it encapsulates, and 3.MIME is the part's own header. RFC3501 6.4.5
+# allows a numeric prefix on HEADER only for such a part, and means the
+# encapsulated message by it.
 send 1
 d fetch 1 body.peek[3.header]
+receive 11
+* 1 FETCH (BODY[3.HEADER] {256}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Abhijit Menon-Sen <ams@oryx.com>
+Subject: embedded rfc822 message
+Date: Thu, 20 May 2004 14:28:50 +0200
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=Y
+Content-Description: Part number 3.TEXT
+
+)
+d OK done
+send 1
+d fetch 1 body.peek[3.mime]
 receive 6
-* 1 FETCH (BODY[3.HEADER] {68}
+* 1 FETCH (BODY[3.MIME] {68}
 Content-Type: message/rfc822
 Content-Description: Part number 3
 

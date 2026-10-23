@@ -1,0 +1,153 @@
+depends empty-inbox
+# the 4134 test first, it's rather simple
+send 41
+a append inbox {1945+}
+MIME-Version: 1.0
+To: User2@examples.com
+From: aliceDss@examples.com
+Subject: Example 4.8
+Message-Id: <020906002550300.249@examples.com>
+Date: Fri, 06 Sep 2002 00:25:21 -0300
+Content-Type: multipart/signed;
+    micalg=SHA1;
+    boundary="----=_NextBoundry____Fri,_06_Sep_2002_00:25:21";
+    protocol="application/pkcs7-signature"
+
+This is a multi-part message in MIME format.
+
+------=_NextBoundry____Fri,_06_Sep_2002_00:25:21
+
+This is some sample content.
+------=_NextBoundry____Fri,_06_Sep_2002_00:25:21
+Content-Type: application/pkcs7-signature; name=smime.p7s
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename=smime.p7s
+
+MIIDdwYJKoZIhvcNAQcCoIIDaDCCA2QCAQExCTAHBgUrDgMCGjALBgkqhkiG9w0BBwGgggL
+gMIIC3DCCApugAwIBAgICAMgwCQYHKoZIzjgEAzASMRAwDgYDVQQDEwdDYXJsRFNTMB4XDT
+k5MDgxNzAxMTA0OVoXDTM5MTIzMTIzNTk1OVowEzERMA8GA1UEAxMIQWxpY2VEU1MwggG2M
+IIBKwYHKoZIzjgEATCCAR4CgYEAgY3N7YPqCp45PsJIKKPkR5PdDteoDuxTxauECE//lOFz
+SH4M1vNESNH+n6+koYkv4dkwyDbeP5u/t0zcX2mK5HXQNwyRCJWb3qde+fz0ny/dQ6iLVPE
+/sAcIR01diMPDtbPjVQh11Tl2EMR4vf+dsISXN/LkURu15AmWXPN+W9sCFQDiR6YaRWa4E8
+baj7g3IStii/eTzQKBgCY40BSJMqo5+z5t2UtZakx2IzkEAjVc8ssaMMMeUF3dm1nizaoFP
+VjAe6I2uG4Hr32KQiWn9HXPSgheSz6Q+G3qnMkhijt2FOnOLl2jB80jhbgvMAF8bUmJEYk2
+RL34yJVKU1a14vlz7BphNh8Rf8K97dFQ/5h0wtGBSmA5ujY5A4GEAAKBgFzjuVp1FJYLqXr
+d4z+p7Kxe3L23ExE0phaJKBEj2TSGZ3V1ExI9Q1tv5VG/+onyohs+JH09B41bY8i7RaWgSu
+OF1s4GgD/oI34a8iSrUxq4Jw0e7wi/ZhSAXGKsZfoVi/G7NNTSljf2YUeyxDKE8H5BQP1Gp
+2NOM/Kl4vTyg+W4o4GBMH8wDAYDVR0TAQH/BAIwADAOBgNVHQ8BAf8EBAMCBsAwHwYDVR0j
+BBgwFoAUcEQ+gi5vh95K03XjPSC8QyuT8R8wHQYDVR0OBBYEFL5sobPjwfftQ3CkzhMB4v3
+jl/7NMB8GA1UdEQQYMBaBFEFsaWNlRFNTQGV4YW1wbGUuY29tMAkGByqGSM44BAMDMAAwLQ
+IUVQykGR9CK4lxIjONg2q1PWdrv0UCFQCfYVNSVAtcst3a53Yd4hBSW0NevTFjMGECAQEwG
+DASMRAwDgYDVQQDEwdDYXJsRFNTAgIAyDAHBgUrDgMCGjAJBgcqhkjOOAQDBC4wLAIUM/mG
+f6gkgp9Z0XtRdGimJeB/BxUCFGFFJqwYRt1WYcIOQoGiaowqGzVI
+
+------=_NextBoundry____Fri,_06_Sep_2002_00:25:21--
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+b fetch 1 body.peek[1]
+receive 4
+* 1 FETCH (BODY[1] {30}
+This is some sample content.
+)
+b OK done
+send 26
+c append inbox {766+}
+To: User3@example.com
+From: aliceDss@example.com
+Message-Id: <xxxxxxxxxxxxxxx020906002550300.249@examples.com>
+Date: Fri, 06 Sep 2002 00:25:21 -0300
+Content-Type: multipart/signed;
+    boundary="----=_NextBoundry____Fri,_06_Sep_2002_00:25:21";
+    protocol="application/x-hack"
+
+------=_NextBoundry____Fri,_06_Sep_2002_00:25:21
+Content-Type: message/rfc822
+
+From: "Arnt Gulbrandsen" <arnt@oryx.com>
+To: "Arnt Gulbrandsen" <arnt@oryx.com>
+Reply-To: "Arnt Gulbrandsen" <arnt@oryx.com>
+Date: Thu, 20 May 2004 14:28:51 +0200
+
+asdf
+------=_NextBoundry____Fri,_06_Sep_2002_00:25:21
+Content-Type: application/x-hack-signature
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment
+
+AAOK
+------=_NextBoundry____Fri,_06_Sep_2002_00:25:21--
+
+receive 4
+* 2 EXISTS
+* 2 RECENT
+* OK [UIDNEXT 3] next uid
+c OK [APPENDUID 1 2] done
+# this one's a little harder. the message 'c' appended has superfluous
+# quoting on the display-name. we have to make sure that when that
+# bodypart is retrieved in its entirety, the quoting is there.
+#
+# we also have to make sure that the addresses are stored in the
+# database for correct searching, which we do by fetching the
+# addresses using header.fields and bodystructure.
+send 1
+d1 fetch 2 bodystructure
+receive 2
+* 2 FETCH (BODYSTRUCTURE (("message" "rfc822" NIL NIL NIL "7BIT" 125 ("Thu, 20 May 2004 14:28:51 +0200" NIL (("Arnt Gulbrandsen" NIL "arnt" "oryx.com")) NIL NIL (("Arnt Gulbrandsen" NIL "arnt" "oryx.com")) NIL NIL NIL NIL) ("text" "plain" NIL NIL NIL "7BIT" 6 1 NIL NIL NIL NIL) 5 NIL NIL NIL NIL)("application" "x-hack-signature" NIL NIL NIL "BASE64" 6 NIL ("attachment" NIL) NIL NIL) "signed" ("protocol" "application/x-hack" "boundary" "----=_NextBoundry____Fri,_06_Sep_2002_00:25:21") NIL NIL NIL))
+d1 OK done
+send 1
+d2 fetch 2 body.peek[1.header.fields (from to reply-to date)]
+receive 7
+* 2 FETCH (BODY[1.HEADER.FIELDS (From To Reply-To Date)] {119}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 20 May 2004 14:28:51 +0200
+
+)
+d2 OK done
+send 1
+d3 fetch 2 body.peek[1]
+receive 8
+* 2 FETCH (BODY[1] {125}
+From: Arnt Gulbrandsen <arnt@oryx.com>
+To: Arnt Gulbrandsen <arnt@oryx.com>
+Date: Thu, 20 May 2004 14:28:51 +0200
+
+asdf
+)
+d3 OK done
+send 1
+d4 fetch 2 body.peek[]
+receive 28
+* 2 FETCH (BODY[] {778}
+To: User3@example.com
+From: aliceDss@example.com
+Message-Id: <xxxxxxxxxxxxxxx020906002550300.249@examples.com>
+Date: Fri, 6 Sep 2002 00:25:21 -0300
+Content-Type: multipart/signed; protocol="application/x-hack";
+ boundary="----=_NextBoundry____Fri,_06_Sep_2002_00:25:21"
+Mime-Version: 1.0
+
+
+------=_NextBoundry____Fri,_06_Sep_2002_00:25:21
+Content-Type: message/rfc822
+
+From: "Arnt Gulbrandsen" <arnt@oryx.com>
+To: "Arnt Gulbrandsen" <arnt@oryx.com>
+Reply-To: "Arnt Gulbrandsen" <arnt@oryx.com>
+Date: Thu, 20 May 2004 14:28:51 +0200
+
+asdf
+------=_NextBoundry____Fri,_06_Sep_2002_00:25:21
+Content-Type: application/x-hack-signature
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment
+
+AAOK
+------=_NextBoundry____Fri,_06_Sep_2002_00:25:21--
+)
+d4 OK done
+end

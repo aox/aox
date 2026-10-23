@@ -854,6 +854,8 @@ EString Fetch::sectionData( Section * s, Message * m, bool unicodable )
                 hdr = bp->header();
             else
                 hdr = 0;
+            if ( s->id != "mime" && bp && bp->message() )
+                hdr = bp->message()->header();
             // The sole part of a non-multipart message has no MIME
             // header of its own: the message's Content-* fields
             // describe it. Its other fields describe the message, not
