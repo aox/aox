@@ -1,0 +1,34 @@
+depends login
+send 2
+a create INBOX/a
+b delete INBOX/a
+receive 2
+a OK done
+b OK done
+send 2
+c create /users/script/INBOX/b
+d delete INBOX/b
+receive 2
+c OK done
+d OK done
+send 2
+e create INBOX/c
+f delete /users/script/INBOX/c
+receive 2
+e OK done
+f OK done
+send 2
+g create /users/script/INBOX/d
+h delete /users/script/INBOX/d
+receive 2
+g OK done
+h OK done
+send 1
+i delete /users
+receive 1
+i NO Not permitted. Mailbox: /users Missing rights: Delete Mailbox, Delete Messages, Expunge
+send 1
+j delete inbox
+receive 1
+j NO Cannot delete INBOX
+end

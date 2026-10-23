@@ -4,6 +4,7 @@
 
 #include "integerset.h"
 #include "estringlist.h"
+#include "dict.h"
 #include "mailbox.h"
 #include "event.h"
 #include "query.h"
@@ -516,14 +517,40 @@ bool PermissionsChecker::ready() const
 
 EString PermissionsChecker::error() const
 {
-    EStringList l;
+    // One sentence per mailbox, listing the rights it lacks. A tagged
+    // response is a single line, and Command::permitted() flattens
+    // this, so repeating the mailbox name once per right would read
+    // as several sentences run together.
+    EStringList order;
+    Dict<EStringList> missing;
     List<PermissionsCheckerData::Pair>::Iterator i( d->l );
     while ( i ) {
-        if ( !i->p->allowed( i->r ) )
-            l.append( "Not permitted. Mailbox: " +
-                      i->p->mailbox()->name().ascii() +
-                      " Missing right: " + rightNames[i->r] );
+        if ( !i->p->allowed( i->r ) ) {
+            EString n = i->p->mailbox()->name().ascii();
+            EStringList * r = missing.find( n );
+            if ( !r ) {
+                r = new EStringList;
+                missing.insert( n, r );
+                order.append( n );
+            }
+            r->append( rightNames[i->r] );
+        }
         ++i;
+    }
+
+    EStringList l;
+    EStringList::Iterator n( order );
+    while ( n ) {
+        EStringList * r = missing.find( *n );
+        EString s( "Not permitted. Mailbox: " );
+        s.append( *n );
+        if ( r->count() == 1 )
+            s.append( " Missing right: " );
+        else
+            s.append( " Missing rights: " );
+        s.append( r->join( ", " ) );
+        l.append( s );
+        ++n;
     }
     return l.join( "\r\n" );
 }
