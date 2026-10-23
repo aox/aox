@@ -61,13 +61,11 @@ void Reparse::execute()
         d->t = new Transaction( this );
         d->q = new Query( "select mm.mailbox, mm.uid, mm.modseq, "
                           "mm.message as wrapper, "
-                          "mb.nextmodseq, "
                           "b.id as bodypart, b.text, b.data "
                           "from unparsed_messages u "
                           "join bodyparts b on (u.bodypart=b.id) "
                           "join part_numbers p on (p.bodypart=b.id) "
                           "join mailbox_messages mm on (p.message=mm.message) "
-                          "join mailboxes mb on (mm.mailbox=mb.id) "
                           "order by mm.mailbox "
                           "for update",
                           this );
@@ -105,15 +103,23 @@ void Reparse::execute()
             Query * q
                 = new Query( "insert into deleted_messages "
                              "(mailbox,uid,message,modseq,deleted_by,reason) "
-                             "values ($1,$2,$3,$4,$5,$6)", this );
+                             "values ($1,$2,$3,nextval('nextmodseq'),"
+                             "$4,$5)", this );
             q->bind( 1, r->getInt( "mailbox" ) );
             q->bind( 2, r->getInt( "uid" ) );
             q->bind( 3, r->getInt( "wrapper" ) );
-            q->bind( 4, r->getBigint( "nextmodseq" ) );
-            q->bindNull( 5 );
-            q->bind( 6,
+            q->bindNull( 4 );
+            q->bind( 5,
                      EString( "reparsed by aox " ) +
                      Configuration::compiledIn( Configuration::Version ) );
+            d->t->enqueue( q );
+
+            // the modseq we just used has to be below the mailbox's
+            // next, or the mailbox would hand it out again
+            q = new Query( "update mailboxes "
+                           "set nextmodseq=currval('nextmodseq')+1 "
+                           "where id=$1", this );
+            q->bind( 1, r->getInt( "mailbox" ) );
             d->t->enqueue( q );
             printf( "- reparsed %s:%d\n",
                     mb->name().utf8().cstr(),

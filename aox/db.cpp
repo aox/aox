@@ -334,6 +334,10 @@ void Vacuum::execute()
                                    "order by id "
                                    "for update", 0 ) );
 
+            // one modseq for the whole sweep, shared by every mailbox
+            // it touches
+            t->enqueue( new Query( "select nextval('nextmodseq')", 0 ) );
+
             // insert those messages which still exist into dm. we
             // join against mm just in case someone deleted one of
             // those messages while the insert was running.
@@ -341,16 +345,18 @@ void Vacuum::execute()
                                    "(mailbox, uid, message,"
                                    " modseq, deleted_by, reason) "
                                    "select s.mailbox, s.uid, mm.message,"
-                                   " m.nextmodseq, null, 'Retention policy' "
+                                   " currval('nextmodseq'), null,"
+                                   " 'Retention policy' "
                                    "from s "
                                    "join mailbox_messages mm"
                                    " using (mailbox,uid) "
                                    "join mailboxes m on (s.mailbox=m.id)",
                                    0 ) );
 
-            // consume a modseq for each mailbox we (may have) modified.
+            // record that modseq as used in each mailbox we (may
+            // have) modified.
             t->enqueue( new Query( "update mailboxes "
-                                   "set nextmodseq=nextmodseq+1 "
+                                   "set nextmodseq=currval('nextmodseq')+1 "
                                    "where id in (select mailbox from s)",
                                    0 ) );
 

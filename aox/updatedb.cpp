@@ -250,14 +250,16 @@ void UpdateDatabase::execute()
                                "from md "
                                "where id=md.message", this );
         d->t->enqueue( d->update );
+        // one modseq for the whole update, shared by every mailbox
+        d->t->enqueue( "select nextval('nextmodseq')" );
         // update modseq on all affected messages
         d->t->enqueue( "update mailbox_messages "
-                       "set modseq=mailboxes.nextmodseq "
-                       "from md, mailboxes "
-                       "where mailbox_messages.message=md.message "
-                       "and mailbox=mailboxes.id" );
+                       "set modseq=currval('nextmodseq') "
+                       "from md "
+                       "where mailbox_messages.message=md.message" );
         // ... and the mailboxes' nextmodseq
-        d->t->enqueue( "update mailboxes set nextmodseq=nextmodseq+1 "
+        d->t->enqueue( "update mailboxes "
+                       "set nextmodseq=currval('nextmodseq')+1 "
                        "where id in ("
                        "select mm.mailbox from mailbox_messages mm "
                        "join md using (message)"

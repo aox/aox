@@ -1453,7 +1453,8 @@ void Injector::selectUids()
         }
 
         d->lockUidnext = new Query(
-            "select id,uidnext,nextmodseq,first_recent from mailboxes "
+            "select id,uidnext,nextval('nextmodseq') as nextmodseq,"
+            "first_recent from mailboxes "
             "where id=any($1) order by id for update", this );
         d->lockUidnext->bind( 1, ids );
         d->transaction->enqueue( d->lockUidnext );
@@ -1511,15 +1512,16 @@ void Injector::selectUids()
         if ( recentIn )
             u = new Query( "update mailboxes "
                            "set uidnext=uidnext+$2,"
-                           "nextmodseq=nextmodseq+1,"
+                           "nextmodseq=$3,"
                            "first_recent=first_recent+$2 "
                            "where id=$1", 0 );
         else
             u = new Query( "update mailboxes "
-                           "set uidnext=uidnext+$2,nextmodseq=nextmodseq+1 "
+                           "set uidnext=uidnext+$2,nextmodseq=$3 "
                            "where id=$1", 0 );
         u->bind( 1, mb->mailbox->id() );
         u->bind( 2, n );
+        u->bind( 3, nextms + 1 );
         d->transaction->enqueue( u );
     }
 

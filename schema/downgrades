@@ -167,3 +167,10 @@ begin
     alter table messages drop base_subject;
     return 0;
 end;$$ language 'plpgsql';
+
+create or replace function downgrade_to_99()
+returns int as $$
+begin
+    drop sequence nextmodseq;
+    return 0;
+end;$$ language 'plpgsql';

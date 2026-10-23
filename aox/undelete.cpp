@@ -107,7 +107,10 @@ void Undelete::execute()
         d->find = s->query( 0, d->m, 0, 0, true, &wanted, true );
         d->t->enqueue( d->find );
 
-        d->uidnext = new Query( "select uidnext, nextmodseq "
+        // the modseq comes from the sequence; the row lock still
+        // serialises us against other changes to this mailbox
+        d->uidnext = new Query( "select uidnext,"
+                                " nextval('nextmodseq') as nextmodseq "
                                 "from mailboxes "
                                 "where id=$1 for update", this );
         d->uidnext->bind( 1, d->m->id() );

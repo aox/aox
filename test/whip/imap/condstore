@@ -86,16 +86,16 @@ d store 1:5 (unchangedsince 4) +flags a
 receive 7
 * FLAGS (\Answered \Deleted \Draft \Flagged \Seen a)
 * OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen a \*)] permanent flags
-* OK [HIGHESTMODSEQ 35] next modseq - 1
-* 1 FETCH (UID 1 FLAGS (\Recent a) MODSEQ (35))
-* 2 FETCH (UID 2 FLAGS (\Recent a) MODSEQ (35))
-* 3 FETCH (UID 3 FLAGS (\Recent a) MODSEQ (35))
+* OK [HIGHESTMODSEQ 36] next modseq - 1
+* 1 FETCH (UID 1 FLAGS (\Recent a) MODSEQ (36))
+* 2 FETCH (UID 2 FLAGS (\Recent a) MODSEQ (36))
+* 3 FETCH (UID 3 FLAGS (\Recent a) MODSEQ (36))
 d OK [MODIFIED 4,5] done
 send 1
 e store 4:5 (unchangedsince 5) +flags.silent a
 receive 3
-* OK [HIGHESTMODSEQ 36] next modseq - 1
-* 4 FETCH (UID 4 MODSEQ (36))
+* OK [HIGHESTMODSEQ 37] next modseq - 1
+* 4 FETCH (UID 4 MODSEQ (37))
 e OK [MODIFIED 5] done
 # this takes a modseq, but we hear about it only with the next
 # command: the untagged response comes after f's tagged OK.
@@ -106,16 +106,16 @@ f OK done
 send 1
 g fetch 1 (uid modseq body[header.fields (none)])
 receive 6
-* OK [HIGHESTMODSEQ 37] next modseq - 1
-* 1 FETCH (UID 1 FLAGS (\Recent \Seen a) MODSEQ (37))
-* 1 FETCH (UID 1 MODSEQ (37) BODY[HEADER.FIELDS (None)] {2}
+* OK [HIGHESTMODSEQ 39] next modseq - 1
+* 1 FETCH (UID 1 FLAGS (\Recent \Seen a) MODSEQ (39))
+* 1 FETCH (UID 1 MODSEQ (39) BODY[HEADER.FIELDS (None)] {2}
 
 )
 g OK done
 send 1
 g fetch 1 (uid modseq body[header.fields (none)])
 receive 4
-* 1 FETCH (UID 1 MODSEQ (37) BODY[HEADER.FIELDS (None)] {2}
+* 1 FETCH (UID 1 MODSEQ (39) BODY[HEADER.FIELDS (None)] {2}
 
 )
 g OK done

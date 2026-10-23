@@ -374,9 +374,12 @@ void Store::execute()
         if ( !transaction() )
             setTransaction( new Transaction( this ) );
 
+        // The modseq comes from the sequence, not from the mailbox.
+        // The row lock does: it serialises our change against other
+        // changes to this mailbox.
         d->obtainModSeq
-            = new Query( "select nextmodseq from mailboxes "
-                         "where id=$1 for update", this );
+            = new Query( "select nextval('nextmodseq') as nextmodseq "
+                         "from mailboxes where id=$1 for update", this );
         d->obtainModSeq->bind( 1, m->id() );
         transaction()->enqueue( d->obtainModSeq );
 

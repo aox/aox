@@ -1,0 +1,86 @@
+# Modseqs come from one sequence for the whole database, so a change in
+# one mailbox moves the numbers that the next change sees in another.
+# Under the per-mailbox counters every number below would be 2.
+#
+# The obliterator leaves the sequence about to hand out 2, so the first
+# append takes 2 and the second takes 3, in different mailboxes.
+#
+# What must not come back is an OK [HIGHESTMODSEQ] for a mailbox that
+# did not change. Each mailbox still records its own next modseq, and
+# only its own changes write it, so the watcher below stays silent
+# while the other mailbox is written. Revision 43 moved the modseq
+# per-mailbox to stop those insubstantial responses, and this keeps
+# that.
+depends empty-inbox
+send 1
+a create msother
+receive 1
+a OK done
+protocol imap watcher
+receive 1
+* OK [CAPABILITY IMAP4rev1 AUTH=ANONYMOUS AUTH=CRAM-MD5 AUTH=DIGEST-MD5 AUTH=PLAIN AUTH=LOGIN COMPRESS=DEFLATE ENABLE ID SASL-IR STARTTLS] imapscript.test.oryx.com Archiveopteryx IMAP Server (security checking disabled)
+send 2
+w1 login script script
+w2 examine inbox (condstore)
+receive 10
+w1 OK [CAPABILITY IMAP4rev1 ACL APPENDLIMIT=38400000 BINARY CHILDREN COMPRESS=DEFLATE CONDSTORE ENABLE ESEARCH I18NLEVEL=1 ID IDLE LIST-EXTENDED LITERAL+ MOVE MULTIAPPEND NAMESPACE OBJECTID QUOTA QRESYNC RIGHTS=ekntx SORT SORT=DISPLAY SPECIAL-USE STARTTLS THREAD=ORDEREDSUBJECT THREAD=REFS THREAD=REFERENCES UIDONLY UIDPLUS UNSELECT UTF8=ACCEPT WITHIN] done
+* 0 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 1] next uid
+* OK [HIGHESTMODSEQ 1] next modseq - 1
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+w2 OK [READ-ONLY] done
+use main
+send 8
+b append msother () {162+}
+From: Arnt Gulbrandsen <arnt@example.com>
+To: Arnt Gulbrandsen <arnt@example.com>
+Subject: one of two mailboxes
+Date: Thu, 20 May 2004 14:28:51 +0200
+
+body
+
+receive 1
+b OK [APPENDUID 1 1] done
+# the watcher examines INBOX rather than selecting it, so that it
+# does not take the \Recent claim away from main
+use watcher
+send 1
+w3 noop
+receive 1
+w3 OK done
+use main
+send 8
+c append inbox () {162+}
+From: Arnt Gulbrandsen <arnt@example.com>
+To: Arnt Gulbrandsen <arnt@example.com>
+Subject: one of two mailboxes
+Date: Thu, 20 May 2004 14:28:51 +0200
+
+body
+
+receive 3
+* 1 EXISTS
+* OK [UIDNEXT 2] next uid
+c OK [APPENDUID 1 1] done
+send 1
+d fetch 1 (modseq)
+receive 2
+* 1 FETCH (MODSEQ (3))
+d OK done
+send 1
+e status msother (highestmodseq)
+receive 2
+* STATUS msother (HIGHESTMODSEQ 2)
+e OK done
+send 1
+f status inbox (highestmodseq)
+receive 2
+* STATUS INBOX (HIGHESTMODSEQ 3)
+f OK done
+# msother keeps its message: DELETE refuses a nonempty mailbox, and
+# obliteration removes the mailbox anyway.
+end

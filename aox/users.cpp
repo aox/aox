@@ -293,11 +293,10 @@ void DeleteUser::execute()
                                    "(mailbox, uid, message, modseq,"
                                    " deleted_by, reason) "
                                    "select mm.mailbox, mm.uid, mm.message,"
-                                   " mb.nextmodseq, null,"
+                                   " nextval('nextmodseq'), null,"
                                    " 'aox delete user -f' "
                                    "from mailbox_messages mm "
-                                   "join mailboxes mb on (mm.mailbox=mb.id) "
-                                   "where mb.id=any($1)", 0 );
+                                   "where mm.mailbox=any($1)", 0 );
             q->bind( 1, nonempty );
             d->t->enqueue( q );
         }

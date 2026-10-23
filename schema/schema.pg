@@ -70,6 +70,14 @@ create table group_members (
 );
 
 
+-- Modsequences are allocated from this sequence, so that a modseq
+-- orders a change against the changes in every other mailbox as well
+-- as its own. Each mailbox also records its own next value, so that
+-- we can limit the number of client updates.
+
+create sequence nextmodseq;
+
+
 -- One entry per deliverable mailbox.
 
 create table mailboxes (

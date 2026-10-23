@@ -598,6 +598,8 @@ bool Schema::singleStep()
         c = stepTo98(); break;
     case 98:
         c = stepTo99(); break;
+    case 99:
+        c = stepTo100(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -4436,5 +4438,24 @@ bool Schema::stepTo99()
     describeStep( "Adding messages.base_subject." );
     d->t->enqueue( "alter table messages add base_subject text" );
     d->updatedb = true;
+    return true;
+}
+
+
+/*! Allocate modseqs from a single sequence instead of from a counter
+    per mailbox, so that a modseq orders a change against the changes in
+    other mailboxes too. The first value handed out has to be greater
+    than every modseq already in use, and each mailbox's nextmodseq is
+    one greater than its own highest, so the largest of those will do.
+*/
+
+bool Schema::stepTo100()
+{
+    describeStep( "Allocating modseqs from one sequence." );
+    d->t->enqueue( "drop sequence if exists nextmodseq" );
+    d->t->enqueue( "create sequence nextmodseq" );
+    d->t->enqueue( "select setval('nextmodseq',"
+                   " (select coalesce(max(nextmodseq),1) from mailboxes))" );
+    d->t->enqueue( "grant select,update on nextmodseq to " + d->dbuser );
     return true;
 }

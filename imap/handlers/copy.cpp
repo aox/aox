@@ -18,17 +18,19 @@ public:
         uid( false ), move( false ),
         mailbox( 0 ),
         findUid( 0 ),
-        report( 0 )
+        findMs( 0 ),
+        report( 0 ),
+        toUid( 0 ), ms( 0 )
     {}
     bool uid;
     bool move;
     IntegerSet set;
     Mailbox * mailbox;
     Query * findUid;
+    Query * findMs;
     Query * report;
     uint toUid;
-    int64 toMs;
-    int64 fromMs;
+    int64 ms;
 };
 
 
@@ -104,7 +106,7 @@ void Copy::execute()
     if ( !transaction() ) {
         setTransaction( new Transaction( this ) );
 
-        d->findUid = new Query( "select id,uidnext,nextmodseq from mailboxes "
+        d->findUid = new Query( "select id,uidnext from mailboxes "
                                 "where id=$1 or id=$2 order by id for update",
                                 this );
         d->findUid->bind( 1, d->mailbox->id() );
@@ -113,27 +115,27 @@ void Copy::execute()
         else
             d->findUid->bind( 2, d->mailbox->id() );
         transaction()->enqueue( d->findUid );
+
+        d->findMs = new Query( "select nextval('nextmodseq') as nextmodseq",
+                               this );
+        transaction()->enqueue( d->findMs );
         transaction()->execute();
     }
 
     while ( d->findUid->hasResults() ) {
         Row * r = d->findUid->nextRow();
-        if ( (uint)r->getInt( "id" ) == d->mailbox->id() ) {
+        if ( (uint)r->getInt( "id" ) == d->mailbox->id() )
             d->toUid = r->getInt( "uidnext" );
-            d->toMs = r->getBigint( "nextmodseq" );
-            if ( session()->mailbox() == d->mailbox )
-                d->fromMs = d->toMs;
-        }
-        else {
-            d->fromMs = r->getBigint( "nextmodseq" );
-        }
     }
 
-    if ( !d->findUid->done() )
+    while ( d->findMs->hasResults() )
+        d->ms = d->findMs->nextRow()->getBigint( "nextmodseq" );
+
+    if ( !d->findUid->done() || !d->findMs->done() )
         return;
 
     if ( !d->report ) {
-        if ( !d->toMs )
+        if ( !d->ms )
             error( No, "Could not allocate UID and modseq in target mailbox" );
 
         Query * q;
@@ -164,7 +166,7 @@ void Copy::execute()
                        "set uidnext=nextval('s'), nextmodseq=$1 "
                        "where id=$2",
                        this );
-        q->bind( 1, d->toMs+1 );
+        q->bind( 1, d->ms+1 );
         q->bind( 2, d->mailbox->id() );
         transaction()->enqueue( q );
 
@@ -175,7 +177,7 @@ void Copy::execute()
                        "select $1, t.nuid, message, $2, t.seen, false "
                        "from t", 0 );
         q->bind( 1, d->mailbox->id() );
-        q->bind( 2, d->toMs );
+        q->bind( 2, d->ms );
         transaction()->enqueue( q );
 
         q = new Query( "insert into flags "
@@ -205,7 +207,7 @@ void Copy::execute()
                 " 'moved to mailbox '||$4||' uid '||t.nuid "
                 "from t", 0 );
             q->bind( 1, session()->mailbox()->id() );
-            q->bind( 2, d->fromMs );
+            q->bind( 2, d->ms );
             q->bind( 3, imap()->user()->id() );
             q->bind( 4, d->mailbox->name() );
             transaction()->enqueue( q );
@@ -213,7 +215,7 @@ void Copy::execute()
                            "set nextmodseq=$1 "
                            "where id=$2",
                            0 );
-            q->bind( 1, d->fromMs+1 );
+            q->bind( 1, d->ms+1 );
             q->bind( 2, session()->mailbox()->id() );
             transaction()->enqueue( q );
         }
