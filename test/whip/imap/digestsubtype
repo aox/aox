@@ -1,0 +1,153 @@
+depends empty-inbox
+send 26
+a append INBOX () {515+}
+From: an@example.org
+Date: 13 May 2004 14:28:51 +0200
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary=-
+
+---
+Content-Type: message/rfc822
+
+From: an@example.org (An Example)
+Date: 13 May 2004 14:28:51 +0200
+---
+Content-Type: text/plain
+
+From: an@example.org (An Example)
+Date: 13 May 2004 14:28:51 +0200
+---
+
+From: an@example.org (An Example)
+Date: 13 May 2004 14:28:51 +0200
+---
+Content-Type: message/rfc822
+
+From: an@example.org (An Example)
+Date: 13 May 2004 14:28:51 +0200
+-----
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 26
+b append INBOX () {516+}
+From: an@example.org
+Date: 13 May 2004 14:28:51 +0200
+MIME-Version: 1.0
+Content-Type: multipart/digest; boundary=-
+
+---
+Content-Type: message/rfc822
+
+From: an@example.org (An Example)
+Date: 13 May 2004 14:28:51 +0200
+---
+Content-Type: text/plain
+
+From: an@example.org (An Example)
+Date: 13 May 2004 14:28:51 +0200
+---
+
+From: an@example.org (An Example)
+Date: 13 May 2004 14:28:51 +0200
+---
+Content-Type: message/rfc822
+
+From: an@example.org (An Example)
+Date: 13 May 2004 14:28:51 +0200
+-----
+receive 4
+* 2 EXISTS
+* 2 RECENT
+* OK [UIDNEXT 3] next uid
+b OK [APPENDUID 1 2] done
+send 1
+c fetch 1:2 body.peek[]
+receive 78
+* 1 FETCH (BODY[] {664}
+From: an@example.org
+Date: Thu, 13 May 2004 14:28:51 +0200
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=-
+
+---
+Content-Type: message/rfc822
+
+From: An Example <an@example.org>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+
+
+---
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+
+From: an@example.org (An Example)
+Date: 13 May 2004 14:28:51 +0200
+
+---
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+
+From: an@example.org (An Example)
+Date: 13 May 2004 14:28:51 +0200
+
+---
+Content-Type: message/rfc822
+
+From: An Example <an@example.org>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+
+
+-----
+)
+* 2 FETCH (BODY[] {633}
+From: an@example.org
+Date: Thu, 13 May 2004 14:28:51 +0200
+Mime-Version: 1.0
+Content-Type: multipart/digest; boundary=-
+
+---
+Content-Type: message/rfc822
+
+From: An Example <an@example.org>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+
+
+---
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+
+From: an@example.org (An Example)
+Date: 13 May 2004 14:28:51 +0200
+
+---
+Content-Type: message/rfc822
+
+From: An Example <an@example.org>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+
+
+---
+Content-Type: message/rfc822
+
+From: An Example <an@example.org>
+Date: Thu, 13 May 2004 14:28:51 +0200
+
+
+
+-----
+)
+c OK done
+send 1
+d fetch 1:2 bodystructure
+receive 3
+* 1 FETCH (BODYSTRUCTURE (("message" "rfc822" NIL NIL NIL "7BIT" 78 ("Thu, 13 May 2004 14:28:51 +0200" NIL (("An Example" NIL "an" "example.org")) NIL NIL NIL NIL NIL NIL NIL) ("text" "plain" NIL NIL NIL "7BIT" 2 1 NIL NIL NIL NIL) 4 NIL NIL NIL NIL)("text" "plain" NIL NIL NIL "QUOTED-PRINTABLE" 69 2 NIL NIL NIL NIL)("text" "plain" NIL NIL NIL "QUOTED-PRINTABLE" 69 2 NIL NIL NIL NIL)("message" "rfc822" NIL NIL NIL "7BIT" 78 ("Thu, 13 May 2004 14:28:51 +0200" NIL (("An Example" NIL "an" "example.org")) NIL NIL NIL NIL NIL NIL NIL) ("text" "plain" NIL NIL NIL "7BIT" 2 1 NIL NIL NIL NIL) 4 NIL NIL NIL NIL) "mixed" ("boundary" "-") NIL NIL NIL))
+* 2 FETCH (BODYSTRUCTURE (("message" "rfc822" NIL NIL NIL "7BIT" 78 ("Thu, 13 May 2004 14:28:51 +0200" NIL (("An Example" NIL "an" "example.org")) NIL NIL NIL NIL NIL NIL NIL) ("text" "plain" NIL NIL NIL "7BIT" 2 1 NIL NIL NIL NIL) 4 NIL NIL NIL NIL)("text" "plain" NIL NIL NIL "QUOTED-PRINTABLE" 69 2 NIL NIL NIL NIL)("message" "rfc822" NIL NIL NIL "7BIT" 78 ("Thu, 13 May 2004 14:28:51 +0200" NIL (("An Example" NIL "an" "example.org")) NIL NIL NIL NIL NIL NIL NIL) ("text" "plain" NIL NIL NIL "7BIT" 2 1 NIL NIL NIL NIL) 4 NIL NIL NIL NIL)("message" "rfc822" NIL NIL NIL "7BIT" 78 ("Thu, 13 May 2004 14:28:51 +0200" NIL (("An Example" NIL "an" "example.org")) NIL NIL NIL NIL NIL NIL NIL) ("text" "plain" NIL NIL NIL "7BIT" 2 1 NIL NIL NIL NIL) 4 NIL NIL NIL NIL) "digest" ("boundary" "-") NIL NIL NIL))
+d OK done
+end

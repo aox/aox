@@ -1,0 +1,119 @@
+depends empty-inbox
+send 106
+a append INBOX () {4290+}
+Return-path: <kerstin@programmfabrik.de>
+Envelope-to: martin.rode@programmfabrik.de
+Delivery-date: Fri, 05 Oct 2007 07:58:46 +0200
+Received: from 213-133-109-34.clients.your-server.de ([213.133.109.34] helo=hetzner.programmfabrik.de)
+	by programmfabrik.de with esmtp (Exim 4.63)
+	(envelope-from <kerstin@programmfabrik.de>)
+	id 1IdgCm-0005rn-Kf
+	for martin.rode@programmfabrik.de; Fri, 05 Oct 2007 07:58:45 +0200
+Received: from berlin.programmfabrik.de ([213.221.101.147] helo=xen)
+	by hetzner.programmfabrik.de with esmtp (Exim 4.63)
+	(envelope-from <kerstin@programmfabrik.de>)
+	id 1IdgD5-0008A0-9r
+	for martin.rode@programmfabrik.de; Fri, 05 Oct 2007 07:58:57 +0200
+Received: from [192.168.0.26]
+	by xen with esmtp (Exim 4.63 #1 (Debian))
+	id 1IdgCd-0008K6-Uy
+	for <martin.rode@programmfabrik.de>; Fri, 05 Oct 2007 07:58:25 +0200
+Message-ID: <4705D3E3.6060004@programmfabrik.de>
+Date: Fri, 05 Oct 2007 08:04:19 +0200
+From: Kerstin Schrodt <kerstin@programmfabrik.de>
+User-Agent: Thunderbird 2.0.0.6 (Windows/20070728)
+MIME-Version: 1.0
+To: Martin Rode <martin.rode@programmfabrik.de>
+Subject: [Fwd: AW: Vortrag vom 25. September]
+Content-Type: multipart/mixed;
+ boundary="------------040005020700090304060900"
+
+This is a multi-part message in MIME format.
+--------------040005020700090304060900
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 8bit
+
+Guten Morgen Martin,
+
+...
+
+--------------040005020700090304060900
+Content-Type: message/rfc822;
+ name="AW: Vortrag vom 25. September.eml"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline;
+ filename="AW: Vortrag vom 25. September.eml"
+
+Return-Path: <Jan.Lengermann@contaxpartner.de>
+Received: from 127.0.0.1 (HELO programmfabrik.de) by pf-dmz.programmfabrik.de with lmtp id 1191000399-29968-310; Fri, 28 Sep 2007 19:26:39 +0200
+Received: from mailbackup.webpage.t-com.de ([80.152.31.31] helo=fepb01-svc.webpage.t-com.de)
+	by programmfabrik.de with esmtp (Exim 4.63)
+	(envelope-from <Jan.Lengermann@contaxpartner.de>)
+	id 1IbJbj-0005S5-1X
+	for kerstin@programmfabrik.de; Fri, 28 Sep 2007 19:26:37 +0200
+Received: from [217.91.66.90] by mail.webpage.t-com.de InterMail with ESMTP
+          id <20070928165212.UHQM1110258.fepb01-svc.webpage.t-com.de@TS1KW.contaxkw.lengermann>
+          for <kerstin@programmfabrik.de>; Fri, 28 Sep 2007 18:52:12 +0200
+Content-Class: urn:content-classes:message
+Subject: AW: Vortrag vom 25. September
+Mime-Version: 1.0
+Content-Type: multipart/mixed;
+ boundary="----_=_NextPart_001_01C801EF.E9E7A90F"
+Date: Fri, 28 Sep 2007 18:52:11 +0200
+X-Mimeole: Produced By Microsoft Exchange V6.5
+Message-Id: <07BF64D30CDC4546A077804491932D4873B4BB@ts1kw.contaxkw.lengermann>
+In-Reply-To: <46FD3233.1060307@programmfabrik.de>
+X-Ms-Has-Attach: yes
+X-Ms-Tnef-Correlator: 
+Thread-Topic: Vortrag vom 25. September
+Thread-Index: AcgB760UE69bP0PFT52+hzoqOvhDDQAAAo8g
+References: <46FD3233.1060307@programmfabrik.de>
+From: Jan Lengermann <Jan.Lengermann@contaxpartner.de>
+To: Kerstin Schrodt <kerstin@programmfabrik.de>
+
+------_=_NextPart_001_01C801EF.E9E7A90F
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: quoted-printable
+
+Sehr geehrte Frau Schrodt,
+
+...
+=20
+-----Urspr=FCngliche Nachricht-----
+Von: Kerstin Schrodt [mailto:kerstin@programmfabrik.de]=20
+Gesendet: Freitag, 28. September 2007 18:56
+An: Jan Lengermann
+Betreff: Vortrag vom 25. September
+
+Sehr geehrter Herr Lengermann,
+
+vielen Dank
+...
+
+------_=_NextPart_001_01C801EF.E9E7A90F
+Content-Type: application/octet-stream; name="Vortrag ConTax 25.9.2007.pdf"
+Content-Transfer-Encoding: base64
+Content-Description: Vortrag ConTax 25.9.2007.pdf
+Content-Disposition: attachment; filename="Vortrag ConTax 25.9.2007.pdf"
+
+JVBERi0xLjMKJcfsj6IKNSAwIG9iago8PC9MZW5ndGggNiAwIFIvRmlsdGVyIC9GbGF0ZURl
+Y29kZT4+CnN0cmVhbQp4nLVYS28bNxC+76/gcTeoWL6Gj1sbOA8EDdDGCnpIerBl2VKjRyLZ
+IDAwMDAwIG4gCjAwMDExMjU5MDYgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA1NjkgL1Jv
+b3QgMSAwIFIgL0luZm8gMiAwIFIKL0lEIFs8MzIyNTU5NjJCMzM1QjNGN0I1N0U4RUNEOTg4
+ODgwNEU+PDMyMjU1OTYyQjMzNUIzRjdCNTdFOEVDRDk4ODg4MDRFPl0KPj4Kc3RhcnR4cmVm
+CjExNTAzOTUKJSVFT0YK
+
+------_=_NextPart_001_01C801EF.E9E7A90F--
+
+--------------040005020700090304060900--
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 1
+b uid fetch 1 bodystructure
+receive 2
+* 1 FETCH (UID 1 BODYSTRUCTURE (("text" "plain" ("charset" "iso-8859-1" "format" "flowed") NIL NIL "7BIT" 29 3 NIL NIL NIL NIL)("message" "rfc822" ("name" "AW: Vortrag vom 25. September.eml") NIL NIL "7BIT" 2568 ("Fri, 28 Sep 2007 18:52:11 +0200" "AW: Vortrag vom 25. September" (("Jan Lengermann" NIL "Jan.Lengermann" "contaxpartner.de")) NIL NIL (("Kerstin Schrodt" NIL "kerstin" "programmfabrik.de")) NIL NIL "<46FD3233.1060307@programmfabrik.de>" "<07BF64D30CDC4546A077804491932D4873B4BB@ts1kw.contaxkw.lengermann>") (("text" "plain" ("charset" "iso-8859-1") NIL NIL "QUOTED-PRINTABLE" 292 14 NIL NIL NIL NIL)("application" "octet-stream" ("name" "Vortrag ConTax 25.9.2007.pdf") NIL "Vortrag ConTax 25.9.2007.pdf" "BASE64" 392 NIL ("attachment" ("filename" "Vortrag ConTax 25.9.2007.pdf")) NIL NIL) "mixed" ("boundary" "----_=_NextPart_001_01C801EF.E9E7A90F") NIL NIL NIL) 60 NIL ("inline" ("filename" "AW: Vortrag vom 25. September.eml")) NIL NIL) "mixed" ("boundary" "------------040005020700090304060900") NIL NIL NIL))
+b OK done
+end
