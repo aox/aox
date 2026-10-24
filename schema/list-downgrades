@@ -25,6 +25,8 @@ while ( $n < $m ) {
     if ( defined( $functions{$n} ) ) {
         $f = $functions{$n};
 	$f =~ s/;\n*$//s;
+	$f =~ s/\\/\\\\/gs;
+	$f =~ s/"/\\"/gs;
 	$f =~ s/\n/"\n    "/gs;
 	print "\n// step to ", $n, "\n", '    "', $f, '",', "\n";
     } else {
