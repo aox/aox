@@ -6,6 +6,7 @@
 #include "transaction.h"
 #include "integerset.h"
 #include "mailbox.h"
+#include "mover.h"
 #include "query.h"
 #include "user.h"
 
@@ -15,22 +16,20 @@ class CopyData
 {
 public:
     CopyData() :
-        uid( false ), move( false ),
+        uid( false ), move( false ), committed( false ),
+        read( false ), announced( false ),
         mailbox( 0 ),
-        findUid( 0 ),
-        findMs( 0 ),
-        report( 0 ),
-        toUid( 0 ), ms( 0 )
+        mover( 0 )
     {}
     bool uid;
     bool move;
+    bool committed;
+    bool read;
+    bool announced;
     IntegerSet set;
+    EString copyuid;
     Mailbox * mailbox;
-    Query * findUid;
-    Query * findMs;
-    Query * report;
-    uint toUid;
-    int64 ms;
+    Mover * mover;
 };
 
 
@@ -105,121 +104,46 @@ void Copy::execute()
 
     if ( !transaction() ) {
         setTransaction( new Transaction( this ) );
-
-        d->findUid = new Query( "select id,uidnext from mailboxes "
-                                "where id=$1 or id=$2 order by id for update",
-                                this );
-        d->findUid->bind( 1, d->mailbox->id() );
-        if ( d->move )
-            d->findUid->bind( 2, session()->mailbox()->id() );
-        else
-            d->findUid->bind( 2, d->mailbox->id() );
-        transaction()->enqueue( d->findUid );
-
-        d->findMs = new Query( "select nextval('nextmodseq') as nextmodseq",
-                               this );
-        transaction()->enqueue( d->findMs );
-        transaction()->execute();
+        d->mover = new Mover( transaction(), imap()->user(),
+                              session()->mailbox(), d->mailbox,
+                              d->set, 0, d->move );
     }
 
-    while ( d->findUid->hasResults() ) {
-        Row * r = d->findUid->nextRow();
-        if ( (uint)r->getInt( "id" ) == d->mailbox->id() )
-            d->toUid = r->getInt( "uidnext" );
-    }
-
-    while ( d->findMs->hasResults() )
-        d->ms = d->findMs->nextRow()->getBigint( "nextmodseq" );
-
-    if ( !d->findUid->done() || !d->findMs->done() )
+    if ( !d->mover->done() )
         return;
 
-    if ( !d->report ) {
-        if ( !d->ms )
-            error( No, "Could not allocate UID and modseq in target mailbox" );
+    Query * report = d->mover->report();
 
-        Query * q;
-
-        q = new Query( "create temporary table t ("
-                       "mailbox integer,"
-                       "uid integer,"
-                       "message integer,"
-                       "nuid integer"
-                       ")", 0 );
-        transaction()->enqueue( q );
-
-        q = new Query( "create temporary sequence s start " + fn( d->toUid ),
-                       0 );
-        transaction()->enqueue( q );
-
-        q = new Query( "insert into t "
-                       "(mailbox, uid, message, nuid) "
-                       "select mailbox, uid, message, nextval('s') "
-                       "from mailbox_messages "
-                       "where mailbox=$1 and uid=any($2) order by uid", 0 );
-        q->bind( 1, session()->mailbox()->id() );
-        q->bind( 2, d->set );
-        transaction()->enqueue( q );
-
-        q = new Query( "update mailboxes "
-                       "set uidnext=nextval('s'), nextmodseq=$1 "
-                       "where id=$2",
-                       this );
-        q->bind( 1, d->ms+1 );
-        q->bind( 2, d->mailbox->id() );
-        transaction()->enqueue( q );
-
-        transaction()->enqueue( new Query( "drop sequence s", 0 ) );
-
-        q = new Query( "insert into mailbox_messages "
-                       "(mailbox, uid, message, modseq, deleted) "
-                       "select $1, t.nuid, message, $2, false "
-                       "from t", 0 );
-        q->bind( 1, d->mailbox->id() );
-        q->bind( 2, d->ms );
-        transaction()->enqueue( q );
-
-        // Flags are not copied. They belong to the user and to the
-        // message, so the copy has them already, which is the point of
-        // keeping them there.
-
-        q = new Query( "insert into annotations "
-                       "(mailbox, uid, owner, name, value) "
-                       "select $1, t.nuid, a.owner, a.name, a.value "
-                       "from annotations a join t using (mailbox, uid) "
-                       "where a.owner is null or a.owner=$2", 0 );
-        q->bind( 1, d->mailbox->id() );
-        q->bind( 2, imap()->user()->id() );
-        transaction()->enqueue( q );
-
-        d->report = new Query( "select uid, nuid from t", 0 );
-        transaction()->enqueue( d->report );
-
-        if ( d->move ) {
-            q = new Query(
-                "insert into deleted_messages "
-                "(mailbox,uid,message,modseq,deleted_by,reason) "
-                "select $1, t.uid, t.message, $2, $3, "
-                " 'moved to mailbox '||$4||' uid '||t.nuid "
-                "from t", 0 );
-            q->bind( 1, session()->mailbox()->id() );
-            q->bind( 2, d->ms );
-            q->bind( 3, imap()->user()->id() );
-            q->bind( 4, d->mailbox->name() );
-            transaction()->enqueue( q );
-            q = new Query( "update mailboxes "
-                           "set nextmodseq=$1 "
-                           "where id=$2",
-                           0 );
-            q->bind( 1, d->ms+1 );
-            q->bind( 2, session()->mailbox()->id() );
-            transaction()->enqueue( q );
+    if ( !d->read && ( !report || report->done() ) ) {
+        d->read = true;
+        IntegerSet from;
+        IntegerSet to;
+        while ( report && report->hasResults() ) {
+            Row * r = report->nextRow();
+            from.add( r->getInt( "uid" ) );
+            to.add( r->getInt( "nuid" ) );
         }
+        if ( !from.isEmpty() )
+            d->copyuid = "COPYUID " + fn( d->mailbox->uidvalidity() ) + " " +
+                         from.set() + " " + to.set();
+    }
 
-        transaction()->enqueue( new Query( "drop table t", 0 ) );
+    if ( d->move && !d->announced ) {
+        // RFC9051 6.4.8 wants the client to hear about the copies
+        // before it hears that the originals are gone, and the
+        // session queues its expunges as soon as the refresh below
+        // tells it about them, so this has to go out first - before
+        // the commit, since that is what the session waits for.
+        if ( !d->read )
+            return;
+        d->announced = true;
+        if ( !d->copyuid.isEmpty() )
+            respond( "OK [" + d->copyuid + "] moved" );
+    }
 
+    if ( !d->committed ) {
+        d->committed = true;
         Mailbox::refreshMailboxes( transaction() );
-
         transaction()->commit();
     }
 
@@ -236,18 +160,12 @@ void Copy::execute()
          !imap()->session()->initialised() )
         return;
 
-    IntegerSet from;
-    IntegerSet to;
-
-    while ( d->report->hasResults() ) {
-        Row * r = d->report->nextRow();
-        from.add( r->getInt( "uid" ) );
-        to.add( r->getInt( "nuid" ) );
+    if ( !d->announced ) {
+        d->announced = true;
+        // COPY keeps COPYUID in the tagged OK, as RFC4315 3 asks.
+        if ( !d->copyuid.isEmpty() )
+            setRespTextCode( d->copyuid );
     }
 
-    if ( !from.isEmpty() )
-        setRespTextCode( "COPYUID " +
-                         fn( d->mailbox->uidvalidity() ) + " " +
-                         from.set() + " " + to.set() );
     finish();
 }

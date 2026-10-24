@@ -1,0 +1,35 @@
+# An expunge in all mail is the one operation that means the message
+# is to be gone rather than merely moved out of sight, so it leaves
+# every mailbox its owner has.
+depends allmail
+send 1
+e store 3 +flags \deleted
+receive 2
+* 3 FETCH (UID 3 FLAGS (\Deleted))
+e OK done
+send 1
+f expunge
+receive 2
+* 3 EXPUNGE
+f OK done
+send 1
+g select inbox
+receive 9
+* OK [CLOSED] I, missa est
+* 19 EXISTS
+* 19 RECENT
+* OK [UIDNEXT 21] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+g OK [READ-WRITE] done
+send 1
+h uid fetch 1:5 uid
+receive 5
+* 1 FETCH (UID 1)
+* 2 FETCH (UID 2)
+* 3 FETCH (UID 4)
+* 4 FETCH (UID 5)
+h OK done
+end

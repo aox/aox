@@ -1,0 +1,63 @@
+# RFC6154. Junk is where a message goes to be forgotten, so putting
+# one there takes it out of every other mailbox its owner has, all
+# mail included. A plain COPY does that, not just MOVE: that is how a
+# client without MOVE marks spam.
+depends allmail
+send 1
+e create "Junk" (use (\Junk))
+receive 1
+e OK done
+send 1
+f select inbox
+receive 9
+* OK [CLOSED] I, missa est
+* 20 EXISTS
+* 20 RECENT
+* OK [UIDNEXT 21] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+f OK [READ-WRITE] done
+send 1
+g copy 2 Junk
+receive 2
+* 2 EXPUNGE
+g OK [COPYUID 1 2 1] done
+send 1
+h select Junk
+receive 9
+* OK [CLOSED] I, missa est
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+h OK [READ-WRITE] done
+send 1
+i select All
+receive 9
+* OK [CLOSED] I, missa est
+* 19 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 21] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+i OK [READ-WRITE] done
+send 1
+j select inbox
+receive 9
+* OK [CLOSED] I, missa est
+* 19 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 21] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+j OK [READ-WRITE] done
+end

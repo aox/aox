@@ -1,0 +1,27 @@
+# A message delivered to a regular mailbox goes into all mail in the
+# same injection, with its own uid there. Nothing is moved afterwards,
+# and the flags need no copying, since a flag belongs to the message.
+#
+# The session here is on all mail, not on INBOX, so the EXISTS for an
+# append to INBOX is itself the thing being tested.
+depends allmail
+send 8
+e append INBOX () {171+}
+From: =?utf-8?q?G=C3=B8ril?= <goril@example.com>
+To: script@test.oryx.com
+Subject: fresh
+Date: Sat, 24 Oct 2026 12:00:00 +0200
+Message-Id: <fresh@example.com>
+
+hello
+receive 4
+* 21 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 22] next uid
+e OK [APPENDUID 1 21] done
+send 1
+f fetch 21 (uid envelope)
+receive 2
+* 21 FETCH (UID 21 ENVELOPE ("Sat, 24 Oct 2026 12:00:00 +0200" "fresh" (("=?ISO-8859-1?q?G=F8ril?=" NIL "goril" "example.com")) NIL NIL ((NIL NIL "script" "test.oryx.com")) NIL NIL NIL "<fresh@example.com>"))
+f OK done
+end

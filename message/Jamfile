@@ -42,7 +42,7 @@ DomainList tld.inc : root.zone ;
 Build message :
     multipart.cpp message.cpp bodypart.cpp header.cpp parser.cpp
     field.cpp mimefields.cpp datefield.cpp addressfield.cpp
-    address.cpp date.cpp flag.cpp
+    address.cpp date.cpp flag.cpp mover.cpp
     injector.cpp fetcher.cpp annotation.cpp
     dsn.cpp recipient.cpp listidfield.cpp
     messagecache.cpp helperrowcreator.cpp

@@ -16,6 +16,7 @@
 #include "mimefields.h"
 #include "messagecache.h"
 #include "helperrowcreator.h"
+#include "mover.h"
 #include "addressfield.h"
 #include "transaction.h"
 #include "annotation.h"
@@ -579,6 +580,35 @@ void Injector::findDependencies()
                 ++fi;
             }
             ++hi;
+        }
+    }
+
+    // A message delivered to a regular mailbox belongs in its owner's
+    // all mail mailbox too, if the owner has one. Archive counts as
+    // regular here; junk and trash do not. Nothing has to be moved
+    // afterwards, since the message can get its uid in all mail in
+    // this same injection, and per-user flags follow the message.
+    List<Injectee>::Iterator ami( d->injectables );
+    while ( ami ) {
+        Injectee * m = ami;
+        ++ami;
+        List<Mailbox> * extra = new List<Mailbox>;
+        List<Mailbox>::Iterator mi( m->mailboxes() );
+        while ( mi ) {
+            Mailbox * mb = mi;
+            ++mi;
+            EString f = mb->flag();
+            if ( f.isEmpty() || f.lower() == "\\archive" ) {
+                Mailbox * all = Mover::specialUse( mb, "\\all" );
+                if ( all && all->id() && !all->deleted() &&
+                     !m->mailboxes()->find( all ) && !extra->find( all ) )
+                    extra->append( all );
+            }
+        }
+        List<Mailbox>::Iterator ei( extra );
+        while ( ei ) {
+            m->setUid( ei, 0 );
+            ++ei;
         }
     }
 

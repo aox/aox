@@ -5,6 +5,7 @@
 #include "md5.h"
 #include "utf.h"
 #include "dict.h"
+#include "mover.h"
 #include "query.h"
 #include "ustring.h"
 #include "address.h"
@@ -47,8 +48,19 @@ public:
           sofar( 0 ), threading( true ),
           subjectReport( 0 ), findSubjects( 0 ),
           subjectTemp( 0 ), subjectUpdate( 0 ),
-          subjectSofar( 0 ), subjects( true )
+          subjectSofar( 0 ), subjects( true ),
+          findAllMail( 0 ), fillMs( 0 ), fill( 0 ),
+          allMailboxes( 0 ), allmail( true )
         {}
+
+    class AllMail
+        : public Garbage
+    {
+    public:
+        AllMail(): owner( 0 ) {}
+        UString name;
+        uint owner;
+    };
 
     Transaction * t;
     Query * findMessages;
@@ -73,6 +85,12 @@ public:
     uint subjectSofar;
 
     bool subjects;
+
+    Query * findAllMail;
+    Query * fillMs;
+    Query * fill;
+    List<UpdateDatabaseData::AllMail> * allMailboxes;
+    bool allmail;
 };
 
 
@@ -83,7 +101,9 @@ f( "update", "database", "Update the database contents.",
    "    slow for inclusion in \"aox upgrade schema\". This command is\n"
    "    meant to be used while the server is running. It does its\n"
    "    work in small chunks, so it can be restarted at any time,\n"
-   "    and is tolerant of interruptions.\n" );
+   "    and is tolerant of interruptions.\n\n"
+   "    With -n it reports what it would do to the all mail\n"
+   "    mailboxes, and rolls that back instead of committing.\n" );
 
 
 /*! \class UpdateDatabase updatedb.h
@@ -99,11 +119,18 @@ UpdateDatabase::UpdateDatabase( EStringList * args )
 void UpdateDatabase::execute()
 {
     if ( !d->threading ) {
-        backfillSubjects();
+        // each phase hands over to the next when it runs out of work,
+        // and every wake-up has to reach the phase that is waiting
+        if ( d->subjects )
+            backfillSubjects();
+        else
+            fillAllMail();
         return;
     }
 
     if ( !d->report ) {
+        parseOptions();
+        end();
         database( true );
         d->report
             = new Query( "select count(*)::integer as threadnull "
@@ -127,8 +154,6 @@ void UpdateDatabase::execute()
             printf( "Processed %d messages.\nCommitted transaction.\n",
                     d->update->rows() );
     }
-
-    end();
 
     if ( !d->t ) {
         printf( "Looking for 4096 more messages to thread.\n" );
@@ -353,7 +378,8 @@ void UpdateDatabase::backfillSubjects()
     if ( d->subjectMessages->isEmpty() ) {
         d->subjects = false;
         printf( "All messages now have a base subject.\n" );
-        finish();
+        d->t = 0;
+        fillAllMail();
         return;
     }
 
@@ -373,5 +399,96 @@ void UpdateDatabase::backfillSubjects()
                                       "from bs where id=bs.message", this );
         d->t->enqueue( d->subjectUpdate );
         d->t->commit();
+    }
+}
+
+
+/*! Adds whatever is missing to each all mail mailbox. A mailbox can
+    be short of messages because it was created before its owner's
+    mail arrived, or because a delivery happened in a process that had
+    not yet heard about the mailbox.
+*/
+
+void UpdateDatabase::fillAllMail()
+{
+    if ( !d->allmail )
+        return;
+
+    if ( !d->findAllMail ) {
+        database( true );
+        d->findAllMail = new Query( "select name, owner from mailboxes "
+                                    "where lower(flag)='\\all' and not deleted "
+                                    "and owner is not null "
+                                    "order by id", this );
+        d->findAllMail->execute();
+        d->allMailboxes = new List<UpdateDatabaseData::AllMail>;
+    }
+
+    while ( d->findAllMail->hasResults() ) {
+        Row * r = d->findAllMail->nextRow();
+        UpdateDatabaseData::AllMail * m = new UpdateDatabaseData::AllMail;
+        m->name = r->getUString( "name" );
+        m->owner = r->getInt( "owner" );
+        d->allMailboxes->append( m );
+    }
+
+    if ( !d->findAllMail->done() )
+        return;
+
+    if ( d->t && d->t->done() ) {
+        if ( d->t->failed() )
+            error( "Transaction failed: " + d->t->error() );
+        d->t = 0;
+        uint n = 0;
+        if ( d->fill )
+            n = d->fill->rows();
+        UpdateDatabaseData::AllMail * m = d->allMailboxes->firstElement();
+        if ( opt( 'n' ) > 0 ) {
+            // nothing was committed, so looking again would find the
+            // same messages missing for ever
+            printf( "Would add %d messages to %s.\n",
+                    n, m->name.utf8().cstr() );
+            d->allMailboxes->shift();
+        }
+        else if ( n ) {
+            printf( "Added %d messages to %s.\n",
+                    n, m->name.utf8().cstr() );
+        }
+        else {
+            d->allMailboxes->shift();
+        }
+        d->fill = 0;
+        d->fillMs = 0;
+    }
+
+    if ( d->allMailboxes->isEmpty() ) {
+        d->allmail = false;
+        printf( "All mail mailboxes now hold their owners' mail.\n" );
+        finish();
+        return;
+    }
+
+    if ( !d->t ) {
+        d->t = new Transaction( this );
+        d->fillMs = new Query( "select nextval('nextmodseq') as nextmodseq",
+                               this );
+        d->t->enqueue( d->fillMs );
+        d->t->execute();
+    }
+
+    if ( !d->fillMs->done() )
+        return;
+
+    if ( !d->fill ) {
+        Row * r = d->fillMs->nextRow();
+        if ( !r )
+            error( "Could not allocate a modseq" );
+        UpdateDatabaseData::AllMail * m = d->allMailboxes->firstElement();
+        d->fill = Mover::fillAllMail( d->t, m->name, m->owner,
+                                      r->getBigint( "nextmodseq" ), 4096 );
+        if ( opt( 'n' ) > 0 )
+            d->t->rollback();
+        else
+            d->t->commit();
     }
 }

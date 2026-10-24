@@ -1,0 +1,90 @@
+# RFC6154 again. An expunge in a regular mailbox moves the messages to
+# trash rather than deleting them, and a message that is only in trash
+# is not in all mail. Moving it back out of trash puts it in all mail
+# again, with a new uid.
+depends allmail
+send 1
+e create "Trash" (use (\Trash))
+receive 1
+e OK done
+send 1
+f select inbox
+receive 9
+* OK [CLOSED] I, missa est
+* 20 EXISTS
+* 20 RECENT
+* OK [UIDNEXT 21] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+f OK [READ-WRITE] done
+send 1
+g store 1 +flags \deleted
+receive 2
+* 1 FETCH (UID 1 FLAGS (\Deleted \Recent))
+g OK done
+send 1
+h expunge
+receive 2
+* 1 EXPUNGE
+h OK done
+send 1
+i select Trash
+receive 9
+* OK [CLOSED] I, missa est
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+i OK [READ-WRITE] done
+send 1
+j select All
+receive 9
+* OK [CLOSED] I, missa est
+* 19 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 21] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+j OK [READ-WRITE] done
+send 1
+k select Trash
+receive 9
+* OK [CLOSED] I, missa est
+* 1 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 2] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+k OK [READ-WRITE] done
+send 1
+l move 1 inbox
+receive 2
+* OK [COPYUID 1 1 21] moved
+l OK done
+send 1
+m noop
+receive 2
+* 1 EXPUNGE
+m OK done
+send 1
+n select All
+receive 9
+* OK [CLOSED] I, missa est
+* 20 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 22] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+n OK [READ-WRITE] done
+end

@@ -1,0 +1,56 @@
+# RFC6851. MOVE copies and then removes, and reports COPYUID in an
+# untagged OK before either, as RFC9051 6.4.8 requires, so that the
+# client hears about the copies before it hears that the originals are
+# gone.
+#
+# A MOVE by message number may not report the EXPUNGE while it runs:
+# the client is addressing messages by number, and renumbering them
+# under it is what RFC2180 4.4.1/2 warns about, so the EXPUNGE waits
+# for the next command. UID MOVE has no such problem and reports it at
+# once.
+#
+# Moving to the selected mailbox is allowed (RFC6851 3.3), and means
+# the messages get new uids, since RFC9051 6.4.8 says each message
+# must end up moved or unaffected, never in both places at once.
+depends 20
+send 1
+a create "Other"
+receive 1
+a OK done
+send 1
+b select inbox
+receive 8
+* 20 EXISTS
+* 20 RECENT
+* OK [UIDNEXT 21] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+b OK [READ-WRITE] done
+send 1
+c move 3 Other
+receive 2
+* OK [COPYUID 1 3 1] moved
+c OK done
+send 1
+d noop
+receive 2
+* 3 EXPUNGE
+d OK done
+send 1
+e uid move 4 inbox
+receive 5
+* OK [COPYUID 1 4 21] moved
+* 20 EXISTS
+* OK [UIDNEXT 22] next uid
+* 3 EXPUNGE
+e OK done
+send 1
+f uid fetch 19:* uid
+receive 4
+* 17 FETCH (UID 19)
+* 18 FETCH (UID 20)
+* 19 FETCH (UID 21)
+f OK done
+end

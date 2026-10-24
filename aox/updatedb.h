@@ -15,6 +15,7 @@ public:
 
 private:
     void backfillSubjects();
+    void fillAllMail();
 
 private:
     class UpdateDatabaseData * d;

@@ -1,0 +1,33 @@
+# RFC6154. A mailbox created with the \All attribute starts out holding
+# everything its owner has, and from then on a message is in all mail
+# exactly when it is in a regular mailbox. The attribute is reported
+# only to the owner, and only when the client asks for special-use.
+depends 20
+send 1
+a create "All" (use (\All))
+receive 1
+a OK done
+send 1
+b list "" "*" return (special-use)
+receive 3
+* LIST (\hasnochildren \All) "/" All
+* LIST (\hasnochildren) "/" INBOX
+b OK done
+send 1
+c select All
+receive 8
+* 20 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 21] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+c OK [READ-WRITE] done
+send 1
+d fetch 1:2 (uid flags)
+receive 3
+* 1 FETCH (UID 1 FLAGS ())
+* 2 FETCH (UID 2 FLAGS ())
+d OK done
+end

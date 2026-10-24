@@ -5,6 +5,9 @@
 #include "imap.h"
 #include "utf.h"
 #include "user.h"
+#include "mover.h"
+#include "estringlist.h"
+#include "query.h"
 #include "mailbox.h"
 #include "transaction.h"
 
@@ -13,11 +16,13 @@ class CreateData
     : public Garbage
 {
 public:
-    CreateData(): m( 0 ), parent( 0 ) {}
+    CreateData(): m( 0 ), parent( 0 ), findMs( 0 ), filled( false ) {}
     UString name;
     Mailbox * m;
     Mailbox * parent;
     EString attr;
+    Query * findMs;
+    bool filled;
 };
 
 
@@ -93,10 +98,13 @@ void Create::parseCreateParam()
 void Create::parseUseAttr()
 {
     require("\\");
-    EString attr = "\\" + atom();
-    if ( attr == "\\all" || attr == "\\archive" || attr == "\\drafts" ||
-         attr == "\\flagged" || attr == "\\junk" || attr == "\\sent" ||
-         attr == "\\trash" ) {
+    // RFC6154 attributes are case-insensitive, like other IMAP atoms.
+    // We store and report them the way the RFC spells them, which is
+    // what headerCased() produces for each of the seven.
+    EString attr = "\\" + atom().headerCased();
+    if ( attr == "\\All" || attr == "\\Archive" || attr == "\\Drafts" ||
+         attr == "\\Flagged" || attr == "\\Junk" || attr == "\\Sent" ||
+         attr == "\\Trash" ) {
         if ( d->attr.isEmpty() || d->attr == attr ) {
             // fine
             d->attr = attr;
@@ -141,6 +149,34 @@ void Create::execute()
             setRespTextCode( "ALREADYEXISTS" );
             return;
         }
+        // A new all mail mailbox starts out holding everything its
+        // owner has, so that the invariant holds from the start.
+        if ( d->attr == "\\All" && Mover::homeOf( d->m ) &&
+             Mover::homeOf( d->m )->owner() == imap()->user()->id() ) {
+            d->findMs = new Query( "select nextval('nextmodseq') "
+                                   "as nextmodseq", this );
+            transaction()->enqueue( d->findMs );
+            transaction()->execute();
+        }
+        else {
+            d->filled = true;
+            Mailbox::refreshMailboxes( transaction() );
+            transaction()->commit();
+        }
+    }
+
+    if ( !d->filled ) {
+        if ( !d->findMs->done() )
+            return;
+        Row * r = d->findMs->nextRow();
+        if ( !r ) {
+            error( No, "Could not allocate a modseq" );
+            return;
+        }
+        d->filled = true;
+        Mover::fillAllMail( transaction(), d->m->name(),
+                            imap()->user()->id(),
+                            r->getBigint( "nextmodseq" ) );
         Mailbox::refreshMailboxes( transaction() );
         transaction()->commit();
     }
