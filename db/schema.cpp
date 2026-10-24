@@ -600,6 +600,8 @@ bool Schema::singleStep()
         c = stepTo99(); break;
     case 99:
         c = stepTo100(); break;
+    case 100:
+        c = stepTo101(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -4457,5 +4459,51 @@ bool Schema::stepTo100()
     d->t->enqueue( "select setval('nextmodseq',"
                    " (select coalesce(max(nextmodseq),1) from mailboxes))" );
     d->t->enqueue( "grant select,update on nextmodseq to " + d->dbuser );
+    return true;
+}
+
+
+/*! Make flags belong to a user rather than to a mailbox, so that a
+    message in several of one user's mailboxes has one set of flags.
+
+    Keywords become the flags of the owner of the mailbox they were set
+    in, or shared if that mailbox has no owner. \Seen was a column
+    rather than a flag; it becomes the owner's flag the same way, and
+    stays shared in a mailbox nobody owns, which is what the column
+    meant there. \Deleted stays a column, since it is about one
+    mailbox.
+*/
+
+bool Schema::stepTo101()
+{
+    describeStep( "Making flags belong to users instead of mailboxes." );
+    d->t->enqueue( "alter table flags rename to old_flags" );
+    d->t->enqueue( "create table flags ("
+                   "owner integer references users(id) on delete cascade,"
+                   "message integer not null"
+                   " references messages(id) on delete cascade,"
+                   "flag integer not null references flag_names(id))" );
+    d->t->enqueue( "create unique index fl_omf on flags"
+                   " (coalesce(owner,0), message, flag)" );
+    d->t->enqueue( "create index fl_m on flags (message)" );
+    d->t->enqueue( "insert into flags (owner, message, flag) "
+                   "select distinct mb.owner, mm.message, f.flag "
+                   "from old_flags f "
+                   "join mailbox_messages mm using (mailbox, uid) "
+                   "join mailboxes mb on (mm.mailbox=mb.id) "
+                   "join flag_names fn on (f.flag=fn.id) "
+                   "where lower(fn.name) not in ('\\seen','\\deleted')" );
+    d->t->enqueue( "insert into flags (owner, message, flag) "
+                   "select distinct mb.owner, mm.message, s.id "
+                   "from mailbox_messages mm "
+                   "join mailboxes mb on (mm.mailbox=mb.id), "
+                   "(select id from flag_names "
+                   " where lower(name)='\\seen') s "
+                   "where mm.seen and not exists ("
+                   "select 1 from flags f2 "
+                   "where f2.message=mm.message and f2.flag=s.id "
+                   "and coalesce(f2.owner,0)=coalesce(mb.owner,0))" );
+    d->t->enqueue( "drop table old_flags" );
+    d->t->enqueue( "alter table mailbox_messages drop seen" );
     return true;
 }

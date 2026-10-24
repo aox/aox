@@ -38,8 +38,7 @@ public:
           presentFlags( 0 ), present( 0 ),
           flagCreator( 0 ),
           annotationNameCreator( 0 ), session( 0 ),
-          changeSeen( false ), changeDeleted( false ),
-          newSeen( false ), newDeleted( false ),
+          changeDeleted( false ), newDeleted( false ),
           sentNextModSeq( false ), modseqUpdate( 0 )
     {}
     IntegerSet specified;
@@ -71,11 +70,11 @@ public:
     ImapSession * session;
 
     List<Annotation> annotations;
-    bool changeSeen;
     bool changeDeleted;
-    bool newSeen;
     bool newDeleted;
     IntegerSet changedUids;
+    IntegerSet namedFlags;
+    IntegerSet losesFlag;
 
     bool sentNextModSeq;
     Query * modseqUpdate;
@@ -374,13 +373,13 @@ void Store::execute()
         if ( !transaction() )
             setTransaction( new Transaction( this ) );
 
-        // The modseq comes from the sequence, not from the mailbox.
-        // The row lock does: it serialises our change against other
-        // changes to this mailbox.
+        Query * lock = new Query( "select id from mailboxes "
+                                  "where id=$1 for update", this );
+        lock->bind( 1, m->id() );
+        transaction()->enqueue( lock );
+
         d->obtainModSeq
-            = new Query( "select nextval('nextmodseq') as nextmodseq "
-                         "from mailboxes where id=$1 for update", this );
-        d->obtainModSeq->bind( 1, m->id() );
+            = new Query( "select nextval('nextmodseq') as nextmodseq", this );
         transaction()->enqueue( d->obtainModSeq );
 
         Selector * work = new Selector;
@@ -407,20 +406,34 @@ void Store::execute()
             while ( i ) {
                 uint id = Flag::id( *i );
                 ++i;
-                if ( id && !Flag::isSeen( id ) && !Flag::isDeleted( id ) ) {
+                if ( id && !Flag::isDeleted( id ) ) {
                     s.add( id );
                     d->present->insert( id, new IntegerSet );
                 }
             }
-            if ( !s.isEmpty() ) {
-                d->presentFlags =
-                    new Query(
-                        "select mailbox, uid, flag from flags "
-                        "where mailbox=$1 and uid=any($2) and flag=any($3)",
-                        this );
+            d->namedFlags = s;
+            bool all = ( d->op == StoreData::ReplaceFlags );
+            if ( !s.isEmpty() || all ) {
+                EString q( "select mm.uid, f.flag "
+                           "from mailbox_messages mm "
+                           "join flags f on (f.message=mm.message) "
+                           "where mm.mailbox=$1 and mm.uid=any($2) " );
+                uint n = 3;
+                if ( !all ) {
+                    q.append( "and f.flag=any($3) " );
+                    n = 4;
+                }
+                q.append( "and ((f.flag=$" + fn( n ) + " and f.owner=$" +
+                          fn( n+1 ) + ") or (f.flag<>$" + fn( n ) +
+                          " and coalesce(f.owner,0)=$" + fn( n+2 ) + "))" );
+                d->presentFlags = new Query( q, this );
                 d->presentFlags->bind( 1, m->id() );
                 d->presentFlags->bind( 2, d->specified );
-                d->presentFlags->bind( 3, s );
+                if ( !all )
+                    d->presentFlags->bind( 3, s );
+                d->presentFlags->bind( n, Flag::id( "\\seen" ) );
+                d->presentFlags->bind( n+1, flagUser() );
+                d->presentFlags->bind( n+2, m->owner() );
                 transaction()->enqueue( d->presentFlags );
             }
         }
@@ -437,10 +450,21 @@ void Store::execute()
         uint oldFlag = 0;
         while ( (r=d->presentFlags->nextRow()) ) {
             uint f = r->getInt( "flag" );
-            if ( !s || f != oldFlag )
+            if ( !s || f != oldFlag ) {
                 s = d->present->find( f );
+                if ( !s ) {
+                    s = new IntegerSet;
+                    d->present->insert( f, s );
+                }
+            }
             oldFlag = f;
-            s->add( r->getInt( "uid" ) );
+            uint uid = r->getInt( "uid" );
+            s->add( uid );
+            // a flag this message has and we are not keeping is a
+            // change to this message, even though it was not named
+            if ( d->op == StoreData::ReplaceFlags &&
+                 !d->namedFlags.contains( f ) )
+                d->losesFlag.add( uid );
         }
     }
 
@@ -497,7 +521,7 @@ void Store::execute()
         if ( d->flagCreator )
             session()->sendFlagUpdate( d->flagCreator );
 
-        if ( !work && !d->changeSeen && !d->changeDeleted ) {
+        if ( !work && !d->changeDeleted ) {
             // there's no actual work to be done.
             transaction()->commit();
             finish();
@@ -523,13 +547,6 @@ void Store::execute()
         d->modseqUpdate->bind( 2, m->id() );
         d->modseqUpdate->bind( 3, d->s );
         EString uq(  "update mailbox_messages set modseq=$1" );
-        if ( d->changeSeen ) {
-            uq.append( ",seen=" );
-            if ( d->newSeen )
-                uq.append( "true" );
-            else
-                uq.append( "false" );
-        }
         if ( d->changeDeleted ) {
             uq.append( ",deleted=" );
             if ( d->newDeleted )
@@ -555,12 +572,6 @@ void Store::execute()
             d->modseqUpdate->bind( 4, d->changedUids );
         }
         if ( checkSeenDeleted ) {
-            if ( d->changeSeen ) {
-                if ( d->newSeen )
-                    extraConditions.append( "not seen" );
-                else
-                    extraConditions.append( "seen" );
-            }
             if ( d->changeDeleted ) {
                 if ( d->newDeleted )
                     extraConditions.append( "not deleted" );
@@ -587,6 +598,14 @@ void Store::execute()
 
     if ( !d->modseqUpdate->done() )
         return;
+
+    // before concluding that nothing changed: a failed statement also
+    // changes nothing, and must not look like success
+    if ( transaction()->failed() ) {
+        error( No, "Database error. Rolling transaction back" );
+        finish();
+        return;
+    }
 
     if ( !d->sentNextModSeq ) {
         if ( !d->modseqUpdate->rows() ) {
@@ -715,12 +734,9 @@ bool Store::removeFlags( bool opposite )
     changed.add( d->specified );
     changed.remove( unchanged );
     d->changedUids.add( changed );
+    if ( opposite )
+        d->changedUids.add( d->losesFlag );
 
-    if ( ( d->seen && !opposite ) ||
-         ( opposite && !d->seen ) ) {
-        d->changeSeen = true;
-        d->newSeen = false;
-    }
     if ( ( d->deleted && !opposite ) ||
          ( opposite && !d->deleted ) ) {
         d->changeDeleted = true;
@@ -730,17 +746,57 @@ bool Store::removeFlags( bool opposite )
     if ( flags.isEmpty() && !opposite )
         return false;
 
-    EString s = "delete from flags where mailbox=$1 and uid=any($2) and ";
-    if ( opposite )
-        s.append( "not " );
-    s.append( "flag=any($3)" );
+    // Keywords belong to the mailbox's owner and \Seen to the user, so
+    // the two cannot be deleted by one statement.
+    uint seen = Flag::id( "\\seen" );
+    IntegerSet keywords( flags );
+    keywords.remove( seen );
+    bool removeSeen = opposite ? !d->seen : flags.contains( seen );
+    Mailbox * m = d->session->mailbox();
 
-    Query * q = new Query( s, 0 );
-    q->bind( 1, d->session->mailbox()->id() );
-    q->bind( 2, d->s );
-    q->bind( 3, flags );
-    transaction()->enqueue( q );
+    if ( opposite || !keywords.isEmpty() ) {
+        EString s = "delete from flags where flag<>$4 "
+                    "and coalesce(owner,0)=$1 and message in "
+                    "(select message from mailbox_messages "
+                    "where mailbox=$2 and uid=any($3)) and ";
+        if ( opposite )
+            s.append( "not " );
+        s.append( "flag=any($5)" );
+
+        Query * q = new Query( s, 0 );
+        q->bind( 1, m->owner() );
+        q->bind( 2, m->id() );
+        q->bind( 3, d->s );
+        q->bind( 4, seen );
+        q->bind( 5, keywords );
+        transaction()->enqueue( q );
+    }
+
+    if ( removeSeen ) {
+        Query * q = new Query(
+            "delete from flags where flag=$1 and owner=$2 "
+            "and message in (select message from mailbox_messages "
+            "where mailbox=$3 and uid=any($4))", 0 );
+        q->bind( 1, seen );
+        q->bind( 2, flagUser() );
+        q->bind( 3, m->id() );
+        q->bind( 4, d->s );
+        transaction()->enqueue( q );
+    }
+
     return true;
+}
+
+
+/*! Returns the user whose flags this Store writes: \Seen belongs to
+    whoever read the message, which is the user issuing the command.
+*/
+
+uint Store::flagUser() const
+{
+    if ( imap() && imap()->user() )
+        return imap()->user()->id();
+    return d->session->mailbox()->owner();
 }
 
 
@@ -751,10 +807,9 @@ bool Store::removeFlags( bool opposite )
 bool Store::addFlags()
 {
     uint mailbox = d->session->mailbox()->id();
+    uint mailboxOwner = d->session->mailbox()->owner();
 
     bool work = false;
-    Query * q = new Query( "copy flags (mailbox, uid, flag) "
-                           "from stdin with binary", this );
 
     EStringList::Iterator it( d->flagNames );
     while ( it ) {
@@ -765,11 +820,7 @@ bool Store::addFlags()
         if ( !flag )
             flag = Flag::id( *it );
         ++it;
-        if ( Flag::isSeen( flag ) ) {
-            d->changeSeen = true;
-            d->newSeen = true;
-        }
-        else if ( Flag::isDeleted( flag ) ) {
+        if ( Flag::isDeleted( flag ) ) {
             d->changeDeleted = true;
             d->newDeleted = true;
         }
@@ -779,20 +830,34 @@ bool Store::addFlags()
                 s.remove( *p );
             if ( !s.isEmpty() ) {
                 work = true;
-                int c = s.count();
-                while ( c ) {
-                    uint uid = s.value( c );
-                    c--;
-                    q->bind( 1, mailbox );
-                    q->bind( 2, uid );
-                    q->bind( 3, flag );
-                    q->submitLine();
-                }
+                // the modseq update below bumps only the rows that
+                // changed, so it has to know which those are
+                d->changedUids.add( s );
+                Query * q = new Query(
+                    "insert into flags (owner, message, flag) "
+                    // The uids collapse to messages first: a set of
+                    // uids can be many copies of few messages, and one
+                    // row covers every copy. Doing it the other way
+                    // round means one index probe per uid.
+                    "select $1::int, m.message, $2::int from "
+                    "(select distinct message from mailbox_messages "
+                    "where mailbox=$3 and uid=any($4)) m "
+                    "where not exists (select 1 from flags f "
+                    "where f.message=m.message and f.flag=$2::int "
+                    "and coalesce(f.owner,0)=coalesce($1::int,0))", 0 );
+                if ( Flag::isSeen( flag ) )
+                    q->bind( 1, flagUser() );
+                else if ( mailboxOwner )
+                    q->bind( 1, mailboxOwner );
+                else
+                    q->bindNull( 1 );
+                q->bind( 2, flag );
+                q->bind( 3, mailbox );
+                q->bind( 4, s );
+                transaction()->enqueue( q );
             }
         }
     }
-    if ( work )
-        transaction()->enqueue( q );
 
     return work;
 }

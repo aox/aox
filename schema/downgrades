@@ -174,3 +174,35 @@ begin
     drop sequence nextmodseq;
     return 0;
 end;$$ language 'plpgsql';
+
+create or replace function downgrade_to_100()
+returns int as $$
+begin
+    alter table mailbox_messages add seen boolean not null default false;
+    update mailbox_messages mm set seen=true
+      from flags f join flag_names fn on (f.flag=fn.id),
+           mailboxes mb
+     where f.message=mm.message and mb.id=mm.mailbox
+       and lower(fn.name)='\seen'
+       and coalesce(f.owner,0)=coalesce(mb.owner,0);
+    alter table flags rename to new_flags;
+    create table flags (
+        mailbox integer not null,
+        uid integer not null,
+        flag integer not null references flag_names(id),
+        foreign key (mailbox, uid)
+            references mailbox_messages(mailbox, uid)
+            on delete cascade
+    );
+    create index fl_mu on flags (mailbox, uid);
+    insert into flags (mailbox, uid, flag)
+      select distinct mm.mailbox, mm.uid, f.flag
+        from new_flags f
+        join mailbox_messages mm on (f.message=mm.message)
+        join mailboxes mb on (mm.mailbox=mb.id)
+        join flag_names fn on (f.flag=fn.id)
+       where coalesce(f.owner,0)=coalesce(mb.owner,0)
+         and lower(fn.name)<>'\seen';
+    drop table new_flags;
+    return 0;
+end;$$ language 'plpgsql';

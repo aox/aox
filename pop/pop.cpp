@@ -137,10 +137,13 @@ void POP::setState( State s )
 
                 if ( !t ) {
                     t = new ::Transaction( this );
+                    Query * lock = new Query( "select id from mailboxes "
+                                              "where id=$1 for update",
+                                              this );
+                    lock->bind( 1, mailbox->id() );
+                    t->enqueue( lock );
                     nms = new Query( "select nextval('nextmodseq') "
-                                     "as nextmodseq from mailboxes "
-                                     "where id=$1 for update", this );
-                    nms->bind( 1, mailbox->id() );
+                                     "as nextmodseq", this );
                     t->enqueue( nms );
                     t->execute();
                 }

@@ -76,6 +76,7 @@ public:
           state( Inactive ), failed( false ), retried( 0 ), transaction( 0 ),
           mailboxesCreated( 0 ),
           fieldNameCreator( 0 ), flagCreator( 0 ), annotationNameCreator( 0 ),
+          findMs( 0 ), ms( 0 ),
           lockUidnext( 0 ), select( 0 ), insert( 0 ),
           substate( 0 ), subtransaction( 0 ),
           findParents( 0 ), findReferences( 0 ),
@@ -109,6 +110,7 @@ public:
     Transaction *transaction;
 
     EStringList flags;
+    Dict<EString> flagRows;
     EStringList fields;
     EStringList annotationNames;
     UStringList baseSubjects;
@@ -129,6 +131,8 @@ public:
     HelperRowCreator * flagCreator;
     HelperRowCreator * annotationNameCreator;
 
+    Query * findMs;
+    int64 ms;
     Query * lockUidnext;
     Query * select;
     Query * insert;
@@ -1453,19 +1457,27 @@ void Injector::selectUids()
         }
 
         d->lockUidnext = new Query(
-            "select id,uidnext,nextval('nextmodseq') as nextmodseq,"
-            "first_recent from mailboxes "
+            "select id,uidnext,first_recent from mailboxes "
             "where id=any($1) order by id for update", this );
         d->lockUidnext->bind( 1, ids );
         d->transaction->enqueue( d->lockUidnext );
+
+        d->findMs = new Query( "select nextval('nextmodseq') as nextmodseq",
+                               this );
+        d->transaction->enqueue( d->findMs );
         d->transaction->execute();
     }
+
+    if ( !d->findMs->done() )
+        return;
+    if ( !d->ms )
+        d->ms = d->findMs->nextRow()->getBigint( "nextmodseq" );
 
     while ( d->lockUidnext->hasResults() ) {
         Row * r = d->lockUidnext->nextRow();
         InjectorData::Mailbox * mb = d->mailboxes.find( r->getInt( "id" ) );
         uint uidnext = r->getInt( "uidnext" );
-        int64 nextms = r->getBigint( "nextmodseq" );
+        int64 nextms = d->ms;
 
         if ( uidnext > 0x7ff00000 ) {
             Log::Severity level = Log::Significant;
@@ -1549,10 +1561,10 @@ void Injector::insertMessages()
 
     Query * qm =
         new Query( "copy mailbox_messages "
-                   "(mailbox,uid,message,modseq,seen,deleted) "
+                   "(mailbox,uid,message,modseq,deleted) "
                    "from stdin with binary", 0 );
     Query * qf =
-        new Query( "copy flags (mailbox,uid,flag) "
+        new Query( "copy flags (owner,message,flag) "
                    "from stdin with binary", 0 );
     Query * qn =
         new Query( "copy annotations (mailbox,uid,name,value,owner) "
@@ -1767,18 +1779,14 @@ void Injector::addMailbox( Query * q, Injectee * m, Mailbox * mb )
     q->bind( 3, m->databaseId() );
     q->bind( 4, m->modSeq( mb ) );
     EStringList::Iterator i( m->flags( mb ) );
-    bool seen = false;
     bool deleted = false;
     while ( i ) {
         uint id = Flag::id( *i );
         ++i;
-        if ( Flag::isSeen( id ) )
-            seen = true;
-        else if ( Flag::isDeleted( id ) )
+        if ( Flag::isDeleted( id ) )
             deleted = true;
     }
-    q->bind( 5, seen );
-    q->bind( 6, deleted );
+    q->bind( 5, deleted );
     q->submitLine();
 }
 
@@ -1789,6 +1797,7 @@ void Injector::addMailbox( Query * q, Injectee * m, Mailbox * mb )
 uint Injector::addFlags( Query * q, Injectee * m, Mailbox * mb )
 {
     uint n = 0;
+    uint owner = mb->owner();
     EStringList::Iterator it( m->flags( mb ) );
     while ( it ) {
         uint flag = 0;
@@ -1796,12 +1805,26 @@ uint Injector::addFlags( Query * q, Injectee * m, Mailbox * mb )
             flag = d->flagCreator->id( *it );
         if ( !flag )
             flag = Flag::id( *it );
-        if ( !Flag::isSeen( flag ) && !Flag::isDeleted( flag ) ) {
-            n++;
-            q->bind( 1, mb->id() );
-            q->bind( 2, m->uid( mb ) );
-            q->bind( 3, flag );
-            q->submitLine();
+        if ( flag && !Flag::isDeleted( flag ) ) {
+            // A flag belongs to the mailbox's owner rather than to the
+            // mailbox, and one message may go into several of that
+            // owner's mailboxes, so the same row can come up twice.
+            EString key( fn( owner ) );
+            key.append( "/" );
+            key.append( fn( m->databaseId() ) );
+            key.append( "/" );
+            key.append( fn( flag ) );
+            if ( !d->flagRows.contains( key ) ) {
+                d->flagRows.insert( key, new EString( key ) );
+                n++;
+                if ( owner )
+                    q->bind( 1, owner );
+                else
+                    q->bindNull( 1 );
+                q->bind( 2, m->databaseId() );
+                q->bind( 3, flag );
+                q->submitLine();
+            }
         }
         ++it;
     }

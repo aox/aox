@@ -112,10 +112,13 @@ void Expunge::execute()
     if ( !transaction() ) {
         setTransaction( new Transaction( this ) );
 
+        Query * lock = new Query( "select id from mailboxes "
+                                  "where id=$1 for update", this );
+        lock->bind( 1, d->s->mailbox()->id() );
+        transaction()->enqueue( lock );
+
         d->findModseq = new Query( "select nextval('nextmodseq') "
-                                   "as nextmodseq from mailboxes "
-                                   "where id=$1 for update", this );
-        d->findModseq->bind( 1, d->s->mailbox()->id() );
+                                   "as nextmodseq", this );
         transaction()->enqueue( d->findModseq );
 
         d->findUids = new Query( "", this );
@@ -235,4 +238,3 @@ void Expunge::execute()
         error( No, "Database error. Messages not expunged." );
     finish();
 }
-[

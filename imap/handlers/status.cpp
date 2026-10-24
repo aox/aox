@@ -4,6 +4,7 @@
 
 #include "map.h"
 #include "flag.h"
+#include "user.h"
 #include "imap.h"
 #include "cache.h"
 #include "query.h"
@@ -264,12 +265,19 @@ void Status::execute()
         if ( d->cacheState == 1 ) {
             // state 1: send queries
             if ( d->unseen ) {
+                // \Seen belongs to the asking user, not to the
+                // mailbox, so unseen is an anti-join now
                 d->unseenCount
                     = new Query( "select mailbox, count(uid)::int as unseen "
-                                 "from mailbox_messages "
-                                 "where mailbox=any($1) and not seen "
+                                 "from mailbox_messages mm "
+                                 "where mailbox=any($1) "
+                                 "and not exists (select 1 from flags f "
+                                 "where f.message=mm.message "
+                                 "and f.flag=$2 and f.owner=$3) "
                                  "group by mailbox", this );
                 d->unseenCount->bind( 1, mailboxes );
+                d->unseenCount->bind( 2, Flag::id( "\\seen" ) );
+                d->unseenCount->bind( 3, imap()->user()->id() );
                 d->unseenCount->execute();
             }
             if ( d->recent ) {
@@ -320,9 +328,14 @@ void Status::execute()
         d->unseenCount
             = new Query( "select $1::int as mailbox, "
                          "count(uid)::int as unseen "
-                         "from mailbox_messages "
-                         "where mailbox=$1 and not seen", this );
+                         "from mailbox_messages mm "
+                         "where mailbox=$1 "
+                         "and not exists (select 1 from flags f "
+                         "where f.message=mm.message "
+                         "and f.flag=$2 and f.owner=$3)", this );
         d->unseenCount->bind( 1, d->mailbox->id() );
+        d->unseenCount->bind( 2, Flag::id( "\\seen" ) );
+        d->unseenCount->bind( 3, imap()->user()->id() );
         d->unseenCount->execute();
     }
 

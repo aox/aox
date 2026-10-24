@@ -2,6 +2,8 @@
 
 #include "fetch.h"
 
+#include "flag.h"
+
 #include "messagecache.h"
 #include "imapsession.h"
 #include "transaction.h"
@@ -1472,8 +1474,6 @@ void Fetch::pickup()
         return;
 
     if ( d->seenDeletedFetcher ) {
-        EString seenl( "\\seen" );
-        EString * seen = new EString( "\\Seen" );
         EString deletedl( "\\deleted" );
         EString * deleted = new EString( "\\Deleted" );
         while ( d->seenDeletedFetcher->hasResults() ) {
@@ -1484,8 +1484,6 @@ void Fetch::pickup()
                 dd = new FetchData::DynamicData;
                 d->dynamics.insert( uid, dd );
             }
-            if ( r->getBoolean( "seen" ) )
-                dd->flags.insert( seenl, seen );
             if ( r->getBoolean( "deleted" ) )
                 dd->flags.insert( deletedl, deleted );
         }
@@ -1650,20 +1648,35 @@ void Fetch::sendFlagQuery()
 {
     bool range = d->set.isSingleRange();
     d->seenDeletedFetcher = new Query(
-        "select uid, seen, deleted from mailbox_messages "
+        "select uid, deleted from mailbox_messages "
         "where mailbox=$1 and " + uidClause( "uid", range, 2, 3 ),
         this );
     d->seenDeletedFetcher->bind( 1, session()->mailbox()->id() );
     bindUids( d->seenDeletedFetcher, d->set, range, 2, 3 );
     enqueue( d->seenDeletedFetcher );
 
+    // Flags belong to a user: \Seen to whoever read the message, the
+    // rest to the owner of this mailbox, or to everyone if nobody
+    // owns it.
+    uint n = range ? 4 : 3;
+    uint user = 0;
+    if ( imap() && imap()->user() )
+        user = imap()->user()->id();
     d->flagFetcher = new Query(
-        "select f.uid, fn.name from flags f "
+        "select mm.uid, fn.name "
+        "from mailbox_messages mm "
+        "join flags f on (f.message=mm.message) "
         "join flag_names fn on (f.flag=fn.id) "
-        "where f.mailbox=$1 and " + uidClause( "f.uid", range, 2, 3 ),
+        "where mm.mailbox=$1 and " + uidClause( "mm.uid", range, 2, 3 ) +
+        " and ((f.flag=$" + fn( n ) + " and f.owner=$" + fn( n+1 ) + ") or"
+        " (f.flag<>$" + fn( n ) + " and coalesce(f.owner,0)=$" +
+        fn( n+2 ) + "))",
         this );
     d->flagFetcher->bind( 1, session()->mailbox()->id() );
     bindUids( d->flagFetcher, d->set, range, 2, 3 );
+    d->flagFetcher->bind( n, Flag::id( "\\seen" ) );
+    d->flagFetcher->bind( n+1, user );
+    d->flagFetcher->bind( n+2, session()->mailbox()->owner() );
     enqueue( d->flagFetcher );
 }
 

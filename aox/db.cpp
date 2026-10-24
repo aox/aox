@@ -449,9 +449,13 @@ struct TunableIndex {
       "CREATE INDEX af_mp ON address_fields "
       "USING btree (message, part)",
       false, true, true },
-    { "fl_mu", "flags",
-      "CREATE INDEX fl_mu ON flags "
-      "USING btree (mailbox, uid)",
+    { "fl_omf", "flags",
+      "CREATE UNIQUE INDEX fl_omf ON flags "
+      "USING btree ((coalesce(owner,0)), message, flag)",
+      false, true, true },
+    { "fl_m", "flags",
+      "CREATE INDEX fl_m ON flags "
+      "USING btree (message)",
       false, true, true },
     { "dm_mud", "deleted_messages",
       "CREATE INDEX dm_mud ON deleted_messages "

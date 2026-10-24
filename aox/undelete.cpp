@@ -20,7 +20,8 @@ class UndeleteData
 {
 public:
     UndeleteData(): state( 0 ), m( 0 ), t( 0 ),
-                    find( 0 ), uidnext( 0 ), usernames( 0 ) {}
+                    find( 0 ), uidnext( 0 ), modseq( 0 ),
+                    usernames( 0 ) {}
 
     uint state;
     Mailbox * m;
@@ -28,6 +29,7 @@ public:
 
     Query * find;
     Query * uidnext;
+    Query * modseq;
     Query * usernames;
 };
 
@@ -107,27 +109,30 @@ void Undelete::execute()
         d->find = s->query( 0, d->m, 0, 0, true, &wanted, true );
         d->t->enqueue( d->find );
 
-        // the modseq comes from the sequence; the row lock still
-        // serialises us against other changes to this mailbox
-        d->uidnext = new Query( "select uidnext,"
-                                " nextval('nextmodseq') as nextmodseq "
-                                "from mailboxes "
+        d->uidnext = new Query( "select uidnext from mailboxes "
                                 "where id=$1 for update", this );
         d->uidnext->bind( 1, d->m->id() );
         d->t->enqueue( d->uidnext );
+
+        d->modseq = new Query( "select nextval('nextmodseq') as nextmodseq",
+                               this );
+        d->t->enqueue( d->modseq );
 
         d->t->execute();
         d->state = 3;
     }
 
     if ( d->state == 3 ) {
-        if ( !d->uidnext->done() )
+        if ( !d->uidnext->done() || !d->modseq->done() )
             return;
 
         Row * r = d->uidnext->nextRow();
         if ( !r )
             error( "Internal error - could not read mailbox UID" );
         uint uidnext = r->getInt( "uidnext" );
+        r = d->modseq->nextRow();
+        if ( !r )
+            error( "Internal error - could not allocate a modseq" );
         int64 modseq = r->getBigint( "nextmodseq" );
 
         Map<EString> logins;

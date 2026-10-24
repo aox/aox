@@ -2,6 +2,8 @@
 
 #include "delete.h"
 
+#include "flag.h"
+
 #include "date.h"
 #include "imap.h"
 #include "user.h"
@@ -91,10 +93,15 @@ void Delete::execute()
                                  "from mailbox_messages mm "
                                  "join messages m on (mm.message=m.id) "
                                  "join mailboxes mb on (mm.mailbox=mb.id) "
-                                 "where mm.mailbox=$1 and not mm.seen and "
+                                 "where mm.mailbox=$1 "
+                                 "and not exists (select 1 from flags f "
+                                 "where f.message=mm.message "
+                                 "and f.flag=$3 and f.owner=$4) and "
                                  "(mm.uid>=mb.first_recent or m.idate>$2)",
                                  this );
         d->messages->bind( 1, d->m->id() );
+        d->messages->bind( 3, Flag::id( "\\seen" ) );
+        d->messages->bind( 4, imap()->user()->id() );
         Date now;
         now.setCurrentTime();
         d->messages->bind( 2, now.unixTime() - 20 );

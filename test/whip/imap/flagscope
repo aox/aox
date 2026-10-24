@@ -1,0 +1,85 @@
+# Flags belong to a user and a message, not to a mailbox, so one
+# message in two mailboxes has one set of flags: a keyword set in one
+# of them shows up in the other, and so does \Seen.
+#
+# The watcher examines rather than selects, so that it does not take
+# the \Recent claim away from main.
+depends empty-inbox
+send 1
+a create flagscope
+receive 1
+a OK done
+send 8
+b append inbox () {168+}
+From: Arnt Gulbrandsen <arnt@example.com>
+To: Arnt Gulbrandsen <arnt@example.com>
+Subject: one message, two mailboxes
+Date: Thu, 20 May 2004 14:28:51 +0200
+
+body
+
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+b OK [APPENDUID 1 1] done
+send 1
+c copy 1 flagscope
+receive 1
+c OK [COPYUID 1 1 1] done
+send 1
+d store 1 +flags (kiwi)
+receive 4
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen kiwi)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen kiwi \*)] permanent flags
+* 1 FETCH (UID 1 FLAGS (\Recent kiwi))
+d OK done
+protocol imap watcher
+receive 1
+* OK [CAPABILITY IMAP4rev1 AUTH=ANONYMOUS AUTH=CRAM-MD5 AUTH=DIGEST-MD5 AUTH=PLAIN AUTH=LOGIN COMPRESS=DEFLATE ENABLE ID SASL-IR STARTTLS] imapscript.test.oryx.com Archiveopteryx IMAP Server (security checking disabled)
+send 2
+w1 login script script
+w2 examine flagscope
+receive 9
+w1 OK [CAPABILITY IMAP4rev1 ACL APPENDLIMIT=38400000 BINARY CHILDREN COMPRESS=DEFLATE CONDSTORE ENABLE ESEARCH I18NLEVEL=1 ID IDLE LIST-EXTENDED LITERAL+ MOVE MULTIAPPEND NAMESPACE OBJECTID QUOTA QRESYNC RIGHTS=ekntx SORT SORT=DISPLAY SPECIAL-USE STARTTLS THREAD=ORDEREDSUBJECT THREAD=REFS THREAD=REFERENCES UIDONLY UIDPLUS UNSELECT UTF8=ACCEPT WITHIN] done
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen kiwi)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen kiwi \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+w2 OK [READ-ONLY] done
+# the copy has the keyword that was set on the original
+send 1
+w3 fetch 1 flags
+receive 2
+* 1 FETCH (FLAGS (\Recent kiwi))
+w3 OK done
+use main
+send 1
+e store 1 +flags \seen
+receive 2
+* 1 FETCH (UID 1 FLAGS (\Recent \Seen kiwi))
+e OK done
+# ... and \Seen set in one mailbox is set in the other
+use watcher
+send 1
+w4 fetch 1 flags
+receive 2
+* 1 FETCH (FLAGS (\Recent \Seen kiwi))
+w4 OK done
+use main
+send 1
+f store 1 -flags (kiwi)
+receive 2
+* 1 FETCH (UID 1 FLAGS (\Recent \Seen))
+f OK done
+# removing it in one removes it in the other
+use watcher
+send 1
+w5 fetch 1 flags
+receive 2
+* 1 FETCH (FLAGS (\Recent \Seen))
+w5 OK done
+end

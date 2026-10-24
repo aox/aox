@@ -144,8 +144,7 @@ void Copy::execute()
                        "mailbox integer,"
                        "uid integer,"
                        "message integer,"
-                       "nuid integer,"
-                       "seen boolean"
+                       "nuid integer"
                        ")", 0 );
         transaction()->enqueue( q );
 
@@ -154,8 +153,8 @@ void Copy::execute()
         transaction()->enqueue( q );
 
         q = new Query( "insert into t "
-                       "(mailbox, uid, message, nuid, seen) "
-                       "select mailbox, uid, message, nextval('s'), seen "
+                       "(mailbox, uid, message, nuid) "
+                       "select mailbox, uid, message, nextval('s') "
                        "from mailbox_messages "
                        "where mailbox=$1 and uid=any($2) order by uid", 0 );
         q->bind( 1, session()->mailbox()->id() );
@@ -173,19 +172,16 @@ void Copy::execute()
         transaction()->enqueue( new Query( "drop sequence s", 0 ) );
 
         q = new Query( "insert into mailbox_messages "
-                       "(mailbox, uid, message, modseq, seen, deleted) "
-                       "select $1, t.nuid, message, $2, t.seen, false "
+                       "(mailbox, uid, message, modseq, deleted) "
+                       "select $1, t.nuid, message, $2, false "
                        "from t", 0 );
         q->bind( 1, d->mailbox->id() );
         q->bind( 2, d->ms );
         transaction()->enqueue( q );
 
-        q = new Query( "insert into flags "
-                       "(mailbox, uid, flag) "
-                       "select $1, t.nuid, f.flag "
-                       "from flags f join t using (mailbox, uid)", 0 );
-        q->bind( 1, d->mailbox->id() );
-        transaction()->enqueue( q );
+        // Flags are not copied. They belong to the user and to the
+        // message, so the copy has them already, which is the point of
+        // keeping them there.
 
         q = new Query( "insert into annotations "
                        "(mailbox, uid, owner, name, value) "

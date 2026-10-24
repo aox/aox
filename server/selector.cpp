@@ -95,7 +95,7 @@ public:
           n( 0 ), m( 0 ), mc( 0 ),
           placeholder( 0 ), join( 0 ), query( 0 ), parent( 0 ),
           children( new List< Selector > ), msg( 0 ), mm( 0 ),
-          session( 0 ),
+          session( 0 ), searchMailbox( 0 ),
           needDateFields( false ),
           needAnnotations( false ),
           needBodyparts( false ),
@@ -140,6 +140,7 @@ public:
     EString * msg;
     EString * mm;
     Session * session;
+    Mailbox * searchMailbox;
     User * user;
 
     EStringList extraJoins;
@@ -580,6 +581,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     d->estringPlaceholders.clear();
     d->ustringPlaceholders.clear();
     uint mboxId = 0;
+    d->searchMailbox = mailbox;
     if ( mailbox ) {
         mboxId = placeHolder();
         d->query->bind( mboxId, mailbox->id() );
@@ -1514,29 +1516,39 @@ EString Selector::whereFlags()
     }
 
     uint fid = Flag::id( d->s8 );
-    if ( Flag::isSeen( fid ) )
-        return mm() + ".seen";
-    else if ( Flag::isDeleted( fid ) )
+    if ( Flag::isDeleted( fid ) )
         return mm() + ".deleted";
 
     uint join = ++root()->d->join;
     EString n = fn( join );
 
+    uint o = placeHolder();
+    uint owner = 0;
+    if ( Flag::isSeen( fid ) ) {
+        if ( root()->d->user )
+            owner = root()->d->user->id();
+    }
+    else if ( root()->d->searchMailbox ) {
+        owner = root()->d->searchMailbox->owner();
+    }
+    root()->d->query->bind( o, owner );
+
     EString j;
     if ( fid ) {
         // we know this flag, so look for it reasonably efficiently
         j = " left join flags f" + n +
-            " on (" + mm() + ".mailbox=f" + n + ".mailbox and " +
-            mm() + ".uid=f" + n + ".uid and "
+            " on (" + mm() + ".message=f" + n + ".message and "
+            "coalesce(f" + n + ".owner,0)=$" + fn( o ) + " and "
             "f" + n + ".flag=" + fn( fid ) + ")";
     }
     else {
         // just in case the cache is out of date we look in the db
         uint b = placeHolder( d->s8.lower() );
         j = " left join flags f" + n +
-            " on (" + mm() + ".mailbox=f" + n + ".mailbox and " +
-            mm() + ".uid=f" + n + ".uid and f" + n + ".flag="
-            "(select id from flag_names where lower(name)=$" + fn(b) + "))";
+            " on (" + mm() + ".message=f" + n + ".message and "
+            "coalesce(f" + n + ".owner,0)=$" + fn( o ) + " and f" + n +
+            ".flag=(select id from flag_names where lower(name)=$" +
+            fn( b ) + "))";
     }
     root()->d->leftJoins.append( j );
 

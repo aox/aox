@@ -219,7 +219,6 @@ create table mailbox_messages (
     uid         integer not null,
     message     integer not null references messages(id),
     modseq      bigint not null,
-    seen        boolean not null default false,
     deleted     boolean not null default false,
     primary key (mailbox, uid)
 );
@@ -327,16 +326,27 @@ create unique index fn_uname on flag_names(lower(name));
 
 -- One entry per user-defined IMAP message flag per message.
 
+-- One row per flag set on a message. A flag belongs to a user, not to
+-- a mailbox: a message in several of a user's mailboxes is one message
+-- with one set of flags.
+--
+-- \Seen is set baed on the authenticated users, other flags based on
+-- owner of the mailbox they were seen in in, and a null owner means the
+-- flag is shared by everyone who can read the mailbox.
+--
+-- \Deleted is not here. It says "remove this from this mailbox at the
+-- next expunge", so it a column in mailbox_messages.
+
 create table flags (
     -- Grant: select, insert, delete
-    mailbox     integer not null,
-    uid         integer not null,
-    flag        integer not null references flag_names(id),
-    foreign key (mailbox, uid)
-                references mailbox_messages(mailbox, uid)
-                on delete cascade
+    owner       integer references users(id) on delete cascade,
+    message     integer not null references messages(id) on delete cascade,
+    flag        integer not null references flag_names(id)
 );
-create index fl_mu on flags (mailbox, uid);
+-- null owners are distinct to postgres, so the uniqueness has to be
+-- expressed over an expression rather than over the columns
+create unique index fl_omf on flags (coalesce(owner,0), message, flag);
+create index fl_m on flags (message);
 
 
 -- One entry per subscribed mailbox per user.

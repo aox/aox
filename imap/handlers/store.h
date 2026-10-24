@@ -27,6 +27,7 @@ private:
     bool processFlagNames();
     bool processAnnotationNames();
     bool removeFlags( bool opposite = false );
+    uint flagUser() const;
     bool addFlags();
     bool replaceFlags();
     void replaceAnnotations();
