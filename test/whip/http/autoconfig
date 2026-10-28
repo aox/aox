@@ -1,0 +1,46 @@
+# draft-ietf-mailmaint-autoconfig section 4.1, URL 1.2, as set up by
+# mkwhippee.
+obliterate script
+protocol http main
+send 3
+GET /.well-known/autoconfig/mail/config-v1.1.xml HTTP/1.1
+Host: imapscript.test.oryx.com
+
+receive 36
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: ...
+Content-Type: text/xml
+
+<?xml version="1.0" encoding="utf-8"?>
+<clientConfig version="1.2">
+ <emailProvider id="imapscript.test.oryx.com">
+  <domain>test.oryx.com</domain>
+  <displayName>imapscript.test.oryx.com</displayName>
+  <incomingServer type="imap">
+   <hostname>imapscript.test.oryx.com</hostname>
+   <port>143</port>
+   <socketType>STARTTLS</socketType>
+   <authentication>password-cleartext</authentication>
+   <authentication>password-encrypted</authentication>
+   <username>%EMAILADDRESS%</username>
+  </incomingServer>
+  <incomingServer type="pop3">
+   <hostname>imapscript.test.oryx.com</hostname>
+   <port>110</port>
+   <socketType>STARTTLS</socketType>
+   <authentication>password-cleartext</authentication>
+   <authentication>password-encrypted</authentication>
+   <username>%EMAILADDRESS%</username>
+  </incomingServer>
+  <outgoingServer type="smtp">
+   <hostname>imapscript.test.oryx.com</hostname>
+   <port>587</port>
+   <socketType>STARTTLS</socketType>
+   <authentication>password-cleartext</authentication>
+   <authentication>password-encrypted</authentication>
+   <username>%EMAILADDRESS%</username>
+  </outgoingServer>
+ </emailProvider>
+</clientConfig>
+end

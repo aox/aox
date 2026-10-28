@@ -1,0 +1,13 @@
+protocol http main
+send 3
+GET / HTTP/1.1
+Host: imapscript.test.oryx.com
+
+receive 6
+HTTP/1.1 404 No such URL: /
+Server: Archiveopteryx/...
+Content-Length: 15
+Content-Type: text/plain
+
+No such URL: /
+end

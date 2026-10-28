@@ -493,6 +493,9 @@ void TestRunner::send()
             else if ( proto == "managesieve" ) {
                 c->connect( Endpoint( srv, 2000 ) );
             }
+            else if ( proto == "http" ) {
+                c->connect( Endpoint( srv, 8808 ) );
+            }
             else if ( proto == "ocd" ) {
                 c->connect( Endpoint( srv, 2050 ) );
             }

@@ -57,6 +57,8 @@ public:
         StatisticsPort,
         LdapServerPort,
         MemoryLimit,
+        HttpPort,
+        HttpsPort,
         // additional scalars go ABOVE THIS LINE
         NumScalars
     };
@@ -103,6 +105,8 @@ public:
         AddressSeparator,
         StatisticsAddress,
         LdapServerAddress,
+        HttpAddress,
+        HttpsAddress,
         // additional texts go ABOVE THIS LINE
         NumTexts
     };
@@ -135,6 +139,9 @@ public:
         SoftBounce,
         CheckSenderAddresses,
         UseImapQuota,
+        UseHttp,
+        UseHttps,
+        AcceptAnyHttpHost,
         // additional toggles go ABOVE THIS LINE
         NumToggles
     };

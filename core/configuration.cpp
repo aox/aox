@@ -164,7 +164,9 @@ static struct {
     { "smarthost-port", Configuration::SmartHostPort, 25 },
     { "statistics-port", Configuration::StatisticsPort, 17220 },
     { "ldap-server-port", Configuration::LdapServerPort, 389 },
-    { "memory-limit", Configuration::MemoryLimit, 64 }
+    { "memory-limit", Configuration::MemoryLimit, 64 },
+    { "http-port", Configuration::HttpPort, 8808 },
+    { "https-port", Configuration::HttpsPort, 8443 }
 };
 
 
@@ -212,7 +214,9 @@ static struct {
     { "smarthost-address", Configuration::SmartHostAddress, "127.0.0.1" },
     { "address-separator", Configuration::AddressSeparator, "" },
     { "statistics-address", Configuration::StatisticsAddress, "127.0.0.1" },
-    { "ldap-server-address", Configuration::LdapServerAddress, "127.0.0.1" }
+    { "ldap-server-address", Configuration::LdapServerAddress, "127.0.0.1" },
+    { "http-address", Configuration::HttpAddress, "127.0.0.1" },
+    { "https-address", Configuration::HttpsAddress, "127.0.0.1" }
 };
 
 
@@ -244,7 +248,10 @@ static struct {
     { "use-statistics", Configuration::UseStatistics, false },
     { "soft-bounce", Configuration::SoftBounce, true },
     { "check-sender-addresses", Configuration::CheckSenderAddresses, false },
-    { "use-imap-quota", Configuration::UseImapQuota, true }
+    { "use-imap-quota", Configuration::UseImapQuota, true },
+    { "use-http", Configuration::UseHttp, false },
+    { "use-https", Configuration::UseHttps, false },
+    { "accept-any-http-host", Configuration::AcceptAnyHttpHost, true }
 };
 
 

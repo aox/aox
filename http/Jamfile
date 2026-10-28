@@ -1,0 +1,7 @@
+SubDir TOP http ;
+
+SubInclude TOP server ;
+
+HDRS += [ FDirName $(TOP) http ] ;
+
+Build http : http.cpp autoconfig.cpp ;

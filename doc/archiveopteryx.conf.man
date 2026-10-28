@@ -541,6 +541,52 @@ specifies which port
 .BR archiveopteryx (8)
 should listen to. The default is
 .IR 2000 .
+.SS HTTP
+.IP use-http
+must be enabled for
+.BR archiveopteryx (8)
+to accept HTTP connections. The default is
+.IR false .
+The HTTP server is the protocol layer and
+nothing more, and exists so that APIs can be offered over it.
+.IP http-address
+is the address where
+.BR archiveopteryx (8)
+listens for new connections. The default is
+.IR 127.0.0.1 .
+.IP http-port
+is the port where
+.BR archiveopteryx (8)
+accepts connections,
+.I 8808
+by default.
+.IP use-https
+controls whether
+.BR archiveopteryx (8)
+should also accept TLS-wrapped HTTP connections. The default is
+.IR false .
+.IP https-address
+is the address where
+.BR archiveopteryx (8)
+listens for new TLS-wrapped connections,
+.I 127.0.0.1
+by default.
+.IP https-port
+is the port where
+.BR archiveopteryx (8)
+accepts TLS-wrapped connections,
+.I 8443
+by default.
+.IP accept-any-http-host
+controls whether the server answers requests whose Host header names
+some other host than
+.IR hostname .
+The default is
+.IR true .
+Setting it to
+.I false
+makes the server reject such requests. This setting is useful if some
+proxy configurations.
 .SS TLS
 .IP use-tls
 regulates whether Archiveopteryx supports TLS at all. The default is
