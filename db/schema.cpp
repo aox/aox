@@ -31,7 +31,7 @@ public:
           lock( 0 ), seq( 0 ), update( 0 ), q( 0 ),
           t( 0 ),
           result( 0 ), unparsed( 0 ), upgrade( false ), commit( true ),
-          updatedb( false ),
+          updatedb( false ), downgradesInstalled( false ),
           quid( 0 ), undel( 0 ), row( 0 ), lastMailbox( 0 ), count( 0 ),
           uidnext( 0 ), nextmodseq( 0 ), granter( 0 )
     {
@@ -50,6 +50,7 @@ public:
     bool upgrade;
     bool commit;
     bool updatedb;
+    bool downgradesInstalled;
     EString version;
     EString dbuser;
     EString schema;
@@ -182,6 +183,7 @@ void Schema::execute()
                            fn( Database::currentRevision() ) +
                            ", no upgrade necessary.",
                            Log::Significant );
+                installDowngradeFunctions();
                 d->t->commit();
             }
             d->result->setState( Query::Completed );
@@ -193,6 +195,7 @@ void Schema::execute()
                        fn( d->revision ) + " to revision " +
                        fn( Database::currentRevision() ) + ".",
                        Log::Significant );
+            installDowngradeFunctions();
             d->state = 2;
         }
         else if ( d->upgrade && d->revision < Database::currentRevision() ) {
@@ -200,6 +203,7 @@ void Schema::execute()
                        fn( d->revision ) + " to revision " +
                        fn( Database::currentRevision() ) + ".",
                        Log::Significant );
+            installDowngradeFunctions();
             d->state = 2;
         }
         else {
@@ -608,12 +612,35 @@ bool Schema::singleStep()
         c = true;
         break;
     }
-    if ( d->revision >= 89 &&
-         d->revision <= numDowngradeFunctions &&
-         downgradeFunctions[d->revision] )
-        d->t->enqueue( downgradeFunctions[d->revision] );
-
     return c;
+}
+
+
+/*! Installs every stored downgrade function this binary knows about,
+    once per upgrade run.
+
+    Doing it per step, as we used to, meant that a database kept
+    whichever definitions were installed the day it was upgraded, so a
+    fix to a downgrade function reached only databases that had not
+    been upgraded yet - and a downgrade function is needed precisely
+    when nobody is in a position to upgrade first. The functions are
+    cheap, create or replace is idempotent, and a plpgsql body is not
+    checked until it runs, so one that mentions a column belonging to
+    an older revision installs happily.
+*/
+
+void Schema::installDowngradeFunctions()
+{
+    if ( d->downgradesInstalled || !d->upgrade )
+        return;
+    d->downgradesInstalled = true;
+
+    uint i = 89;
+    while ( i < numDowngradeFunctions ) {
+        if ( downgradeFunctions[i] )
+            d->t->enqueue( downgradeFunctions[i] );
+        i++;
+    }
 }
 
 

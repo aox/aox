@@ -25,6 +25,7 @@ public:
 private:
     class SchemaData *d;
     void fail( const EString &, Query * = 0 );
+    void installDowngradeFunctions();
     bool singleStep();
     bool stepTo2();
     bool stepTo3();
