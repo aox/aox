@@ -83,6 +83,21 @@ TestScript::TestScript( File * f )
         Allocator::addEternal( providers, "all test scripts" );
     }
     providers->insert( d->provides, this );
+
+    EString path( d->filename );
+    int last = -1;
+    int previous = -1;
+    int i = path.find( '/' );
+    while ( i >= 0 ) {
+        previous = last;
+        last = i;
+        i = path.find( '/', i + 1 );
+    }
+    if ( last >= 0 ) {
+        EString qualified = path.mid( previous + 1 );
+        if ( qualified != d->provides )
+            providers->insert( qualified, this );
+    }
 }
 
 
