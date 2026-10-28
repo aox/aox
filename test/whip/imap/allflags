@@ -1,0 +1,45 @@
+# A flag set in one mailbox has to be announced in all mail, not just
+# be visible there when asked: the modseq advances in every mailbox
+# that holds the message.
+depends allmail
+protocol imap watcher
+receive 1
+* OK [CAPABILITY IMAP4rev1 AUTH=ANONYMOUS AUTH=CRAM-MD5 AUTH=DIGEST-MD5 AUTH=PLAIN AUTH=LOGIN COMPRESS=DEFLATE ENABLE ID SASL-IR STARTTLS] imapscript.test.oryx.com Archiveopteryx IMAP Server (security checking disabled)
+send 2
+w1 login script script
+w2 examine All
+receive 9
+w1 OK [CAPABILITY IMAP4rev1 ACL APPENDLIMIT=38400000 BINARY CHILDREN COMPRESS=DEFLATE CONDSTORE CREATE-SPECIAL-USE ENABLE ESEARCH I18NLEVEL=1 ID IDLE LIST-EXTENDED LITERAL+ MOVE MULTIAPPEND NAMESPACE OBJECTID QUOTA QRESYNC RIGHTS=ekntx SORT SORT=DISPLAY SPECIAL-USE STARTTLS THREAD=ORDEREDSUBJECT THREAD=REFS THREAD=REFERENCES UIDONLY UIDPLUS UNSELECT UTF8=ACCEPT WITHIN] done
+* 20 EXISTS
+* 0 RECENT
+* OK [UIDNEXT 21] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+w2 OK [READ-ONLY] done
+use main
+send 1
+e select inbox
+receive 9
+* OK [CLOSED] I, missa est
+* 20 EXISTS
+* 20 RECENT
+* OK [UIDNEXT 21] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+e OK [READ-WRITE] done
+send 1
+f store 3 +flags \flagged
+receive 2
+* 3 FETCH (UID 3 FLAGS (\Flagged \Recent))
+f OK done
+use watcher
+send 1
+w3 noop
+receive 2
+* 3 FETCH (UID 3 FLAGS (\Flagged))
+w3 OK done
+end

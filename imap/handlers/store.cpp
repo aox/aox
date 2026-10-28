@@ -34,7 +34,8 @@ public:
           unchangedSince( 0 ), seenUnchangedSince( false ),
           sentWorkQueries( false ),
           modseq( 0 ),
-          modSeqQuery( 0 ), obtainModSeq( 0 ), findSet( 0 ),
+          modSeqQuery( 0 ), obtainMailboxes( 0 ),
+          obtainModSeq( 0 ), findSet( 0 ),
           presentFlags( 0 ), present( 0 ),
           flagCreator( 0 ),
           annotationNameCreator( 0 ), session( 0 ),
@@ -60,6 +61,7 @@ public:
     bool sentWorkQueries;
     int64 modseq;
     Query * modSeqQuery;
+    Query * obtainMailboxes;
     Query * obtainModSeq;
     Query * findSet;
     Query * presentFlags;
@@ -72,6 +74,7 @@ public:
     List<Annotation> annotations;
     bool changeDeleted;
     bool newDeleted;
+    IntegerSet mailboxIds;
     IntegerSet changedUids;
     IntegerSet namedFlags;
     IntegerSet losesFlag;
@@ -373,10 +376,20 @@ void Store::execute()
         if ( !transaction() )
             setTransaction( new Transaction( this ) );
 
-        Query * lock = new Query( "select id from mailboxes "
-                                  "where id=$1 for update", this );
-        lock->bind( 1, m->id() );
-        transaction()->enqueue( lock );
+        d->obtainMailboxes
+            = new Query( "select id from mailboxes "
+                         "where id=$1 or (coalesce(owner,0) "
+                         "in ($3,$4) and id in ("
+                         "select mailbox from mailbox_messages "
+                         "where message in ("
+                         "select message from mailbox_messages "
+                         "where mailbox=$1 and uid=any($2)))) "
+                         "order by id for update", this );
+        d->obtainMailboxes->bind( 1, m->id() );
+        d->obtainMailboxes->bind( 2, d->specified );
+        d->obtainMailboxes->bind( 3, m->owner() );
+        d->obtainMailboxes->bind( 4, flagUser() );
+        transaction()->enqueue( d->obtainMailboxes );
 
         d->obtainModSeq
             = new Query( "select nextval('nextmodseq') as nextmodseq", this );
@@ -440,6 +453,9 @@ void Store::execute()
 
         transaction()->execute();
     }
+
+    while ( d->obtainMailboxes->hasResults() )
+        d->mailboxIds.add( d->obtainMailboxes->nextRow()->getInt( "id" ) );
 
     while ( d->findSet->hasResults() )
         d->s.add( d->findSet->nextRow()->getInt( "uid" ) );
@@ -617,10 +633,27 @@ void Store::execute()
         }
         d->sentNextModSeq = true;
 
-        Query * q = new Query( "update mailboxes set nextmodseq=$1 "
-                               "where id=$2", 0 );
+        Query * q;
+        if ( !d->changedUids.isEmpty() ) {
+            // \Deleted is different from the other flags, so this depends on
+            // changedUids rather than on the uids in the command:
+            // deletion belongs to one mailbox alone.
+            q = new Query( "update mailbox_messages set modseq=$1 "
+                           "where mailbox<>$2 and mailbox=any($4) "
+                           "and message in "
+                           "(select message from mailbox_messages "
+                           "where mailbox=$2 and uid=any($3))", 0 );
+            q->bind( 1, d->modseq );
+            q->bind( 2, m->id() );
+            q->bind( 3, d->changedUids );
+            q->bind( 4, d->mailboxIds );
+            transaction()->enqueue( q );
+        }
+
+        q = new Query( "update mailboxes set nextmodseq=$1 where id=any($2)",
+                       0 );
         q->bind( 1, d->modseq + 1 );
-        q->bind( 2, m->id() );
+        q->bind( 2, d->mailboxIds );
         transaction()->enqueue( q );
 
         if ( d->silent )
@@ -712,8 +745,9 @@ bool Store::removeFlags( bool opposite )
 {
     IntegerSet flags;
 
-    IntegerSet unchanged;
-    unchanged.add( d->specified );
+    // Removing a flag changes the messages that have it, and leaves
+    // the rest alone.
+    IntegerSet changed;
     EStringList::Iterator i( d->flagNames );
     while ( i ) {
         uint id = 0;
@@ -726,16 +760,16 @@ bool Store::removeFlags( bool opposite )
             IntegerSet * present = d->present->find( id );
             if ( present && !present->isEmpty() ) {
                 flags.add( id );
-                unchanged = unchanged.intersection( *present );
+                changed.add( present->intersection( d->specified ) );
             }
         }
     }
-    IntegerSet changed;
-    changed.add( d->specified );
-    changed.remove( unchanged );
-    d->changedUids.add( changed );
     if ( opposite )
+        // here the named flags are the ones to keep, and losesFlag is
+        // the set that loses something
         d->changedUids.add( d->losesFlag );
+    else
+        d->changedUids.add( changed );
 
     if ( ( d->deleted && !opposite ) ||
          ( opposite && !d->deleted ) ) {
