@@ -4,4 +4,4 @@ SubInclude TOP server ;
 
 HDRS += [ FDirName $(TOP) http ] ;
 
-Build http : http.cpp autoconfig.cpp ;
+Build http : http.cpp handler.cpp autoconfig.cpp ;

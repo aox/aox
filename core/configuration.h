@@ -142,6 +142,8 @@ public:
         UseHttp,
         UseHttps,
         AcceptAnyHttpHost,
+        UseJmap,
+        UseAutoconfig,
         // additional toggles go ABOVE THIS LINE
         NumToggles
     };

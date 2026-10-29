@@ -251,7 +251,9 @@ static struct {
     { "use-imap-quota", Configuration::UseImapQuota, true },
     { "use-http", Configuration::UseHttp, false },
     { "use-https", Configuration::UseHttps, false },
-    { "accept-any-http-host", Configuration::AcceptAnyHttpHost, true }
+    { "accept-any-http-host", Configuration::AcceptAnyHttpHost, true },
+    { "use-jmap", Configuration::UseJmap, false },
+    { "use-autoconfig", Configuration::UseAutoconfig, false }
 };
 
 

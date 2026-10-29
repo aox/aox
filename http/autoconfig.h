@@ -17,6 +17,8 @@ public:
 
     void execute();
 
+    static void setup();
+
 private:
     class AutoconfigData * d;
 };

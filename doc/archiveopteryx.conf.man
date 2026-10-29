@@ -577,6 +577,28 @@ is the port where
 accepts TLS-wrapped connections,
 .I 8443
 by default.
+.IP use-autoconfig
+controls whether the HTTP server answers the mail autoconfiguration
+URL described in
+.IR draft-ietf-mailmaint-autoconfig ,
+telling clients which protocols and ports this server offers. The
+default is
+.IR false ,
+and it needs
+.I use-http
+or
+.I use-https
+to be of any use.
+.IP use-jmap
+controls whether the HTTP server answers JMAP, read-only, as described
+in
+.IR RFC8620 .
+The default is
+.IR false .
+Like
+.IR use-autoconfig ,
+it needs HTTP enabled; unlike it, it serves mail, so it is worth
+enabling deliberately.
 .IP accept-any-http-host
 controls whether the server answers requests whose Host header names
 some other host than

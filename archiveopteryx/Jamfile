@@ -5,10 +5,11 @@ SubInclude TOP pop ;
 SubInclude TOP sieve ;
 SubInclude TOP smtp ;
 SubInclude TOP http ;
+SubInclude TOP jmap ;
 
 
 Build archiveopteryx : archiveopteryx.cpp ;
 
 Server archiveopteryx :
-    archiveopteryx imap pop sieve smtp http database message server
+    archiveopteryx imap pop sieve smtp http jmap database message server
     sasl mailbox core encodings user extractors abnf collations ;

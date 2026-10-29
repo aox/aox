@@ -1,0 +1,34 @@
+# RFC8620 4 Core/echo, and what a method that would change
+# something gets: unknownMethod, because it is not implemented.
+protocol http main
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 85
+
+{"using":["urn:ietf:params:jmap:core"],"methodCalls":[["Core/echo",{"hi":1},"c1"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 69
+Content-Type: application/json
+
+{"methodResponses":[["Core/echo",{"hi":1},"c1"]],"sessionState":"1"}
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 118
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/set",{"create":{}},"c2"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 81
+Content-Type: application/json
+
+{"methodResponses":[["error",{"type":"unknownMethod"},"c2"]],"sessionState":"1"}
+end

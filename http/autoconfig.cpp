@@ -3,6 +3,7 @@
 #include "autoconfig.h"
 
 #include "ace.h"
+#include "handler.h"
 #include "utf.h"
 #include "http.h"
 #include "query.h"
@@ -115,6 +116,37 @@ static void server( EString & r,
     }
     r.append( "   <username>%EMAILADDRESS%</username>\n" );
     r.append( "  </" + kind + ">\n" );
+}
+
+
+class AutoconfigHandler
+    : public HttpHandler
+{
+public:
+    AutoconfigHandler( const EString & path ): HttpHandler( path ) {}
+
+    void handle( HTTP * http )
+    {
+        if ( http->method() != "GET" && http->method() != "HEAD" ) {
+            http->setStatus( 405, "Only GET and HEAD serve " + path() );
+            http->addHeader( "Allow: GET, HEAD" );
+            http->respond( "text/plain",
+                           "Only GET and HEAD serve " + path() + "\n" );
+            return;
+        }
+        (void)new Autoconfig( http );
+    }
+};
+
+
+/*! Registers the autoconfiguration URL. The server calls this at
+    startup if it serves HTTP at all.
+*/
+
+void Autoconfig::setup()
+{
+    (void)new AutoconfigHandler(
+        "/.well-known/autoconfig/mail/config-v1.1.xml" );
 }
 
 

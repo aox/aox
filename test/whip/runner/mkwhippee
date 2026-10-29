@@ -49,7 +49,9 @@ F=/tmp/mkwhippee-$$
   aox show cf server-processes ; \
   aox show cf memory-limit ; \
   aox show cf use-http ; \
-  aox show cf http-port ; ) > ${F}-a
+  aox show cf http-port ; \
+  aox show cf use-autoconfig ; \
+  aox show cf use-jmap ; ) > ${F}-a
 
 cat <<EORIGHT > ${F}-b
 use-imap = on
@@ -71,6 +73,8 @@ server-processes = 1
 memory-limit = 256
 use-http = on
 http-port = 8808
+use-autoconfig = on
+use-jmap = on
 EORIGHT
 
 if cmp -s ${F}-a ${F}-b ; then

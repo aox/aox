@@ -500,6 +500,18 @@ static void checkInetAddresses()
         Configuration::ManageSievePort,
         "managesieve-address:port"
     );
+
+    checkListener(
+        Configuration::toggle( Configuration::UseHttp ),
+        Configuration::HttpAddress, Configuration::HttpPort,
+        "http-address:port"
+    );
+
+    checkListener(
+        Configuration::toggle( Configuration::UseHttps ),
+        Configuration::HttpsAddress, Configuration::HttpsPort,
+        "https-address:port"
+    );
 }
 
 
@@ -539,7 +551,23 @@ static void checkMiscellaneous()
             error( "use-pops enabled, but use-tls disabled" );
         if ( Configuration::toggle( Configuration::UseSmtps ) )
             error( "use-smtps enabled, but use-tls disabled" );
+        if ( Configuration::toggle( Configuration::UseHttps ) )
+            error( "use-https enabled, but use-tls disabled" );
     }
+
+    bool http = Configuration::toggle( Configuration::UseHttp ) ||
+                Configuration::toggle( Configuration::UseHttps );
+    bool jmap = Configuration::toggle( Configuration::UseJmap );
+    bool autoconfig = Configuration::toggle( Configuration::UseAutoconfig );
+    if ( jmap && !http )
+        error( "use-jmap enabled, but neither use-http nor use-https" );
+    if ( autoconfig && !http )
+        error( "use-autoconfig enabled, but neither use-http "
+               "nor use-https" );
+    if ( http && !jmap && !autoconfig )
+        fprintf( stderr, "Note: use-http or use-https is enabled, but "
+                 "neither use-jmap nor use-autoconfig, so the HTTP server "
+                 "answers 404 to every request\n" );
 
     EString sA( Configuration::text( Configuration::SmartHostAddress ) );
     uint sP( Configuration::scalar( Configuration::SmartHostPort ) );

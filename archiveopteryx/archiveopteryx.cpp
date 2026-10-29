@@ -6,6 +6,8 @@
 #include "pop.h"
 #include "imap.h"
 #include "http.h"
+#include "jmap.h"
+#include "autoconfig.h"
 #include "smtp.h"
 #include "graph.h"
 
@@ -251,6 +253,10 @@ int main( int argc, char *argv[] )
         "POP3S", Configuration::toggle( Configuration::UsePops ),
         Configuration::PopsAddress, Configuration::PopsPort
     );
+    if ( Configuration::toggle( Configuration::UseAutoconfig ) )
+        Autoconfig::setup();
+    if ( Configuration::toggle( Configuration::UseJmap ) )
+        Jmap::setup();
     Listener< HTTP >::create(
         "HTTP", Configuration::toggle( Configuration::UseHttp ),
         Configuration::HttpAddress, Configuration::HttpPort

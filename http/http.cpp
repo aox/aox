@@ -3,7 +3,7 @@
 #include "http.h"
 
 #include "dict.h"
-#include "autoconfig.h"
+#include "handler.h"
 #include "buffer.h"
 #include "eventloop.h"
 #include "configuration.h"
@@ -147,20 +147,15 @@ void HTTP::parse()
 }
 
 
-/*! Answers the parsed request. For the moment, this serves the mail
-    autoconfiguration document and answers 404 for everything else.
+/*! Answers the parsed request, by handing it to whichever
+    HttpHandler serves the path, or with 404 if none does.
 */
 
 void HTTP::handle()
 {
-    if ( d->path == "/.well-known/autoconfig/mail/config-v1.1.xml" ) {
-        if ( d->method != "GET" && d->method != "HEAD" ) {
-            setStatus( 405, "Only GET and HEAD serve " + d->path );
-            addHeader( "Allow: GET, HEAD" );
-            respond( "text/plain", d->message + "\n" );
-            return;
-        }
-        (void)new Autoconfig( this );
+    HttpHandler * h = HttpHandler::find( d->path );
+    if ( h ) {
+        h->handle( this );
         return;
     }
 
@@ -268,6 +263,16 @@ EString HTTP::header( const EString & name ) const
         return *v;
     EString empty;
     return empty;
+}
+
+
+/*! Returns true if this connection is encrypted, so that a caller
+    can decide whether a password may cross it.
+*/
+
+bool HTTP::encrypted() const
+{
+    return hasTls();
 }
 
 

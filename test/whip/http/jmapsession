@@ -1,0 +1,28 @@
+# RFC8620 2: the session resource, which needs authentication. The
+# account id is 1 because mkwhippee makes script the first user.
+protocol http main
+send 3
+GET /.well-known/jmap HTTP/1.1
+Host: imapscript.test.oryx.com
+
+receive 7
+HTTP/1.1 401 Authentication required
+WWW-Authenticate: Basic realm="JMAP"
+Server: Archiveopteryx/...
+Content-Length: 88
+Content-Type: application/problem+json
+
+{"type":"about:blank","status":401,"detail":"This API needs HTTP Basic authentication"}
+send 4
+GET /.well-known/jmap HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 805
+Content-Type: application/json
+
+{"capabilities":{"urn:ietf:params:jmap:core":{"maxSizeUpload":0,"maxConcurrentUpload":0,"maxSizeRequest":65536,"maxConcurrentRequests":4,"maxCallsInRequest":1,"maxObjectsInGet":64,"maxObjectsInSet":0,"collationAlgorithms":["i;unicode-casemap"]},"urn:ietf:params:jmap:mail":{"maxMailboxesPerEmail":null,"maxMailboxDepth":null,"maxSizeMailboxName":255,"maxSizeAttachmentsPerEmail":0,"mayCreateTopLevelMailbox":false,"emailQuerySortOptions":["receivedAt","sentAt","size","from","to","subject"]}},"accounts":{"1":{"name":"script","isPersonal":true,"isReadOnly":true,"accountCapabilities":{"urn:ietf:params:jmap:core":{},"urn:ietf:params:jmap:mail":{}}}},"primaryAccounts":{"urn:ietf:params:jmap:mail":"1"},"username":"script","apiUrl":"/jmap/","downloadUrl":"","uploadUrl":"","eventSourceUrl":"","state":"1"}
+end

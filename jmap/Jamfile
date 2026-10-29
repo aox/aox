@@ -1,0 +1,8 @@
+SubDir TOP jmap ;
+
+SubInclude TOP http ;
+SubInclude TOP server ;
+
+HDRS += [ FDirName $(TOP) jmap ] ;
+
+Build jmap : json.cpp jmap.cpp ;

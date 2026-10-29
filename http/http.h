@@ -27,6 +27,7 @@ public:
     EString body() const;
     EString hostHeader() const;
     EString header( const EString & ) const;
+    bool encrypted() const;
 
     uint status() const;
     void setStatus( uint, const EString & );
