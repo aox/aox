@@ -1,4 +1,4 @@
-protocol http main
+protocol http web
 send 3
 GET / HTTP/1.1
 Host: imapscript.test.oryx.com

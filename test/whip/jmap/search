@@ -1,0 +1,132 @@
+depends imap/20
+protocol http api
+# two messages discuss capitals in fieldnames
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 155
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/query",{"accountId":"1","filter":{"subject":"capitals"}},"q"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 157
+Content-Type: application/json
+
+{"methodResponses":[["Email/query",{"accountId":"1","queryState":"m2","canCalculateChanges":false,"position":0,"ids":["m12","m3"]},"q"]],"sessionState":"1"}
+# one correspondent, two messages
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 150
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/query",{"accountId":"1","filter":{"from":"jclift"}},"q"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 157
+Content-Type: application/json
+
+{"methodResponses":[["Email/query",{"accountId":"1","queryState":"m2","canCalculateChanges":false,"position":0,"ids":["m11","m2"]},"q"]],"sessionState":"1"}
+# header and body both count as text, and the client wants a count
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 173
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/query",{"accountId":"1","filter":{"text":"indexes"},"calculateTotal":true},"q"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 180
+Content-Type: application/json
+
+{"methodResponses":[["Email/query",{"accountId":"1","queryState":"m2","canCalculateChanges":false,"position":0,"ids":["m20","m18","m16","m15"],"total":4},"q"]],"sessionState":"1"}
+# an AND of two conditions
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 210
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/query",{"accountId":"1","filter":{"operator":"AND","conditions":[{"from":"peter_e"},{"subject":"SQL Script"}]}},"q"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 151
+Content-Type: application/json
+
+{"methodResponses":[["Email/query",{"accountId":"1","queryState":"m2","canCalculateChanges":false,"position":0,"ids":["m9"]},"q"]],"sessionState":"1"}
+# oldest first, by arrival
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 211
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/query",{"accountId":"1","filter":{"subject":"SELECT MAX"},"sort":[{"property":"receivedAt","isAscending":true}]},"q"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 162
+Content-Type: application/json
+
+{"methodResponses":[["Email/query",{"accountId":"1","queryState":"m2","canCalculateChanges":false,"position":0,"ids":["m5","m7","m19"]},"q"]],"sessionState":"1"}
+# sorting by sender uses the same SQL as IMAP SORT
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 208
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/query",{"accountId":"1","filter":{"subject":"Using Indices"},"sort":[{"property":"from","isAscending":true}]},"q"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 158
+Content-Type: application/json
+
+{"methodResponses":[["Email/query",{"accountId":"1","queryState":"m2","canCalculateChanges":false,"position":0,"ids":["m14","m17"]},"q"]],"sessionState":"1"}
+# nothing is read yet
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 155
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/query",{"accountId":"1","filter":{"hasKeyword":"$seen"}},"q"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 147
+Content-Type: application/json
+
+{"methodResponses":[["Email/query",{"accountId":"1","queryState":"m2","canCalculateChanges":false,"position":0,"ids":[]},"q"]],"sessionState":"1"}
+# a condition we do not implement is refused, not ignored
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 166
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/query",{"accountId":"1","filter":{"before":"2001-01-01T00:00:00Z"}},"q"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 84
+Content-Type: application/json
+
+{"methodResponses":[["error",{"type":"unsupportedFilter"},"q"]],"sessionState":"1"}
+use main
+end

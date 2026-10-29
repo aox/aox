@@ -72,6 +72,20 @@ static void rfile( const char * fn, bool alsoBroken )
         while ( pn.find( '/', i ) >= i )
             i = 1 + pn.find( '/', i );
         pn = pn.mid( 0, i );
+        if ( s->depends().contains( '/' ) ) {
+            // A dependency that names a directory is relative to the
+            // tree of scripts, not to the directory this script is in:
+            // jmap/get depends on imap/20, not on jmap/imap/20.
+            if ( pn.endsWith( "/" ) )
+                pn.truncate( pn.length() - 1 );
+            int slash = -1;
+            int j = 0;
+            while ( pn.find( '/', j ) >= j ) {
+                slash = pn.find( '/', j );
+                j = slash + 1;
+            }
+            pn = pn.mid( 0, slash + 1 );
+        }
         pn.append( s->depends() );
         rfile( pn.cstr(), false );
     }

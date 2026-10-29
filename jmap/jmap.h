@@ -28,6 +28,7 @@ private:
     void fail( uint, const EString &, const EString &,
                const EString & = "" );
     Json * call( const EString &, Json * );
+    bool start( const EString &, Json *, const EString & );
 
 private:
     class JmapData * d;

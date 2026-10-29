@@ -82,7 +82,15 @@ TestScript::TestScript( File * f )
         providers = new Dict<TestScript>;
         Allocator::addEternal( providers, "all test scripts" );
     }
-    providers->insert( d->provides, this );
+    TestScript * other = providers->find( d->provides );
+    if ( other )
+        fprintf( stderr,
+                 "whip: %s and %s share the short name %s; "
+                 "use a directory to name either\n",
+                 other->name().cstr(), d->filename.cstr(),
+                 d->provides.cstr() );
+    else
+        providers->insert( d->provides, this );
 
     EString path( d->filename );
     int last = -1;

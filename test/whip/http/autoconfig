@@ -1,7 +1,7 @@
 # draft-ietf-mailmaint-autoconfig section 4.1, URL 1.2, as set up by
 # mkwhippee.
 obliterate script
-protocol http main
+protocol http web
 send 3
 GET /.well-known/autoconfig/mail/config-v1.1.xml HTTP/1.1
 Host: imapscript.test.oryx.com

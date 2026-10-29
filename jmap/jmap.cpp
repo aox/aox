@@ -3,6 +3,8 @@
 #include "jmap.h"
 
 #include "utf.h"
+#include "method.h"
+#include "emailquery.h"
 #include "http.h"
 #include "handler.h"
 #include "json.h"
@@ -21,10 +23,13 @@ class JmapData
     : public Garbage
 {
 public:
-    JmapData(): http( 0 ), user( 0 ), authenticated( false ) {}
+    JmapData(): http( 0 ), user( 0 ), method( 0 ),
+                authenticated( false ) {}
 
     HTTP * http;
     User * user;
+    JmapMethod * method;
+    EString callId;
     UString secret;
     bool authenticated;
 };
@@ -86,6 +91,25 @@ void Jmap::execute()
 {
     if ( !d->authenticated ) {
         authenticate();
+        return;
+    }
+
+    if ( d->method ) {
+        // an asynchronous method is answering; wait for it, then send
+        // what it came up with
+        if ( !d->method->done() )
+            return;
+        Json * response = Json::list();
+        response->append( Json::string( d->method->responseName() ) );
+        response->append( d->method->response() );
+        response->append( Json::string( d->callId ) );
+        Json * responses = Json::list();
+        responses->append( response );
+        Json * r = Json::object();
+        r->insert( "methodResponses", responses );
+        r->insert( "sessionState", Json::string( EString( "1" ) ) );
+        d->method = 0;
+        d->http->respond( "application/json", r->write() + "\n" );
         return;
     }
 
@@ -279,6 +303,25 @@ Json * Jmap::call( const EString & name, Json * arguments )
 }
 
 
+/*! Starts the method \a name with \a arguments, if it is one that has
+    to ask the database, and returns true. Returns false if \a name
+    isn't a method.
+*/
+
+bool Jmap::start( const EString & name, Json * arguments,
+                  const EString & callId )
+{
+    if ( name == "Email/query" )
+        d->method = new EmailQuery( this, d->user, arguments );
+    else
+        return false;
+
+    d->callId = callId;
+    d->method->execute();
+    return true;
+}
+
+
 /*! Answers a request to the API endpoint: RFC8620 3.3 describes the
     envelope, 3.6 the errors.
 */
@@ -366,6 +409,9 @@ void Jmap::serveApi()
                   "Each method call is a triple of name, arguments and id" );
             return;
         }
+
+        if ( start( name->ascii(), arguments, id->ascii() ) )
+            return;
 
         Json * answer = call( name->ascii(), arguments );
         Json * response = Json::list();

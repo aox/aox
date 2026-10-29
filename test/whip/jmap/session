@@ -1,6 +1,6 @@
 # RFC8620 2: the session resource, which needs authentication. The
 # account id is 1 because mkwhippee makes script the first user.
-protocol http main
+protocol http api
 send 3
 GET /.well-known/jmap HTTP/1.1
 Host: imapscript.test.oryx.com

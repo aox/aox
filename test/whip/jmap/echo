@@ -1,6 +1,6 @@
 # RFC8620 4 Core/echo, and what a method that would change
 # something gets: unknownMethod, because it is not implemented.
-protocol http main
+protocol http api
 send 7
 POST /jmap/ HTTP/1.1
 Host: imapscript.test.oryx.com
