@@ -49,8 +49,6 @@ public:
     bool usingCriterionType( SortCriterionType );
 
     EString key( SortCriterionType );
-    EString addressKey( uint, bool );
-    EString collation();
 };
 
 
@@ -205,86 +203,36 @@ void Sort::execute()
 
 
 /*! Returns an SQL expression for the sort key of type \a t, for use
-    in Sort::execute()'s order by clause.
-
-    The string keys are lower-cased and compared using collation().
-    RFC 5256 says i;ascii-casemap, but I think users prefer a natural
-    sort order to an RFC-compliant one. Each key is a subselect with
-    limit 1, so that a message with two From fields (or similar)
-    still yields just one row.
+    in Sort::execute()'s order by clause. The expressions themselves
+    live in Selector, since JMAP sorts by the same keys and SQL that
+    has to match in two places should exist in one.
 */
 
 EString SortData::key( SortCriterionType t )
 {
     switch ( t ) {
     case Arrival:
-        return "m.idate";
+        return Selector::sortExpression( "arrival" );
     case Size:
-        return "m.rfc822size";
+        return Selector::sortExpression( "size" );
     case Date:
-        return "(select value from date_fields"
-            " where message=s.message limit 1)";
+        return Selector::sortExpression( "date" );
     case Subject:
-        // RFC5256 sorts by base subject, which Message::baseSubject()
-        // computes and the injector stores. base_subject is null for
-        // messages injected before it existed, so fall back to the
-        // unmodified subject for those: wrong per RFC, but no worse
-        // than what we did before, and "aox update database" fixes it.
-        return "coalesce((select lower(m.base_subject" + collation() + ")"
-            " from messages m where m.id=s.message)," +
-            "(select lower(value" + collation() + ")"
-            " from header_fields where message=s.message and part=''"
-            " and field=" + fn( HeaderField::Subject ) +
-            " order by position limit 1))" + collation();
+        return Selector::sortExpression( "subject" );
     case Cc:
-        return addressKey( HeaderField::Cc, false );
+        return Selector::sortExpression( "cc" );
     case From:
-        return addressKey( HeaderField::From, false );
+        return Selector::sortExpression( "from" );
     case To:
-        return addressKey( HeaderField::To, false );
+        return Selector::sortExpression( "to" );
     case DisplayFrom:
-        return addressKey( HeaderField::From, true );
+        return Selector::sortExpression( "displayfrom" );
     case DisplayTo:
-        return addressKey( HeaderField::To, true );
+        return Selector::sortExpression( "displayto" );
     case Unknown:
         break;
     }
     return "s.uid";
-}
-
-
-/*! Returns an SQL expression for the first address in the field \a
-    f. If \a display is false, the expression is the addr-mailbox
-    (RFC 5256), if true, the display name or address (RFC 5957).
-*/
-
-EString SortData::addressKey( uint f, bool display )
-{
-    EString v = "a.localpart::text";
-    if ( display )
-        v = "case when coalesce(a.name,'')='' "
-            "then a.localpart||'@'||a.domain "
-            "else a.name end";
-    return "(select lower((" + v + ")" + collation() + ")"
-        " from address_fields af"
-        " join addresses a on (af.address=a.id)"
-        " where af.message=s.message and af.part=''"
-        " and af.field=" + fn( f ) + " and af.number=0"
-        " order by af.position limit 1)" + collation();
-}
-
-
-/*! Returns a collate clause for ICU's root collation, or an empty
-    string on servers older than 10, which have no ICU. Those sort
-    using the database's default collation, which is usually a libc
-    locale and may be just C.
-*/
-
-EString SortData::collation()
-{
-    if ( Postgres::version() < 100000 )
-        return "";
-    return " collate \"und-x-icu\"";
 }
 
 

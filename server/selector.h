@@ -62,6 +62,9 @@ public:
 
     void simplify();
 
+    static EString sortExpression( const EString & );
+    static EString collation();
+
     void add( Selector * );
 
     EString debugString() const;

@@ -17,6 +17,7 @@
 #include "annotation.h"
 #include "dbsignal.h"
 #include "field.h"
+#include "postgres.h"
 #include "user.h"
 
 #include <time.h> // whereAge() calls time()
@@ -646,28 +647,29 @@ Query * Selector::query( User * user, Mailbox * mailbox,
         q.append( " join mailboxes mb on (" + mm() + ".mailbox=mb.id)" );
         uint n = placeHolder( user->login() );
         mboxClause =
-            // I think this one needs commentary.
-            "exists "
+            // the user's own mailboxes need no permissions row: owning
+            // a mailbox is what having every right to it means
+            "(mb.owner=$" + fn( owner ) + " or exists "
             // this subselect returns true if either anyone or the named user
             // has the r right for subsubmailbox...
             "(select rights "
             " from permissions"
             " where (identifier='anyone' or identifier=$"+fn(n)+") and"
-            "  rights='%r%' and"
+            "  rights like '%r%' and"
             "  mailbox=("
             // this selects the mailbox whose permissions rows
             // applies. that's either the mailbox itself, or the
             // closest parent which has a permissions row.
             "   select mp.id"
             "    from mailboxes mp"
-            "    join permssions p on (mp.id=p.mailbox)"
+            "    join permissions p on (mp.id=p.mailbox)"
             "    where (p.identifier='anyone' or p.identifier=$"+fn(n)+") and"
             "    (mp.id=mb.id or"
             "     lower(mp.name)||'/'="
             "     lower(substring(mb.name from 1 for length(mp.name)+1)))"
             // use the mailbox which has permissions rows and has the
             // longest name.
-            "    order by length(mp.name) desc limit 1))";
+            "    order by length(mp.name) desc limit 1)))";
     }
     else {
         // search all mailboxes, optionally limited by mailbox
@@ -2679,6 +2681,97 @@ IntegerSet Selector::messageSetArgument() const
 List<Selector> * Selector::children()
 {
     return d->children;
+}
+
+
+/*! Returns an SQL expression for the sort key called \a key, for use
+    in an order by clause.
+
+    The expression assumes the caller has wrapped a selector query as a
+    subquery aliased s, so that s.message and s.uid are available, and
+    that messages is joined as m where the key needs it. IMAP SORT and
+    JMAP's Email/query sort by the same keys, so the SQL lives here
+    rather than in either of them.
+
+    The string keys are lower-cased and compared using collation().
+    RFC5256 says i;ascii-casemap, but I think users prefer a natural
+    sort order to an RFC-compliant one. Each key is a subselect with
+    limit 1, so that a message with two From fields still yields one
+    row.
+*/
+
+EString Selector::sortExpression( const EString & key )
+{
+    if ( key == "arrival" )
+        return "m.idate";
+    if ( key == "size" )
+        return "m.rfc822size";
+    if ( key == "date" )
+        return "(select value from date_fields"
+            " where message=s.message limit 1)";
+    if ( key == "subject" )
+        // RFC5256 sorts by base subject, which Message::baseSubject()
+        // computes and the injector stores. base_subject is null for
+        // messages injected before it existed, so fall back to the
+        // unmodified subject for those: wrong per RFC, but no worse
+        // than what we did before, and "aox update database" fixes it.
+        return "coalesce((select lower(m.base_subject" + collation() + ")"
+            " from messages m where m.id=s.message)," +
+            "(select lower(value" + collation() + ")"
+            " from header_fields where message=s.message and part=''"
+            " and field=" + fn( HeaderField::Subject ) +
+            " order by position limit 1))" + collation();
+
+    uint field = 0;
+    bool display = false;
+    if ( key == "from" ) {
+        field = HeaderField::From;
+    }
+    else if ( key == "to" ) {
+        field = HeaderField::To;
+    }
+    else if ( key == "cc" ) {
+        field = HeaderField::Cc;
+    }
+    else if ( key == "displayfrom" ) {
+        field = HeaderField::From;
+        display = true;
+    }
+    else if ( key == "displayto" ) {
+        field = HeaderField::To;
+        display = true;
+    }
+    else {
+        return "s.uid";
+    }
+
+    // With display false this is the addr-mailbox of RFC5256, and
+    // with it true, the display name or address of RFC5957.
+    EString v = "a.localpart::text";
+    if ( display )
+        v = "case when coalesce(a.name,'')='' "
+            "then a.localpart||'@'||a.domain "
+            "else a.name end";
+    return "(select lower((" + v + ")" + collation() + ")"
+        " from address_fields af"
+        " join addresses a on (af.address=a.id)"
+        " where af.message=s.message and af.part=''"
+        " and af.field=" + fn( field ) + " and af.number=0"
+        " order by af.position limit 1)" + collation();
+}
+
+
+/*! Returns a collate clause for ICU's root collation, or an empty
+    string on servers older than 10, which have no ICU. Those sort
+    using the database's default collation, which is usually a libc
+    locale and may be just C.
+*/
+
+EString Selector::collation()
+{
+    if ( Postgres::version() < 100000 )
+        return "";
+    return " collate \"und-x-icu\"";
 }
 
 
