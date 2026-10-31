@@ -5,6 +5,7 @@
 #include "utf.h"
 #include "method.h"
 #include "emailquery.h"
+#include "emailget.h"
 #include "http.h"
 #include "handler.h"
 #include "json.h"
@@ -313,6 +314,8 @@ bool Jmap::start( const EString & name, Json * arguments,
 {
     if ( name == "Email/query" )
         d->method = new EmailQuery( this, d->user, arguments );
+    else if ( name == "Email/get" )
+        d->method = new EmailGet( this, d->user, arguments );
     else
         return false;
 

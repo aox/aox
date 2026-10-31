@@ -221,7 +221,15 @@ void Listext::execute()
             sel.append( " where " );
         }
         if ( d->selectSpecialUse ) {
-            sel.append( "flag is not null" );
+            // RFC6154 5.2. The attribute is reported only to the
+            // mailbox's owner, see makeResponse(), so selecting by it
+            // has to match the same mailboxes: otherwise this would
+            // list a mailbox and then show no attribute on it.
+            sel.append( "mb.flag is not null and mb.owner=$" );
+            sel.appendNumber( bn );
+            sel.append( " and (" );
+            d->selectQuery->bind( bn, imap()->user()->id() );
+            bn++;
         }
         EStringList conditions;
         UStringList::Iterator i( d->patterns );
@@ -275,6 +283,8 @@ void Listext::execute()
             }
             ++i;
         }
+        if ( d->selectSpecialUse )
+            sel.append( ")" );
         sel.append( " order by lower(mb.name)||' '" );
         d->selectQuery->setString( sel );
         d->selectQuery->execute();

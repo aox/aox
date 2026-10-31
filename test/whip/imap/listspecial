@@ -1,0 +1,20 @@
+# RFC6154 5.2: the SPECIAL-USE selection option lists only the mailboxes
+# that have a special-use attribute, and reports the attribute whether
+# or not the client also asked for it.
+depends allmail
+send 1
+g list (special-use) "" "*"
+receive 2
+* LIST (\hasnochildren \All) "/" All
+g OK done
+send 1
+h list (special-use) "" "%"
+receive 2
+* LIST (\hasnochildren \All) "/" All
+h OK done
+# INBOX has no attribute, so naming it matches nothing
+send 1
+i list (special-use) "" "INBOX"
+receive 1
+i OK done
+end
