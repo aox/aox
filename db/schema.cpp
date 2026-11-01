@@ -641,8 +641,14 @@ void Schema::installDowngradeFunctions()
 
     uint i = 89;
     while ( i < numDowngradeFunctions ) {
-        if ( downgradeFunctions[i] )
-            d->t->enqueue( downgradeFunctions[i] );
+        if ( downgradeFunctions[i] ) {
+            // Some downgrades are owned by postgres. Why?
+            EString f( downgradeFunctions[i] );
+            d->t->enqueue( "do $aox$ begin execute $aoxf$" + f +
+                           "$aoxf$; "
+                           "exception when insufficient_privilege then null; "
+                           "end $aox$" );
+        }
         i++;
     }
 }
