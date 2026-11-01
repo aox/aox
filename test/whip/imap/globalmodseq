@@ -2,8 +2,10 @@
 # one mailbox moves the numbers that the next change sees in another.
 # Under the per-mailbox counters every number below would be 2.
 #
-# The obliterator leaves the sequence about to hand out 2, so the first
-# append takes 2 and the second takes 3, in different mailboxes.
+# The obliterator leaves the sequence about to hand out 2. The create
+# below takes that, since creating a mailbox is a change a client can
+# be told about, so the two appends take 3 and 4, in different
+# mailboxes.
 #
 # What must not come back is an OK [HIGHESTMODSEQ] for a mailbox that
 # did not change. Each mailbox still records its own next modseq, and
@@ -69,17 +71,17 @@ c OK [APPENDUID 1 1] done
 send 1
 d fetch 1 (modseq)
 receive 2
-* 1 FETCH (MODSEQ (3))
+* 1 FETCH (MODSEQ (4))
 d OK done
 send 1
 e status msother (highestmodseq)
 receive 2
-* STATUS msother (HIGHESTMODSEQ 2)
+* STATUS msother (HIGHESTMODSEQ 3)
 e OK done
 send 1
 f status inbox (highestmodseq)
 receive 2
-* STATUS INBOX (HIGHESTMODSEQ 3)
+* STATUS INBOX (HIGHESTMODSEQ 4)
 f OK done
 # msother keeps its message: DELETE refuses a nonempty mailbox, and
 # obliteration removes the mailbox anyway.

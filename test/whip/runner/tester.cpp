@@ -45,8 +45,12 @@ static void rfile( const char * fn, bool alsoBroken )
         return;
     }
     EString c( f->contents() );
+    // A script starts with a comment, a dependency, an obliteration or
+    // the protocol it speaks. Anything else in these directories is
+    // someone's editor backup or a core file.
     if ( !c.startsWith( "obliterate " ) &&
          !c.startsWith( "depends " ) &&
+         !c.startsWith( "protocol " ) &&
          !c.startsWith( "# " ) ) {
         fprintf( stderr, "whip: ignoring %s\n", fn );
         return;

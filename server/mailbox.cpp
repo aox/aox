@@ -605,16 +605,26 @@ Query * Mailbox::create( Transaction * t, User * owner )
 {
     Query * q;
 
+    // A mailbox coming into existence is a change a client can be
+    // told about, so it happens at a modseq: imodseq records which,
+    // and nextmodseq moves past it.
     if ( deleted() ) {
+        // Resurrecting a mailbox is a creation as far as a client can
+        // tell: it has a new modseq and no history worth keeping.
         q = new Query( "update mailboxes "
-                       "set deleted='f',owner=$2,first_recent=uidnext,flag=$3 "
+                       "set deleted='f',owner=$2,first_recent=uidnext,"
+                       "flag=$3,imodseq=m.ms,"
+                       "nextmodseq=greatest(nextmodseq,m.ms+1) "
+                       "from (select nextval('nextmodseq') as ms) m "
                        "where id=$1", 0 );
         q->bind( 1, id() );
     }
     else if ( id() == 0 ) {
         q = new Query( "insert into mailboxes "
-                       "(name,owner,uidnext,uidvalidity,deleted,flag) "
-                       "values ($1,$2,1,1,'f',$3)", 0 );
+                       "(name,owner,uidnext,uidvalidity,deleted,flag,"
+                       "imodseq,nextmodseq) "
+                       "select $1,$2,1,1,'f',$3,m.ms,m.ms+1 "
+                       "from (select nextval('nextmodseq') as ms) m", 0 );
         q->bind( 1, name() );
     }
     else {
@@ -673,8 +683,12 @@ Query * Mailbox::remove( Transaction * t )
     if ( deleted() )
         return 0;
 
+    // Deletion is a change too, and the modseq is how a client that
+    // asks what happened since its last visit is told about it.
     Query * q =
-        new Query( "update mailboxes set deleted='t',owner=null "
+        new Query( "update mailboxes set deleted='t',owner=null,"
+                   "nextmodseq=greatest(nextmodseq,m.ms+1) "
+                   "from (select nextval('nextmodseq') as ms) m "
                    "where id=$1", 0 );
     q->bind( 1, id() );
     t->enqueue( q );

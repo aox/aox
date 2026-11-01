@@ -93,6 +93,9 @@ create table mailboxes (
     -- The next modsequence value for this mailbox.
     nextmodseq  bigint not null default 1,
 
+    -- The modseq at which this mailbox was created.
+    imodseq     bigint not null default 1,
+
     -- The UID of the first message that should be marked \Recent.
     -- Set to uidnext when each new IMAP session is created.
     first_recent integer not null default 1,

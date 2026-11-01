@@ -116,8 +116,9 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent,
             p->toUidvalidity = to->uidvalidity() + 1;
     }
 
-    // move the mailbox
-    q = new Query( "update mailboxes set name=$1,uidvalidity=$2 "
+    q = new Query( "update mailboxes set name=$1,uidvalidity=$2,"
+                   "nextmodseq=greatest(nextmodseq,m.ms+1) "
+                   "from (select nextval('nextmodseq') as ms) m "
                    "where id=$3", 0 );
     q->bind( 1, p->toName );
     q->bind( 2, p->toUidvalidity );

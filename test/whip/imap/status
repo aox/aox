@@ -121,7 +121,7 @@ s5 OK done
 send 1
 s6 status inbox/6 (unseen uidnext highestmodseq)
 receive 2
-* STATUS "inbox/6" (UIDNEXT 1 UNSEEN 0 HIGHESTMODSEQ 1)
+* STATUS "inbox/6" (UIDNEXT 1 UNSEEN 0 HIGHESTMODSEQ 11)
 s6 OK done
 send 1
 m status INBOX (highestmodseq)

@@ -161,53 +161,12 @@ void EmailChanges::execute()
             return;
         }
 
-        // maxChanges counts changes, and the client must be able to
-        // continue from the state we return, so changes that share a
-        // modseq are never split: we add whole groups, in modseq
-        // order, while they fit. A single group larger than maxChanges
-        // is returned whole, because the alternative is to return
-        // nothing and never make progress.
-        if ( d->candidates.count() > d->maxChanges ) {
-            int64 boundary = 0;
-            uint taken = 0;
-            bool more = true;
-            while ( more ) {
-                int64 next = 0;
-                uint group = 0;
-                uint n = 1;
-                while ( n <= d->candidates.count() ) {
-                    int64 m = *d->first->find( d->candidates.value( n ) );
-                    if ( m > boundary && ( !next || m < next ) ) {
-                        next = m;
-                        group = 0;
-                    }
-                    if ( next && m == next )
-                        group++;
-                    n++;
-                }
-                if ( !next )
-                    more = false;
-                else if ( taken && taken + group > d->maxChanges )
-                    more = false;
-                else {
-                    boundary = next;
-                    taken += group;
-                }
-            }
-            uint n = 1;
-            while ( n <= d->candidates.count() ) {
-                uint message = d->candidates.value( n );
-                if ( *d->first->find( message ) <= boundary )
-                    d->included.add( message );
-                else
-                    d->more = true;
-                n++;
-            }
-            d->newState = boundary;
-        }
-        else {
+        if ( d->candidates.count() > d->maxChanges )
+            d->newState = splitChanges( d->candidates, *d->first,
+                                        d->maxChanges, d->included,
+                                        d->more );
+        else
             d->included = d->candidates;
-        }
 
         if ( d->included.isEmpty() ) {
             Json * r = Json::object();

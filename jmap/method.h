@@ -4,6 +4,7 @@
 #define METHOD_H
 
 #include "event.h"
+#include "map.h"
 #include "estring.h"
 
 
@@ -27,6 +28,8 @@ protected:
     void respond( const EString &, Json * );
     void fail( const EString & );
     bool checkAccount();
+    static int64 splitChanges( const class IntegerSet &, Map<int64> &,
+                               uint, class IntegerSet &, bool & );
 
 private:
     class JmapMethodData * d;

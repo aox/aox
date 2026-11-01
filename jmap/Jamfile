@@ -5,4 +5,4 @@ SubInclude TOP server ;
 
 HDRS += [ FDirName $(TOP) jmap ] ;
 
-Build jmap : json.cpp jmap.cpp method.cpp emailquery.cpp emailget.cpp emailchanges.cpp ;
+Build jmap : json.cpp jmap.cpp method.cpp emailquery.cpp emailget.cpp emailchanges.cpp mailboxget.cpp mailboxchanges.cpp ;

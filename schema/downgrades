@@ -213,3 +213,10 @@ begin
     alter table messages drop imodseq;
     return 0;
 end;$$ language 'plpgsql';
+
+create or replace function downgrade_to_102()
+returns int as $$
+begin
+    alter table mailboxes drop imodseq;
+    return 0;
+end;$$ language 'plpgsql';

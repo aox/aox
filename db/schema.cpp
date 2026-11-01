@@ -608,6 +608,8 @@ bool Schema::singleStep()
         c = stepTo101(); break;
     case 101:
         c = stepTo102(); break;
+    case 102:
+        c = stepTo103(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -4554,5 +4556,20 @@ bool Schema::stepTo102()
     d->t->enqueue( "update messages set imodseq="
                    "coalesce((select min(modseq) from mailbox_messages "
                    "where message=messages.id),1)" );
+    return true;
+}
+
+
+/*! Records the modseq at which each mailbox was created, so that
+    Mailbox/changes can tell a new mailbox from a changed one.
+*/
+
+bool Schema::stepTo103()
+{
+    describeStep( "Recording the modseq each mailbox was created at." );
+    // 1 for the mailboxes that already exist: they were here before
+    // any state a client can hold.
+    d->t->enqueue( "alter table mailboxes add imodseq bigint "
+                   "not null default 1" );
     return true;
 }

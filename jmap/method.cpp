@@ -4,6 +4,7 @@
 
 #include "json.h"
 #include "user.h"
+#include "integerset.h"
 
 
 class JmapMethodData
@@ -127,4 +128,63 @@ bool JmapMethod::checkAccount()
         return true;
     fail( "accountNotFound" );
     return false;
+}
+
+
+/*! Decides how much of a set of changes to report at once, and
+    returns the modseq to report as the new state.
+
+    \a candidates are the objects that changed, \a first says at which
+    modseq each of them first changed, and \a maxChanges is what the
+    client will accept. The objects to report are added to \a included,
+    and \a more is set if any were left out.
+
+    Changes that share a modseq are never split, because the client
+    must be able to continue from the state this returns and would
+    otherwise never see the rest of the group. A single group larger
+    than \a maxChanges is therefore reported whole: the alternative is
+    to report nothing and never make progress.
+*/
+
+int64 JmapMethod::splitChanges( const IntegerSet & candidates,
+                                Map<int64> & first, uint maxChanges,
+                                IntegerSet & included, bool & more )
+{
+    int64 boundary = 0;
+    uint taken = 0;
+    bool looking = true;
+    while ( looking ) {
+        int64 next = 0;
+        uint group = 0;
+        uint n = 1;
+        while ( n <= candidates.count() ) {
+            int64 m = *first.find( candidates.value( n ) );
+            if ( m > boundary && ( !next || m < next ) ) {
+                next = m;
+                group = 0;
+            }
+            if ( next && m == next )
+                group++;
+            n++;
+        }
+        if ( !next )
+            looking = false;
+        else if ( taken && taken + group > maxChanges )
+            looking = false;
+        else {
+            boundary = next;
+            taken += group;
+        }
+    }
+
+    uint n = 1;
+    while ( n <= candidates.count() ) {
+        uint id = candidates.value( n );
+        if ( *first.find( id ) <= boundary )
+            included.add( id );
+        else
+            more = true;
+        n++;
+    }
+    return boundary;
 }
