@@ -1576,6 +1576,26 @@ void Injector::selectUids()
 
 void Injector::insertMessages()
 {
+    // The messages row is created before the modseq is allocated - the
+    // allocation has to follow the mailbox lock - so the modseq each
+    // message arrived at is written here, where it is known.
+    if ( d->ms ) {
+        IntegerSet ids;
+        List<Injectee>::Iterator im( d->messages );
+        while ( im ) {
+            if ( im->databaseId() )
+                ids.add( im->databaseId() );
+            ++im;
+        }
+        if ( !ids.isEmpty() ) {
+            Query * q = new Query( "update messages set imodseq=$1 "
+                                   "where id=any($2)", 0 );
+            q->bind( 1, d->ms );
+            q->bind( 2, ids );
+            d->transaction->enqueue( q );
+        }
+    }
+
     Query * qp =
         new Query( "copy part_numbers (message,part,bodypart,bytes,lines) "
                    "from stdin with binary", 0 );

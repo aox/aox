@@ -206,3 +206,10 @@ begin
     drop table new_flags;
     return 0;
 end;$$ language 'plpgsql';
+
+create or replace function downgrade_to_101()
+returns int as $$
+begin
+    alter table messages drop imodseq;
+    return 0;
+end;$$ language 'plpgsql';

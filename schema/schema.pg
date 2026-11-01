@@ -202,6 +202,7 @@ create table messages (
     -- Grant: select, insert, update
     id          serial primary key,
     idate       integer not null,
+    imodseq     bigint not null default 1,
     rfc822size  integer,
     thread_root integer references thread_roots(id),
     -- the RFC5256 base subject, ie. the subject with Re: and friends

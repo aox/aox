@@ -606,6 +606,8 @@ bool Schema::singleStep()
         c = stepTo100(); break;
     case 100:
         c = stepTo101(); break;
+    case 101:
+        c = stepTo102(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -4532,5 +4534,25 @@ bool Schema::stepTo101()
                    "and coalesce(f2.owner,0)=coalesce(mb.owner,0))" );
     d->t->enqueue( "drop table old_flags" );
     d->t->enqueue( "alter table mailbox_messages drop seen" );
+    return true;
+}
+
+
+/*! Records the modseq at which each message was injected, so that
+    Email/changes can tell a message that is new to an account from one
+    that merely changed.
+*/
+
+bool Schema::stepTo102()
+{
+    describeStep( "Recording the modseq each message arrived at." );
+    d->t->enqueue( "alter table messages add imodseq bigint "
+                   "not null default 1" );
+    // The best guess for a message that is already here is the oldest
+    // modseq any copy of it has. For one that has not been touched
+    // since it arrived, that is exactly right.
+    d->t->enqueue( "update messages set imodseq="
+                   "coalesce((select min(modseq) from mailbox_messages "
+                   "where message=messages.id),1)" );
     return true;
 }
