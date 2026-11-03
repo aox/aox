@@ -342,14 +342,16 @@ void Schema::execute()
             fail( s, d->t->failedQuery() );
         }
         else if ( d->upgrade ) {
-            EString s( "Schema upgraded to revision " );
-            s.appendNumber( Database::currentRevision() );
-            if ( !d->commit )
-                s.append( ", but not committed" );
-            s.append( "." );
+            if (d->revision != Database::currentRevision() ) {
+                EString s( "Schema upgraded to revision " );
+                s.appendNumber( Database::currentRevision() );
+                if ( !d->commit )
+                    s.append( ", but not committed" );
+                s.append( "." );
 
-            d->l->log( s, Log::Significant );
-            d->result->setState( Query::Completed );
+                d->l->log( s, Log::Significant );
+                d->result->setState( Query::Completed );
+            }
             if ( d->commit && d->updatedb )
                 d->l->log( "Please run aox update database.",
                            Log::Significant );
