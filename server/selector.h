@@ -98,14 +98,16 @@ private:
     class SelectorData * d;
 
     EString where();
+    EString whereNegated();
     EString whereInternalDate();
     EString whereSent();
     EString whereHeader();
+    EString existsHeader();
     EString whereHeaders( List<Selector> * );
     EString whereHeaderField();
     EString whereAddressField();
-    EString whereAddressFields( List<Selector> * );
-    EString whereBody();
+    EString whereAddressFields( List<Selector> *, bool = false );
+    EString whereBody( bool = false );
     EString whereRfc822Size();
     EString whereFlags();
     EString whereUid();

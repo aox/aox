@@ -1,0 +1,52 @@
+# A bounce: the outer header is To: owner-users@aox.org and it
+# carries the original message, whose header is To: users@aox.org.
+# SEARCH NOT TO owner-users@aox.org must not match it.
+depends empty-inbox
+send 23
+a append inbox () {635+}
+From: Mail Delivery Subsystem <mailer-daemon@googlemail.com>
+To: owner-users@aox.org
+Subject: Delivery Status Notification (Failure)
+Message-Id: <5914f59f.12abdf0a@mx.google.com>
+Date: Thu, 11 May 2017 16:37:03 -0700
+Content-Type: multipart/report; boundary="b"
+
+--b
+Content-Type: text/plain
+
+Delivery to the following recipient failed permanently.
+--b
+Content-Type: message/rfc822
+
+From: Carlos Hanson <chanson@ttsd.k12.or.us>
+To: users@aox.org
+Subject: duplicate results in aoxexport
+Message-Id: <CACSNfq856NOump@mail.gmail.com>
+Date: Thu, 11 May 2017 16:36:28 -0700
+
+aoxexport gives me each message twice.
+--b--
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+# the message is addressed to owner-users, so NOT TO it is false
+send 1
+b search not to owner-users@aox.org
+receive 2
+* SEARCH
+b OK done
+# and NOT TO an address it does not mention is true
+send 1
+c search not to nobody@example.com
+receive 2
+* SEARCH 1
+c OK done
+# the positive searches, for contrast
+send 1
+d search to owner-users@aox.org
+receive 2
+* SEARCH 1
+d OK done
+end

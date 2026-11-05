@@ -783,6 +783,75 @@ EString Selector::where()
     return "";
 }
 
+/*! Gives an SQL string that is true for the messages this condition
+    does not match.
+
+    This is not the same as negating the SQL that where() returns.
+    Several conditions are expressed by joining in a table and testing
+    whether the join found a row, and such a test cannot be negated by
+    asking whether the joined row is null: address_fields holds a row
+    per address field and bodyparts a row per part, so the null test
+    asks whether some row fails to match, where the question is whether
+    none matches. Those conditions are negated with a subquery instead.
+
+    The ones that are not listed here negate directly, because their
+    joins are restricted to the rows being tested (a flag test joins
+    one flag, a named header field joins fields with that name and
+    value) so a message has either a matching row or none at all.
+*/
+
+EString Selector::whereNegated()
+{
+    if ( d->f == NoField ) {
+        if ( d->a == And || d->a == Or ) {
+            // de Morgan: the negation of an and is an or of negations
+            EStringList conditions;
+            List<Selector>::Iterator i( d->children );
+            while ( i ) {
+                conditions.append( i->whereNegated() );
+                ++i;
+            }
+            if ( conditions.isEmpty() )
+                return d->a == And ? "false" : "true";
+            if ( conditions.count() == 1 )
+                return *conditions.first();
+            EString j( d->a == And ? " or " : " and " );
+            return "(" + conditions.join( j ) + ")";
+        }
+        if ( d->a == Not )
+            return d->children->first()->where();
+        if ( d->a == All )
+            return "false";
+        if ( d->a == None )
+            return "true";
+    }
+    else if ( d->f == Header ) {
+        if ( d->s8.isEmpty() )
+            return "not " + existsHeader();
+        EString name = d->s8.headerCased();
+        uint f = 1;
+        while ( f <= HeaderField::LastAddressField &&
+                HeaderField::fieldName( (HeaderField::Type)f ) != name )
+            f++;
+        if ( f <= HeaderField::LastAddressField ) {
+            List<Selector> l;
+            l.append( this );
+            return "not " + whereAddressFields( &l, true );
+        }
+    }
+    else if ( d->f == Body ) {
+        return "not " + whereBody( true );
+    }
+
+    EString c = where();
+    if ( c == "true" )
+        return "false";
+    if ( c == "false" )
+        return "true";
+    return "not " + c;
+}
+
+
 /*! This implements the INTERNALDATE part of where().
 */
 
@@ -1205,7 +1274,8 @@ static void addAddressTerm( EStringList * terms,
     XXX: This comment may be wrong.
 */
 
-EString Selector::whereAddressFields( List<Selector> * fields )
+EString Selector::whereAddressFields( List<Selector> * fields,
+                                      bool exists )
 {
     UStringList names;
     List<Selector>::Iterator si( fields );
@@ -1418,24 +1488,27 @@ EString Selector::whereAddressFields( List<Selector> * fields )
     }
 
     // after all that, we finally have what we need to put together
-    // the join condition
+    // the condition
+    EString match;
+    if ( !addresses.isEmpty() ) {
+        match.append( " and " );
+        if ( addresses.count() > 1 )
+            match.append( "(" );
+        match.append( addresses.join( " or " ) );
+        if ( addresses.count() > 1 )
+            match.append( ")" );
+    }
+
+    if ( exists )
+        return "exists (select 1 from address_fields af" + jn +
+            " join addresses a" + jn +
+            " on (a" + jn + ".id=af" + jn + ".address" + match + ")"
+            " where af" + jn + ".message=" + mm() + ".message)";
+
     EString r = " left join address_fields af" + jn +
                 " on (af" + jn + ".message=" + mm() + ".message)"
                 " left join addresses a" + jn +
-                " on (a" + jn + ".id=af" + jn + ".address";
-
-    if ( !addresses.isEmpty() ) {
-        r.append( " and " );
-        if ( addresses.count() > 1 )
-            r.append( "(" );
-        r.append( addresses.join( " or " ) );
-        if ( addresses.count() > 1 )
-            r.append( ")" );
-    }
-    r.append( ")" );
-
-    // finally, bang in the join and return a "not"-wrappable test of
-    // whether the join found something
+                " on (a" + jn + ".id=af" + jn + ".address" + match + ")";
     root()->d->leftJoins.append( r );
     return "a" + jn + ".id is not null";
 }
@@ -1462,6 +1535,27 @@ EString Selector::whereHeader()
 }
 
 
+/*! Returns a subquery that is true if any header field of the message
+    matches, for whereNegated() to negate. This is the same same question
+    that whereHeader() answers with joins.
+*/
+
+EString Selector::existsHeader()
+{
+    if ( d->s16.isEmpty() )
+        return "true";
+
+    uint like = placeHolder( q( d->s16 ) );
+    EString jn = "hf" + fn( ++root()->d->join );
+    List<Selector> dummy;
+    dummy.append( this );
+    return "(exists (select 1 from header_fields " + jn +
+        " where " + jn + ".message=" + mm() + ".message"
+        " and " + jn + ".value ilike " + matchAny( like ) + ") or " +
+        whereAddressFields( &dummy, true ) + ")";
+}
+
+
 /*! This implements searches on (text) bodyparts. We cannot and will
     not do "full-text" search on the contents of e.g. jpeg
     pictures. (For some formats we search on the text part, because
@@ -1473,21 +1567,34 @@ EString Selector::whereHeader()
     know. IMAP says not to do it, but do we listen?)
 */
 
-EString Selector::whereBody()
+EString Selector::whereBody( bool exists )
 {
-    root()->d->needBodyparts = true;
-
-    EString s;
-
     uint bt = placeHolder( q( d->s16 ) );
 
-    if ( ::tsearchAvailable && sensibleWords( d->s16 ) )
-        s.append( "(" + matchTsvector( "bp.text", bt ) + " "
-                  "and bp.text ilike " + matchAny( bt ) + ")" );
-    else
-        s.append( "bp.text ilike " + matchAny( bt ) );
+    EString t( "bp" );
+    EString jn;
+    if ( exists ) {
+        jn = fn( ++root()->d->join );
+        t = "bp" + jn;
+    }
+    else {
+        root()->d->needBodyparts = true;
+    }
 
-    return s;
+    EString s;
+    if ( ::tsearchAvailable && sensibleWords( d->s16 ) )
+        s.append( "(" + matchTsvector( t + ".text", bt ) + " "
+                  "and " + t + ".text ilike " + matchAny( bt ) + ")" );
+    else
+        s.append( t + ".text ilike " + matchAny( bt ) );
+
+    if ( !exists )
+        return s;
+
+    return "exists (select 1 from part_numbers pn" + jn +
+        " join bodyparts bp" + jn + " on (bp" + jn + ".id=pn" + jn +
+        ".bodypart) where pn" + jn + ".message=" + mm() + ".message"
+        " and " + s + ")";
 }
 
 
@@ -1832,14 +1939,7 @@ EString Selector::whereNoField()
         return "(" + conditions.join( " or " ) + ")";
     }
     else if ( d->a == Not ) {
-        EString c = d->children->first()->where();
-        if ( c == "true" )
-            return "false";
-        else if ( c == "false" )
-            return "true";
-        else if ( c.endsWith( " is not null" ) )
-            return c.mid( 0, c.length() - 8 ) + "null";
-        return "not " + c;
+        return d->children->first()->whereNegated();
     }
     else if ( d->a == All ) {
         return "true";
