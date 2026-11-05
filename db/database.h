@@ -80,6 +80,8 @@ protected:
     static void reactToIdleness();
 
 private:
+    friend class ReconnectDelayer;
+
     State st;
     uint number;
 };
