@@ -213,13 +213,16 @@ SmtpCommand * SmtpCommand::create( SMTP * server, const EString & command )
     else {
         r = new SmtpCommand( server );
         r->respond( 500, "Unknown command (" + c.upper() + ")", "5.5.1" );
+        server->recordSyntaxError();
     }
 
     Scope x( r->log() );
     r->log( "Command: " + command.simplified(), Log::Debug );
 
-    if ( !r->done() && r->d->responseCode < 400 && !p->error().isEmpty() )
+    if ( !r->done() && r->d->responseCode < 400 && !p->error().isEmpty() ) {
         r->respond( 501, p->error(), "5.5.2" );
+        server->recordSyntaxError();
+    }
 
     if ( !r->done() && EventLoop::global()->inShutdown() )
         r->respond( 421, "Server shutdown", "4.3.2" );

@@ -2,6 +2,8 @@
 
 #include "saslconnection.h"
 
+#include "ustring.h"
+
 #include "user.h"
 #include "query.h"
 #include "estring.h"
@@ -104,21 +106,31 @@ void SaslConnection::close()
 }
 
 
-/*! Used to count authentication failures for logging and statistics.
+/*! Counts authentication failures for logging and statistics,
+    and logs that \a login failed, with the client address.
+
+    The log line is designed for fail2ban.
 */
 
-void SaslConnection::recordAuthenticationFailure()
+void SaslConnection::recordAuthenticationFailure( const UString & login )
 {
     af++;
+    log( "Authentication failed for " + login.utf8().quoted() +
+         " from " + peer().address(), Log::Significant );
 }
 
 
-/*! Used to count protocol syntax errors for logging and statistics.
+/*! Counts protocol syntax errors for logging and statistics,
+    and logs errors the ones that happen before anyone has logged in, with
+    the address, so that systems like fail2ban can act appropriately.
 */
 
 void SaslConnection::recordSyntaxError()
 {
     sf++;
+    if ( !u )
+        log( "Protocol error from " + peer().address() +
+             ", unauthenticated", Log::Significant );
 }
 
 

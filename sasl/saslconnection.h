@@ -6,6 +6,7 @@
 #include "connection.h"
 
 class User;
+class UString;
 
 
 class SaslConnection
@@ -21,7 +22,7 @@ public:
 
     void close();
 
-    void recordAuthenticationFailure();
+    void recordAuthenticationFailure( const class UString & );
     virtual void recordSyntaxError();
     uint syntaxErrors();
 

@@ -182,6 +182,7 @@ void SMTP::parseCommand()
     if ( !line && r->size() > 4096 ) {
         log( "Connection closed due to overlong line", Log::Error );
         enqueue( "500 Line too long (legal maximum is 998 bytes)\r\n" );
+        recordSyntaxError();
         Connection::setState( Closing );
         return;
     }

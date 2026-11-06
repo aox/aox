@@ -113,7 +113,8 @@ SaslMechanism * SaslMechanism::create( const EString & mechanism,
         return 0;
 
     if ( !allowed( m->type(), connection->hasTls() ) ) {
-        m->log( "SASL mechanism not allowed by policy: " + s, Log::Debug );
+        m->log( "SASL mechanism not allowed by policy: " + s +
+                " from " + connection->peer().address(), Log::Significant );
         return 0;
     }
 
@@ -183,10 +184,12 @@ void SaslMechanism::setState( State newState )
         log( "Authenticated: " + d->login.utf8().quoted(), Log::Debug );
         break;
     case Failed:
+        // recordAuthenticationFailure() logs this, with the address
         if ( d->connection )
-            d->connection->recordAuthenticationFailure();
-        log( "Authentication failed for: " + d->login.utf8().quoted(),
-             Log::Debug );
+            d->connection->recordAuthenticationFailure( d->login );
+        else
+            log( "Authentication failed for: " + d->login.utf8().quoted(),
+                 Log::Significant );
         break;
     case Terminated:
         log( "Authentication terminated", Log::Debug );
