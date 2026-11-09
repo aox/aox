@@ -1,3 +1,6 @@
+# RFC8621 4.4 Email/query against the twenty messages imap/20
+# appends. The ids are m1 to m20 because the obliterator resets
+# messages_id_seq, and the default sort is newest first.
 depends imap/20
 protocol http api
 # two messages discuss capitals in fieldnames
@@ -112,6 +115,38 @@ Content-Length: 147
 Content-Type: application/json
 
 {"methodResponses":[["Email/query",{"accountId":"1","queryState":"m2","canCalculateChanges":false,"position":0,"ids":[]},"q"]],"sessionState":"1"}
+# the SELECT MAX thread, without one of its correspondents
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 241
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/query",{"accountId":"1","filter":{"operator":"AND","conditions":[{"subject":"SELECT MAX"},{"operator":"NOT","conditions":[{"from":"egm2"}]}]}},"q"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 157
+Content-Type: application/json
+
+{"methodResponses":[["Email/query",{"accountId":"1","queryState":"m2","canCalculateChanges":false,"position":0,"ids":["m19","m5"]},"q"]],"sessionState":"1"}
+# a NOT has to mean that no address field matches, rather than that some field does not
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 236
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/query",{"accountId":"1","filter":{"operator":"AND","conditions":[{"text":"indexes"},{"operator":"NOT","conditions":[{"from":"zilch"}]}]}},"q"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 158
+Content-Type: application/json
+
+{"methodResponses":[["Email/query",{"accountId":"1","queryState":"m2","canCalculateChanges":false,"position":0,"ids":["m20","m16"]},"q"]],"sessionState":"1"}
 # a condition we do not implement is refused, not ignored
 send 7
 POST /jmap/ HTTP/1.1
@@ -128,5 +163,6 @@ Content-Length: 84
 Content-Type: application/json
 
 {"methodResponses":[["error",{"type":"unsupportedFilter"},"q"]],"sessionState":"1"}
+# the next script to depend on imap/20 inherits what is active
 use main
 end
