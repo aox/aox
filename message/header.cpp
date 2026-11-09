@@ -676,6 +676,18 @@ void Header::repair()
     if ( valid() )
         return;
 
+    // Drop orig-date and resent-date if they're too broken to use.
+    // Date is used, and this code stays away from Date.
+    List< HeaderField >::Iterator dates( d->fields );
+    while ( dates ) {
+        if ( ( dates->type() == HeaderField::OrigDate ||
+               dates->type() == HeaderField::ResentDate ) &&
+             !dates->valid() )
+            d->fields.take( dates );
+        else
+            ++dates;
+    }
+
     // We remove duplicates of any field that may occur only once.
     // (Duplication has been observed for Date/Subject/M-V/C-T-E/C-T/M-I.)
 
