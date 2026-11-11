@@ -9,6 +9,7 @@
 #include "emailchanges.h"
 #include "mailboxget.h"
 #include "mailboxchanges.h"
+#include "threadget.h"
 #include "http.h"
 #include "handler.h"
 #include "json.h"
@@ -325,6 +326,8 @@ bool Jmap::start( const EString & name, Json * arguments,
         d->method = new MailboxGet( this, d->user, arguments );
     else if ( name == "Mailbox/changes" )
         d->method = new MailboxChanges( this, d->user, arguments );
+    else if ( name == "Thread/get" )
+        d->method = new ThreadGet( this, d->user, arguments );
     else
         return false;
 

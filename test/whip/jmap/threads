@@ -1,0 +1,54 @@
+# RFC8621 3.2 Thread/get, resolving the threadIds of the imap/20 corpus.
+depends imap/20
+protocol http api
+# the whole of one thread, a second thread, and an id that is not there
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 146
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Thread/get",{"accountId":"1","ids":["t6","t4","t99"]},"t"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 195
+Content-Type: application/json
+
+{"methodResponses":[["Thread/get",{"accountId":"1","state":"m2","list":[{"id":"t4","emailIds":["m1","m2"]},{"id":"t6","emailIds":["m5","m7","m19"]}],"notFound":["t99"]},"t"]],"sessionState":"1"}
+# a client that only wants to know the thread exists
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 155
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Thread/get",{"accountId":"1","ids":["t6"],"properties":["id"]},"t"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 126
+Content-Type: application/json
+
+{"methodResponses":[["Thread/get",{"accountId":"1","state":"m2","list":[{"id":"t6"}],"notFound":[]},"t"]],"sessionState":"1"}
+# a Thread has two properties, and subject is not one of them
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 165
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Thread/get",{"accountId":"1","ids":["t6"],"properties":["id","subject"]},"t"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 83
+Content-Type: application/json
+
+{"methodResponses":[["error",{"type":"invalidArguments"},"t"]],"sessionState":"1"}
+# the next script to depend on imap/20 inherits what is active
+use main
+end
