@@ -1,0 +1,93 @@
+# RFC8621 2.2 Mailbox/changes. Creating, renaming and deleting a
+# mailbox each advance its nextmodseq now, and imodseq says when
+# it was created, so all three show up here. The mailbox ids
+# climb with every obliteration, hence the wildcards.
+depends imap/allmail
+protocol http api
+# all mail was created by the chain, and the inbox changed when the twenty messages arrived
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 145
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Mailbox/changes",{"accountId":"1","sinceState":"m1"},"c"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: ...
+Content-Type: application/json
+
+{"methodResponses":[["Mailbox/changes",{"accountId":"1","oldState":"m1","newState":"m4","hasMoreChanges":false,"created":["f..."],"updated":["f..."],"destroyed":[]},"c"]],"sessionState":"1"}
+# a new mailbox
+use main
+send 1
+p create Later
+receive 1
+p OK done
+use api
+# which is created, at the modseq the create consumed
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 145
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Mailbox/changes",{"accountId":"1","sinceState":"m4"},"c"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: ...
+Content-Type: application/json
+
+{"methodResponses":[["Mailbox/changes",{"accountId":"1","oldState":"m4","newState":"m5","hasMoreChanges":false,"created":["f..."],"updated":[],"destroyed":[]},"c"]],"sessionState":"1"}
+# renaming keeps the id
+use main
+send 1
+q rename Later Afterwards
+receive 1
+q OK done
+use api
+# so a rename is an update, not a destroy and a create
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 145
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Mailbox/changes",{"accountId":"1","sinceState":"m5"},"c"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: ...
+Content-Type: application/json
+
+{"methodResponses":[["Mailbox/changes",{"accountId":"1","oldState":"m5","newState":"m6","hasMoreChanges":false,"created":[],"updated":["f..."],"destroyed":[]},"c"]],"sessionState":"1"}
+# and now it goes away
+use main
+send 1
+r delete Afterwards
+receive 1
+r OK done
+use api
+# destroyed, as a client that still shows it needs to know
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 145
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Mailbox/changes",{"accountId":"1","sinceState":"m6"},"c"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: ...
+Content-Type: application/json
+
+{"methodResponses":[["Mailbox/changes",{"accountId":"1","oldState":"m6","newState":"m7","hasMoreChanges":false,"created":[],"updated":[],"destroyed":["f..."]},"c"]],"sessionState":"1"}
+use main
+end

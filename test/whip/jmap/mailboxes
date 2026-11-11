@@ -1,0 +1,38 @@
+# RFC8621 2.1 Mailbox/get. The ids are IMAP's MAILBOXID, so they
+# climb with every obliteration and are wildcarded here.
+depends imap/allmail
+protocol http api
+# every mailbox the account has: the inbox and the all mail mailbox allmail created, each holding the twenty messages
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 238
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Mailbox/get",{"accountId":"1","ids":null,"properties":["id","name","role","parentId","totalEmails","unreadEmails","totalThreads","isSubscribed"]},"m"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: ...
+Content-Type: application/json
+
+{"methodResponses":[["Mailbox/get",{"accountId":"1","state":"m...","list":[{"id":"f...","name":"INBOX","role":"inbox","parentId":null,"totalEmails":20,"unreadEmails":20,"totalThreads":16,"isSubscribed":false},{"id":"f...","name":"All","role":"all","parentId":null,"totalEmails":20,"unreadEmails":20,"totalThreads":16,"isSubscribed":false}],"notFound":[]},"m"]],"sessionState":"1"}
+# an id no mailbox has
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 165
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Mailbox/get",{"accountId":"1","ids":["f999"],"properties":["id","name"]},"m"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: ...
+Content-Type: application/json
+
+{"methodResponses":[["Mailbox/get",{"accountId":"1","state":"m...","list":[],"notFound":["f999"]},"m"]],"sessionState":"1"}
+use main
+end

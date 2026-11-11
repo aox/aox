@@ -1,0 +1,94 @@
+# RFC8621 4.1.4: textBody and htmlBody are both "the body",
+# chosen by what the client prefers. A message with only HTML has
+# it in both lists, and its preview is that HTML with the markup
+# taken out. An alternative gives each list the form it wants.
+depends imap/empty-inbox
+send 9
+a append inbox () {323+}
+From: shop@example.com
+To: script@test.oryx.com
+Subject: your receipt
+Message-Id: <html1@example.com>
+Date: Mon, 9 Nov 2026 10:00:00 +0100
+Content-Type: text/html; charset=utf-8
+
+<html><head><style>p{color:red}</style></head><body><p>Thank you &amp; farewell, <b>Gøril</b>!</p><p>Total: 42&nbsp;kr</p></body></html>
+receive 4
+* 1 EXISTS
+* 1 RECENT
+* OK [UIDNEXT 2] next uid
+a OK [APPENDUID 1 1] done
+send 17
+b append inbox () {370+}
+From: shop@example.com
+To: script@test.oryx.com
+Subject: both forms
+Message-Id: <alt1@example.com>
+Date: Mon, 9 Nov 2026 10:01:00 +0100
+Content-Type: multipart/alternative; boundary="x"
+
+--x
+Content-Type: text/plain; charset=utf-8
+
+Plain words for plain clients.
+--x
+Content-Type: text/html; charset=utf-8
+
+<p>Rich <i>words</i> for rich clients.</p>
+--x--
+receive 4
+* 2 EXISTS
+* 2 RECENT
+* OK [UIDNEXT 3] next uid
+b OK [APPENDUID 1 2] done
+protocol http api
+# the HTML-only message: both lists name the one part, and the preview is readable text
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 259
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/get",{"accountId":"1","ids":["m1"],"properties":["id","subject","preview","textBody","htmlBody","bodyValues"],"fetchHTMLBodyValues":true,"maxBodyValueBytes":80},"g"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 542
+Content-Type: application/json
+
+{"methodResponses":[["Email/get",{"accountId":"1","state":"m3","list":[{"id":"m1","subject":"your receipt","preview":"Thank you & farewell, Gøril! Total: 42 kr","textBody":[{"partId":"1","blobId":null,"size":139,"type":"text/html","charset":"utf-8"}],"htmlBody":[{"partId":"1","blobId":null,"size":139,"type":"text/html","charset":"utf-8"}],"bodyValues":{"1":{"value":"<html><head><style>p{color:red}</style></head><body><p>Thank you &amp; farewell,","isEncodingProblem":false,"isTruncated":true}}}],"notFound":[]},"g"]],"sessionState":"1"}
+# the alternative: plain to textBody, HTML to htmlBody, and the preview from the plain form
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 263
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/get",{"accountId":"1","ids":["m2"],"properties":["id","subject","preview","textBody","htmlBody","bodyValues"],"fetchTextBodyValues":true,"fetchHTMLBodyValues":true},"g"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 591
+Content-Type: application/json
+
+{"methodResponses":[["Email/get",{"accountId":"1","state":"m3","list":[{"id":"m2","subject":"both forms","preview":"Plain words for plain clients.","textBody":[{"partId":"1","blobId":null,"size":32,"type":"text/plain","charset":"utf-8"}],"htmlBody":[{"partId":"2","blobId":null,"size":44,"type":"text/html","charset":"utf-8"}],"bodyValues":{"1":{"value":"Plain words for plain clients.\r\n","isEncodingProblem":false,"isTruncated":false},"2":{"value":"<p>Rich <i>words</i> for rich clients.</p>\r\n","isEncodingProblem":false,"isTruncated":false}}}],"notFound":[]},"g"]],"sessionState":"1"}
+# a property this server does not implement is refused
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 170
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/get",{"accountId":"1","ids":["m1"],"properties":["id","bodyStructure"]},"g"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 83
+Content-Type: application/json
+
+{"methodResponses":[["error",{"type":"invalidArguments"},"g"]],"sessionState":"1"}
+use main
+end

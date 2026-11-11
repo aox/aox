@@ -32,7 +32,8 @@ public:
           messages( new List<Message> ),
           mailboxes( new Map<EStringList> ),
           flags( new Map<EStringList> ),
-          bodyBytes( 0 ), wantText( false ), wantBody( false )
+          bodyBytes( 0 ), wantText( false ), wantHtml( false ),
+          wantAll( false ), wantBody( false )
     {}
 
     Query * find;
@@ -47,16 +48,16 @@ public:
     EStringList properties;
     uint bodyBytes;
     bool wantText;
+    bool wantHtml;
+    bool wantAll;
     bool wantBody;
 };
 
 
 /*! \class EmailGet emailget.h
 
-    The EmailGet class implements Email/get of RFC8621 4.2, which is
-    where an agent reads what a message says.
-
-    Nothing here marks anything as read.
+    The EmailGet class implements Email/get of RFC8621 4.2. Nothing
+    here marks anything as read.
 */
 
 
@@ -64,7 +65,22 @@ static const char * defaultProperties[] = {
     "id", "threadId", "mailboxIds", "keywords", "size", "receivedAt",
     "messageId", "inReplyTo", "references", "sender", "from", "to", "cc",
     "bcc", "replyTo", "subject", "sentAt", "hasAttachment", "preview",
-    "bodyValues", "textBody", 0
+    "bodyValues", "textBody", "htmlBody", 0
+};
+
+
+/*! The properties this implements. A client that asks for one of the
+    others - blobId, attachments, bodyStructure, headers and the
+    header:* forms - is told so, rather than handed an object with the
+    property quietly missing: a client cannot tell "we have no answer"
+    from "the answer is nothing" if we say nothing.
+*/
+
+static const char * knownProperties[] = {
+    "id", "threadId", "mailboxIds", "keywords", "size", "receivedAt",
+    "messageId", "inReplyTo", "references", "sender", "from", "to", "cc",
+    "bcc", "replyTo", "subject", "sentAt", "hasAttachment", "preview",
+    "bodyValues", "textBody", "htmlBody", 0
 };
 
 
@@ -75,6 +91,207 @@ static const char * defaultProperties[] = {
 EmailGet::EmailGet( EventHandler * owner, User * user, Json * arguments )
     : JmapMethod( owner, user, arguments ), d( new EmailGetData )
 {
+}
+
+
+
+/*! Sorts the parts of a message into the body parts a client would
+    display if it prefers plain text (\a text), the ones it would
+    display if it prefers HTML (\a html), and the rest (\a
+    attachments).
+
+    This is RFC8621 4.1.4 in miniature. The two body lists differ only
+    where a multipart/alternative offers both kinds.
+*/
+
+static void classifyPart( Bodypart *, List<Bodypart> *, List<Bodypart> *,
+                          List<Bodypart> * );
+
+
+/*! Sorts the children of \a parent, whose content type is \a ct, into
+    \a text, \a html and \a attachments.
+*/
+
+static void classifyChildren( Multipart * parent, ContentType * ct,
+                              List<Bodypart> * text, List<Bodypart> * html,
+                              List<Bodypart> * attachments )
+{
+    List<Bodypart> * children = parent->children();
+    if ( !children )
+        return;
+
+    bool alternative = ( ct && ct->type() == "multipart" &&
+                         ct->subtype() == "alternative" );
+
+    if ( !alternative ) {
+        List<Bodypart>::Iterator i( children );
+        while ( i ) {
+            classifyPart( i, text, html, attachments );
+            ++i;
+        }
+        return;
+    }
+
+    // The children are the same content in several forms, so each list
+    // takes the form it prefers: RFC2046 5.1.4 orders alternatives
+    // from plainest to richest, so the plain-text reader wants the
+    // first form it can use and the HTML reader the last.
+    Bodypart * plainest = 0;
+    Bodypart * richest = 0;
+    List<Bodypart>::Iterator i( children );
+    while ( i ) {
+        Bodypart * child = i;
+        ++i;
+        List<Bodypart> t;
+        List<Bodypart> h;
+        classifyPart( child, &t, &h, attachments );
+        List<Bodypart>::Iterator c( t );
+        while ( c ) {
+            ContentType * cct = c->contentType();
+            bool markup = ( cct && cct->subtype() == "html" );
+            if ( !plainest && !markup )
+                plainest = c;
+            if ( markup || !richest )
+                richest = c;
+            ++c;
+        }
+    }
+    if ( plainest )
+        text->append( plainest );
+    else if ( richest )
+        text->append( richest );
+    if ( richest )
+        html->append( richest );
+    else if ( plainest )
+        html->append( plainest );
+}
+
+
+/*! Sorts \a b, and anything inside it, into \a text, \a html and \a
+    attachments.
+*/
+
+static void classifyPart( Bodypart * b, List<Bodypart> * text,
+                          List<Bodypart> * html,
+                          List<Bodypart> * attachments )
+{
+    ContentType * ct = b->contentType();
+    EString type( "text" );
+    EString subtype( "plain" );
+    if ( ct ) {
+        type = ct->type();
+        subtype = ct->subtype();
+    }
+
+    if ( type == "multipart" ) {
+        classifyChildren( b, ct, text, html, attachments );
+    }
+    else if ( type == "message" ) {
+        // an attached message is an attachment, not body text, however
+        // much text it contains
+        attachments->append( b );
+    }
+    else if ( type == "text" ) {
+        text->append( b );
+        html->append( b );
+    }
+    else {
+        attachments->append( b );
+    }
+}
+
+
+/*! Returns the text of \a html with the markup taken out, for use as a
+    preview.
+
+    This is not a renderer and does not try to be one: it drops tags,
+    throws away what style and script elements contain, resolves the
+    handful of entities that occur in practice, and leaves the rest.
+    For a fragment of a few hundred characters that is enough, and a
+    client that wants the real thing asks for the part itself.
+*/
+
+static UString textFromHtml( const UString & html )
+{
+    UString r;
+    uint i = 0;
+    while ( i < html.length() ) {
+        if ( html[i] == '<' ) {
+            // skip the tag, and the contents of style and script
+            uint start = i;
+            while ( i < html.length() && html[i] != '>' )
+                i++;
+            EString tag = html.mid( start + 1, i - start - 1 ).utf8().lower();
+            if ( i < html.length() )
+                i++;
+            if ( tag.startsWith( "style" ) || tag.startsWith( "script" ) ) {
+                EString end( tag.startsWith( "style" )
+                             ? "</style" : "</script" );
+                bool done = false;
+                while ( !done && i < html.length() ) {
+                    if ( html[i] == '<' &&
+                         html.mid( i, end.length() ).utf8().lower() ==
+                         end ) {
+                        while ( i < html.length() && html[i] != '>' )
+                            i++;
+                        done = true;
+                    }
+                    if ( i < html.length() )
+                        i++;
+                }
+            }
+            else if ( !r.isEmpty() && r[r.length()-1] != ' ' ) {
+                // A tag that breaks the line or the block separates
+                // words; one that marks a word up does not, so <b>x</b>!
+                // is "x!" and not "x !".
+                EString name( tag );
+                if ( name.startsWith( "/" ) )
+                    name = name.mid( 1 );
+                int space = name.find( ' ' );
+                if ( space > 0 )
+                    name.truncate( space );
+                if ( name == "p" || name == "br" || name == "div" ||
+                     name == "tr" || name == "td" || name == "th" ||
+                     name == "li" || name == "ul" || name == "ol" ||
+                     name == "table" || name == "blockquote" ||
+                     name == "hr" || name == "pre" ||
+                     ( name.length() == 2 && name[0] == 'h' &&
+                       name[1] >= '1' && name[1] <= '6' ) )
+                    r.append( ' ' );
+            }
+        }
+        else if ( html[i] == '&' ) {
+            uint start = ++i;
+            while ( i < html.length() && html[i] != ';' && html[i] != '&' &&
+                    html[i] != '<' && i < start + 12 )
+                i++;
+            EString e = html.mid( start, i - start ).utf8().lower();
+            if ( i < html.length() && html[i] == ';' )
+                i++;
+            if ( e == "amp" )
+                r.append( '&' );
+            else if ( e == "lt" )
+                r.append( '<' );
+            else if ( e == "gt" )
+                r.append( '>' );
+            else if ( e == "quot" )
+                r.append( '"' );
+            else if ( e == "apos" )
+                r.append( '\'' );
+            else if ( e == "nbsp" )
+                r.append( ' ' );
+            else if ( e.startsWith( "#x" ) )
+                r.append( e.mid( 2 ).number( 0, 16 ) );
+            else if ( e.startsWith( "#" ) )
+                r.append( e.mid( 1 ).number( 0 ) );
+            // and anything else is dropped, since guessing is worse
+        }
+        else {
+            r.append( html[i] );
+            i++;
+        }
+    }
+    return r.simplified();
 }
 
 
@@ -229,90 +446,124 @@ Json * EmailGet::email( Message * m )
             r->insert( property, addresses( m, t ) );
         }
         else if ( property == "hasAttachment" ) {
-            bool attachment = false;
-            List<Bodypart>::Iterator i( m->allBodyparts() );
-            while ( i && !attachment ) {
-                ContentType * ct = i->contentType();
-                if ( ct && ct->type() != "text" && ct->type() != "multipart" )
-                    attachment = true;
-                ++i;
-            }
-            r->insert( "hasAttachment", Json::boolean( attachment ) );
+            List<Bodypart> text;
+            List<Bodypart> html;
+            List<Bodypart> attachments;
+            classifyChildren( m, m->header()->contentType(),
+                              &text, &html, &attachments );
+            r->insert( "hasAttachment",
+                       Json::boolean( !attachments.isEmpty() ) );
         }
         else if ( property == "preview" || property == "textBody" ||
-                  property == "bodyValues" ) {
-            // The text parts, in order. A single-part message has one,
-            // numbered 1 by Message::partNumber().
+                  property == "htmlBody" || property == "bodyValues" ) {
             List<Bodypart> text;
-            List<Bodypart>::Iterator i( m->allBodyparts() );
-            while ( i ) {
-                ContentType * ct = i->contentType();
-                if ( !ct ||
-                     ( ct->type() == "text" && ct->subtype() == "plain" ) )
-                    text.append( i );
-                ++i;
-            }
+            List<Bodypart> html;
+            List<Bodypart> attachments;
+            classifyChildren( m, m->header()->contentType(),
+                              &text, &html, &attachments );
 
-            if ( property == "textBody" ) {
-                Json * l = Json::list();
-                List<Bodypart>::Iterator b( text );
+            if ( property == "textBody" || property == "htmlBody" ) {
+                List<Bodypart> * l = ( property == "textBody" )
+                                     ? &text : &html;
+                Json * parts = Json::list();
+                List<Bodypart>::Iterator b( l );
                 while ( b ) {
                     Json * part = Json::object();
                     part->insert( "partId",
                                   Json::string( m->partNumber( b ) ) );
-                    part->insert( "type",
-                                  Json::string( EString( "text/plain" ) ) );
+                    // null, honestly: there is nothing to download it
+                    // from until this server serves blobs
+                    part->insert( "blobId", new Json( Json::Null ) );
                     part->insert( "size", Json::number( b->numBytes() ) );
-                    l->append( part );
+                    ContentType * ct = b->contentType();
+                    EString type( "text/plain" );
+                    if ( ct )
+                        type = ct->type() + "/" + ct->subtype();
+                    part->insert( "type", Json::string( type ) );
+                    part->insert( "charset",
+                                  Json::string( EString( "utf-8" ) ) );
+                    parts->append( part );
                     ++b;
                 }
-                r->insert( "textBody", l );
+                r->insert( property, parts );
             }
             else if ( property == "bodyValues" ) {
-                Json * v = Json::object();
-                if ( d->wantText ) {
-                    List<Bodypart>::Iterator b( text );
-                    while ( b ) {
-                        UString t = b->text();
-                        bool truncated = false;
-                        if ( d->bodyBytes ) {
-                            // maxBodyValueBytes counts octets of UTF-8,
-                            // and RFC8621 4.1.4 forbids splitting a
-                            // character, so this counts as it goes.
-                            Utf8Codec u;
-                            uint bytes = 0;
-                            uint i = 0;
-                            while ( i < t.length() && !truncated ) {
-                                UString one;
-                                one.append( t[i] );
-                                bytes += u.fromUnicode( one ).length();
-                                if ( bytes > d->bodyBytes )
-                                    truncated = true;
-                                else
-                                    i++;
-                            }
-                            if ( truncated )
-                                t.truncate( i );
-                        }
-                        Json * value = Json::object();
-                        value->insert( "value", Json::string( t ) );
-                        value->insert( "isEncodingProblem",
-                                       Json::boolean( false ) );
-                        value->insert( "isTruncated",
-                                       Json::boolean( truncated ) );
-                        v->insert( m->partNumber( b ), value );
-                        ++b;
+                // Which parts the client gets depends on what it asked
+                // for: the text body, the HTML body, or everything.
+                List<Bodypart> wanted;
+                List<Bodypart>::Iterator b( text );
+                while ( b ) {
+                    if ( d->wantText )
+                        wanted.append( b );
+                    ++b;
+                }
+                List<Bodypart>::Iterator h( html );
+                while ( h ) {
+                    if ( ( d->wantHtml || d->wantAll ) &&
+                         !wanted.find( (Bodypart*)h ) )
+                        wanted.append( h );
+                    ++h;
+                }
+                if ( d->wantAll ) {
+                    List<Bodypart>::Iterator a( attachments );
+                    while ( a ) {
+                        ContentType * ct = a->contentType();
+                        if ( ct && ct->type() == "text" &&
+                             !wanted.find( (Bodypart*)a ) )
+                            wanted.append( a );
+                        ++a;
                     }
+                }
+
+                Json * v = Json::object();
+                List<Bodypart>::Iterator w( wanted );
+                while ( w ) {
+                    UString t = w->text();
+                    bool truncated = false;
+                    if ( d->bodyBytes ) {
+                        // maxBodyValueBytes counts octets of UTF-8,
+                        // and RFC8621 4.1.4 forbids splitting a
+                        // character, so this counts as it goes.
+                        Utf8Codec u;
+                        uint bytes = 0;
+                        uint i = 0;
+                        while ( i < t.length() && !truncated ) {
+                            UString one;
+                            one.append( t[i] );
+                            bytes += u.fromUnicode( one ).length();
+                            if ( bytes > d->bodyBytes )
+                                truncated = true;
+                            else
+                                i++;
+                        }
+                        if ( truncated )
+                            t.truncate( i );
+                    }
+                    Json * value = Json::object();
+                    value->insert( "value", Json::string( t ) );
+                    value->insert( "isEncodingProblem",
+                                   Json::boolean( false ) );
+                    value->insert( "isTruncated",
+                                   Json::boolean( truncated ) );
+                    v->insert( m->partNumber( w ), value );
+                    ++w;
                 }
                 r->insert( "bodyValues", v );
             }
             else {
-                // The preview is the start of the first text part, with
-                // whitespace collapsed, as RFC8621 4.1.4 suggests.
+                // The preview is plain text, so an HTML part has to
+                // have its markup taken out, as RFC8621 4.1.4 wants a
+                // fragment a human can read.
                 UString t;
                 List<Bodypart>::Iterator b( text );
-                if ( b )
-                    t = b->text().simplified();
+                if ( b ) {
+                    ContentType * ct = b->contentType();
+                    if ( ct && ct->type() == "text" &&
+                         ct->subtype() == "html" )
+                        t = textFromHtml( b->text() );
+                    else
+                        t = b->text().simplified();
+                }
                 if ( t.length() > 256 )
                     t.truncate( 256 );
                 r->insert( "preview", Json::string( t ) );
@@ -362,7 +613,15 @@ void EmailGet::execute()
                     fail( "invalidArguments" );
                     return;
                 }
-                d->properties.append( p->ascii() );
+                EString name = p->ascii();
+                uint k = 0;
+                while ( knownProperties[k] && name != knownProperties[k] )
+                    k++;
+                if ( !knownProperties[k] ) {
+                    fail( "invalidArguments" );
+                    return;
+                }
+                d->properties.append( name );
                 ++p;
             }
             // id is always returned, as RFC8620 5.1 says
@@ -376,16 +635,29 @@ void EmailGet::execute()
                 n++;
             }
         }
-        d->wantText = d->properties.contains( "bodyValues" );
+        // RFC8621 4.2.2: the three fetch arguments say which parts the
+        // client wants the text of, and default to false. Asking for
+        // bodyValues without any of them is asking for an empty map,
+        // which is what a client that only wants the structure does.
         Json * f = arguments()->member( "fetchTextBodyValues" );
-        if ( f && f->valid( Json::Boolean ) && !f->boolean() )
-            d->wantText = false;
+        if ( f && f->valid( Json::Boolean ) )
+            d->wantText = f->boolean();
+        f = arguments()->member( "fetchHTMLBodyValues" );
+        if ( f && f->valid( Json::Boolean ) )
+            d->wantHtml = f->boolean();
+        f = arguments()->member( "fetchAllBodyValues" );
+        if ( f && f->valid( Json::Boolean ) )
+            d->wantAll = f->boolean();
+        if ( d->wantAll )
+            d->wantText = true;
         Json * mb = arguments()->member( "maxBodyValueBytes" );
         if ( mb && mb->valid( Json::Number ) && mb->number() > 0 )
             d->bodyBytes = (uint)mb->number();
-        d->wantBody = d->wantText ||
+        d->wantBody = d->wantText || d->wantHtml || d->wantAll ||
                       d->properties.contains( "preview" ) ||
                       d->properties.contains( "textBody" ) ||
+                      d->properties.contains( "htmlBody" ) ||
+                      d->properties.contains( "bodyValues" ) ||
                       d->properties.contains( "hasAttachment" );
 
         if ( d->ids.isEmpty() ) {

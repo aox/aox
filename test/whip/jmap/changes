@@ -1,0 +1,92 @@
+# RFC8621 4.3 Email/changes. The state strings hold a modseq, so
+# this is the same question CONDSTORE answers, asked over HTTP.
+# A message that arrived after the client's state is created, one
+# that was already there is updated: that is what the arrival
+# modseq, which messages.imodseq now records.
+depends imap/20
+protocol http api
+# nothing has happened since the append
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 143
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/changes",{"accountId":"1","sinceState":"m2"},"c"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 177
+Content-Type: application/json
+
+{"methodResponses":[["Email/changes",{"accountId":"1","oldState":"m2","newState":"m2","hasMoreChanges":false,"created":[],"updated":[],"destroyed":[]},"c"]],"sessionState":"1"}
+# a state this server never issued
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 146
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/changes",{"accountId":"1","sinceState":"hello"},"c"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 89
+Content-Type: application/json
+
+{"methodResponses":[["error",{"type":"cannotCalculateChanges"},"c"]],"sessionState":"1"}
+# change a flag over IMAP, on the connection the chain left
+use main
+send 1
+x select inbox
+receive 8
+* 20 EXISTS
+* 20 RECENT
+* OK [UIDNEXT 21] next uid
+* FLAGS (\Answered \Deleted \Draft \Flagged \Seen)
+* OK [PERMANENTFLAGS (\Answered \Deleted \Draft \Flagged \Seen \*)] permanent flags
+* OK [UIDVALIDITY 1] uid validity
+* OK [MAILBOXID (f...)] stable mailbox ID
+x OK [READ-WRITE] done
+send 1
+y store 5 +flags \flagged
+receive 2
+* 5 FETCH (UID 5 FLAGS (\Flagged \Recent))
+y OK done
+use api
+# and JMAP sees it, at the modseq the store consumed
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 143
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/changes",{"accountId":"1","sinceState":"m2"},"c"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 181
+Content-Type: application/json
+
+{"methodResponses":[["Email/changes",{"accountId":"1","oldState":"m2","newState":"m3","hasMoreChanges":false,"created":[],"updated":["m5"],"destroyed":[]},"c"]],"sessionState":"1"}
+# one group of changes shares a modseq and is not split, so this returns more than the five asked for and says there is more
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 158
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/changes",{"accountId":"1","sinceState":"m1","maxChanges":5},"c"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 281
+Content-Type: application/json
+
+{"methodResponses":[["Email/changes",{"accountId":"1","oldState":"m1","newState":"m2","hasMoreChanges":true,"created":["m1","m2","m3","m4","m6","m7","m8","m9","m10","m11","m12","m13","m14","m15","m16","m17","m18","m19","m20"],"updated":[],"destroyed":[]},"c"]],"sessionState":"1"}
+use main
+end

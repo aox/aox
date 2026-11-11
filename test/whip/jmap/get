@@ -1,0 +1,40 @@
+# RFC8621 4.2 Email/get, reading parts of the imap/20 corpus.
+# The mailbox id climbs with every obliteration, so that one is
+# wildcarded, and the response length with it.
+depends imap/20
+protocol http api
+# metadata for one message, and an id that does not exist
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 232
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/get",{"accountId":"1","ids":["m3","m99"],"properties":["id","threadId","subject","from","receivedAt","size","keywords","mailboxIds"]},"g"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: ...
+Content-Type: application/json
+
+{"methodResponses":[["Email/get",{"accountId":"1","state":"m2","list":[{"id":"m3","threadId":"t5","subject":"capitals in fieldnames","from":[{"name":"Markus Mohr","email":"markus@johalla.de"}],"receivedAt":"2001-04-01T04:20:03Z","size":1427,"keywords":{},"mailboxIds":{"f...":true}}],"notFound":["m99"]},"g"]],"sessionState":"1"}
+# the text of a message, cut short at sixty octets of UTF-8
+send 7
+POST /jmap/ HTTP/1.1
+Host: imapscript.test.oryx.com
+Authorization: Basic c2NyaXB0OnNjcmlwdA==
+Content-Type: application/json
+Content-Length: 276
+
+{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],"methodCalls":[["Email/get",{"accountId":"1","ids":["m14"],"properties":["id","subject","sentAt","messageId","textBody","bodyValues","hasAttachment"],"fetchTextBodyValues":true,"maxBodyValueBytes":60},"g"]]}
+receive 6
+HTTP/1.1 200 OK
+Server: Archiveopteryx/...
+Content-Length: 491
+Content-Type: application/json
+
+{"methodResponses":[["Email/get",{"accountId":"1","state":"m2","list":[{"id":"m14","subject":"Using Indices","sentAt":"2001-04-01T15:37:07Z","messageId":["p05010400b6ecfaec0a5d@[192.168.0.44]"],"textBody":[{"partId":"1","blobId":null,"size":567,"type":"text/plain","charset":"utf-8"}],"bodyValues":{"1":{"value":"Hi,\r\n\r\nwhen I use phpPgAdmin to create DBs, my Indices are g","isEncodingProblem":false,"isTruncated":true}},"hasAttachment":false}],"notFound":[]},"g"]],"sessionState":"1"}
+# the next script to depend on imap/20 inherits what is active
+use main
+end
