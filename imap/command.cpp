@@ -33,6 +33,7 @@
 #include "handlers/login.h"
 #include "handlers/logout.h"
 #include "handlers/lsub.h"
+#include "handlers/metadata.h"
 #include "handlers/move.h"
 #include "handlers/namespace.h"
 #include "handlers/notify.h"
@@ -258,6 +259,10 @@ Command * Command::create( IMAP * imap,
             c = new Unsubscribe;
         else if ( n == "append" )
             c = new Append;
+        else if ( n == "getmetadata" )
+            c = new Metadata( Metadata::Get );
+        else if ( n == "setmetadata" )
+            c = new Metadata( Metadata::Set );
         else if ( n == "setacl" )
             c = new Acl( Acl::SetAcl );
         else if ( n == "deleteacl" )

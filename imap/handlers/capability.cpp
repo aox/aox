@@ -108,6 +108,7 @@ EString Capability::capabilities( IMAP * i, bool all )
          !SaslMechanism::allowed( SaslMechanism::Plain, i->hasTls() ) )
         c.append( "LOGINDISABLED" );
     if ( all || login ) {
+        c.append( "METADATA" );
         c.append( "MOVE" );
         c.append( "MULTIAPPEND" );
         c.append( "NAMESPACE" );

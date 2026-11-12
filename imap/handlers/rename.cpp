@@ -192,6 +192,16 @@ void Rename::execute()
             q->bind( 1, d->from->name() );
             q->bind( 2, imap()->user()->id() );
             transaction()->enqueue( q );
+            // RFC5464 4.1 wants the annotations preserved on the
+            // INBOX as well as carried to the renamed mailbox.
+            q = new Query( "insert into metadata "
+                           "(mailbox, owner, name, value) "
+                           "select (select id from mailboxes where name=$1),"
+                           "owner, name, value from metadata "
+                           "where mailbox=$2", 0 );
+            q->bind( 1, d->from->name() );
+            q->bind( 2, d->from->id() );
+            transaction()->enqueue( q );
         }
     }
 

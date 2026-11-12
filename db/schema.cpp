@@ -612,6 +612,8 @@ bool Schema::singleStep()
         c = stepTo102(); break;
     case 102:
         c = stepTo103(); break;
+    case 103:
+        c = stepTo104(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -4579,5 +4581,24 @@ bool Schema::stepTo103()
     // any state a client can hold.
     d->t->enqueue( "alter table mailboxes add imodseq bigint "
                    "not null default 1" );
+    return true;
+}
+
+
+/*! Creates the metadata table, for RFC5464. */
+
+bool Schema::stepTo104()
+{
+    describeStep( "Adding storage for RFC5464 annotations." );
+    d->t->enqueue( "create table metadata ("
+                   "id serial primary key,"
+                   "mailbox integer references mailboxes(id) "
+                   "on delete cascade,"
+                   "owner integer references users(id) on delete cascade,"
+                   "name text not null,"
+                   "value bytea)" );
+    d->t->enqueue( "create unique index md_mon on "
+                   "metadata (coalesce(mailbox,0), coalesce(owner,0), "
+                   "name)" );
     return true;
 }

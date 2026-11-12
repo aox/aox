@@ -1,0 +1,89 @@
+# RFC5464: server and mailbox annotations, private and shared. The
+# server entry matches alps and Delta Chat, Kolab uses the shared
+# mailbox entry for folder types.
+depends login
+send 1
+a setmetadata "" (/private/vendor/alps/base.settings "dark")
+receive 1
+a OK done
+send 1
+b getmetadata "" /private/vendor/alps/base.settings
+receive 2
+* METADATA "" (/private/vendor/alps/base.settings "dark")
+b OK done
+# RFC5464 3.3 permits a server to refuse shared server entries, and
+# this one does: a value every user sees is not a user's to set
+send 1
+c setmetadata "" (/shared/comment "hello")
+receive 1
+c NO Shared server annotations are read-only
+# a private and a shared entry on one mailbox, in one command
+send 1
+d setmetadata INBOX (/private/comment "mitt notat" /shared/vendor/kolab/folder-type "event.default")
+receive 1
+d OK done
+# the entry that does not exist is simply not reported
+send 1
+e getmetadata INBOX (/private/comment /shared/comment /shared/vendor/kolab/folder-type)
+receive 2
+* METADATA INBOX (/private/comment "mitt notat" /shared/vendor/kolab/folder-type "event.default")
+e OK done
+# NIL removes an entry, and a GETMETADATA that matches nothing sends
+# no METADATA response at all
+send 1
+f setmetadata INBOX (/private/comment NIL)
+receive 1
+f OK done
+send 1
+g getmetadata INBOX /private/comment
+receive 1
+g OK done
+# a value that is neither ASCII nor one line arrives and leaves as a literal
+send 2
+h setmetadata INBOX (/private/comment {7+}
+grå ja)
+receive 1
+h OK done
+send 1
+i getmetadata INBOX /private/comment
+receive 3
+* METADATA INBOX (/private/comment {7}
+grå ja)
+i OK done
+# DEPTH 0, which is the default, matches the entry itself and nothing below
+send 1
+j setmetadata INBOX (/private/filters/values/small "SMALLER 5000" /private/filters/values/boss "FROM boss@example.com")
+receive 1
+j OK done
+send 1
+k getmetadata INBOX /private/filters/values
+receive 1
+k OK done
+send 1
+l getmetadata (depth 1) INBOX /private/filters/values
+receive 2
+* METADATA INBOX (/private/filters/values/boss "FROM boss@example.com" /private/filters/values/small "SMALLER 5000")
+l OK done
+send 1
+m getmetadata (depth infinity) INBOX /private/filters
+receive 2
+* METADATA INBOX (/private/filters/values/boss "FROM boss@example.com" /private/filters/values/small "SMALLER 5000")
+m OK done
+# a bare /shared or /private is not an entry name, but it names a
+# subtree well enough when DEPTH asks for one
+send 1
+m2 getmetadata (depth infinity) INBOX /shared
+receive 2
+* METADATA INBOX (/shared/vendor/kolab/folder-type "event.default")
+m2 OK done
+# MAXSIZE drops the big values and reports the biggest it dropped
+send 1
+n getmetadata (maxsize 5) INBOX /private/filters/values/small
+receive 1
+n OK [METADATA LONGENTRIES 12] done
+# an entry name without a /private or /shared prefix is invalid
+send 1
+o getmetadata INBOX /nonsense
+receive 1
+o BAD Invalid entry name: /nonsense
+end

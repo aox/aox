@@ -697,6 +697,12 @@ Query * Mailbox::remove( Transaction * t )
     q->bind( 1, id() );
     t->enqueue( q );
 
+    // RFC5464 4.1 says to lose annotations and undelete doesn't bring
+    // them back.
+    q = new Query( "delete from metadata where mailbox=$1", 0 );
+    q->bind( 1, id() );
+    t->enqueue( q );
+
     t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
 
     return q;

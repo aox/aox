@@ -220,3 +220,10 @@ begin
     alter table mailboxes drop imodseq;
     return 0;
 end;$$ language 'plpgsql';
+
+create or replace function downgrade_to_103()
+returns int as $$
+begin
+    drop table metadata;
+    return 0;
+end;$$ language 'plpgsql';

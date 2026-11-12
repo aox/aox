@@ -391,6 +391,22 @@ create table annotations (
 );
 
 
+-- One entry per RFC5464 annotation. A null mailbox means that the
+-- entry belongs to the server rather than to a mailbox, and a null
+-- owner that it is shared rather than private.
+
+create table metadata (
+    -- Grant: select, insert, delete, update
+    id          serial primary key,
+    mailbox     integer references mailboxes(id) on delete cascade,
+    owner       integer references users(id) on delete cascade,
+    name        text not null,
+    value       bytea
+);
+create unique index md_mon on
+    metadata (coalesce(mailbox,0), coalesce(owner,0), name);
+
+
 -- One entry per SIEVE script owned by a user.
 
 create table scripts (
