@@ -32,6 +32,7 @@ public:
           t( 0 ),
           result( 0 ), unparsed( 0 ), upgrade( false ), commit( true ),
           updatedb( false ), downgradesInstalled( false ),
+          upgraded( false ),
           quid( 0 ), undel( 0 ), row( 0 ), lastMailbox( 0 ), count( 0 ),
           uidnext( 0 ), nextmodseq( 0 ), granter( 0 )
     {
@@ -51,6 +52,7 @@ public:
     bool commit;
     bool updatedb;
     bool downgradesInstalled;
+    bool upgraded;
     EString version;
     EString dbuser;
     EString schema;
@@ -196,6 +198,7 @@ void Schema::execute()
                        fn( Database::currentRevision() ) + ".",
                        Log::Significant );
             installDowngradeFunctions();
+            d->upgraded = true;
             d->state = 2;
         }
         else if ( d->upgrade && d->revision < Database::currentRevision() ) {
@@ -204,6 +207,7 @@ void Schema::execute()
                        fn( Database::currentRevision() ) + ".",
                        Log::Significant );
             installDowngradeFunctions();
+            d->upgraded = true;
             d->state = 2;
         }
         else {
@@ -342,7 +346,7 @@ void Schema::execute()
             fail( s, d->t->failedQuery() );
         }
         else if ( d->upgrade ) {
-            if (d->revision != Database::currentRevision() ) {
+            if ( d->upgraded ) {
                 EString s( "Schema upgraded to revision " );
                 s.appendNumber( Database::currentRevision() );
                 if ( !d->commit )
@@ -350,8 +354,8 @@ void Schema::execute()
                 s.append( "." );
 
                 d->l->log( s, Log::Significant );
-                d->result->setState( Query::Completed );
             }
+            d->result->setState( Query::Completed );
             if ( d->commit && d->updatedb )
                 d->l->log( "Please run aox update database.",
                            Log::Significant );
