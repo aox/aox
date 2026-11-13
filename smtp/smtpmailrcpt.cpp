@@ -123,7 +123,7 @@ void SmtpMailFrom::addParam( const EString & name, const EString & value )
     else if ( name == "body" ) {
         if ( value.lower() == "7bit" ||
              value.lower() == "8bitmime" ||
-             value.lower() == "binarymine" ) {
+             value.lower() == "binarymime" ) {
             // nothing needed
         }
         else {
