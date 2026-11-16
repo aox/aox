@@ -346,6 +346,22 @@ void Vacuum::execute()
             case 7:
                 if (!q->done())
                     return;
+                qstate = 8;
+                log( "vacuum: delete from connections", Log::Significant );
+                // Twice undelete-time, to cover both the time in the trash
+                // mailbox and that in the deleted_messages table.
+                do {
+                    q = new Query( "delete from connections where id in "
+                                   "(select id from connections "
+                                   " where ended_at<current_timestamp-'" +
+                                   fn( 2 * days ) + " days'::interval "
+                                   " limit " MSGBLOCKCOUNT ")", this );
+                    q->execute();
+                    // fall through
+            case 8:
+                    if (!q->done())
+                        return;
+                } while (q->rows());
         }
 
         t = new Transaction( this );
