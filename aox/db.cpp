@@ -10,11 +10,12 @@
 #include "selector.h"
 #include "recipient.h"
 #include "transaction.h"
+#include "estringlist.h"
 #include "configuration.h"
 
 #include <stdio.h>
 
-#define MSGBLOCKCOUNT	"1000"
+#define MSGBLOCKCOUNT   "1000"
 
 static const char * versions[] = {
     "", "", "0.91", "0.92", "0.92", "0.92 to 0.93", // 0-5
@@ -140,12 +141,74 @@ void UpgradeSchema::execute()
 }
 
 
+/*! Deletes the messages that have been in a junk or trash mailbox for
+    more than \a days days, as part of \a t.
+*/
+
+static void expireJunkAndTrash( Transaction * t, uint days )
+{
+    EStringList flags;
+    flags.append( "\\junk" );
+    flags.append( "\\trash" );
+
+    EString cutoff( "(select max(modseq) from modseqtimes "
+                    "where recorded_at<current_timestamp-'" +
+                    fn( days ) + " days'::interval)" );
+
+    // store the current moment, for a later run
+    t->enqueue( new Query( "insert into modseqtimes (modseq) "
+                           "values (nextval('nextmodseq'))", 0 ) );
+
+    Query * q = new Query( "select nextmodseq from mailboxes "
+                           "where lower(flag)=any($1) "
+                           "order by id for update", 0 );
+    q->bind( 1, flags );
+    t->enqueue( q );
+
+    // one modseq for the whole sweep, shared by every mailbox it
+    // touches
+    t->enqueue( new Query( "select nextval('nextmodseq')", 0 ) );
+
+    q = new Query( "insert into deleted_messages "
+                   "(mailbox, uid, message, modseq, deleted_by, reason) "
+                   "select mm.mailbox, mm.uid, mm.message,"
+                   " currval('nextmodseq'), null,"
+                   " 'Expired from ' || mb.flag "
+                   "from mailbox_messages mm "
+                   "join mailboxes mb on (mm.mailbox=mb.id) "
+                   "where lower(mb.flag)=any($1) "
+                   "and mm.modseq<=" + cutoff, 0 );
+    q->bind( 1, flags );
+    t->enqueue( q );
+
+    // record that modseq as used in each mailbox we did modify
+    q = new Query( "update mailboxes "
+                   "set nextmodseq=currval('nextmodseq')+1 "
+                   "where lower(flag)=any($1) "
+                   "and exists (select 1 from deleted_messages dm "
+                   "where dm.mailbox=mailboxes.id "
+                   "and dm.modseq=currval('nextmodseq'))", 0 );
+    q->bind( 1, flags );
+    t->enqueue( q );
+
+    // modseqtimes exists purely for this function, so clean up here.
+    q = new Query( "delete from modseqtimes "
+                   "where modseq<" + cutoff, 0 );
+    t->enqueue( q );
+
+    t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
+}
+
+
 static AoxFactory<Vacuum>
 f3( "vacuum", "", "Perform routine maintenance.",
     "    Synopsis: aox vacuum\n\n"
     "    Permanently deletes messages that were marked for deletion\n"
     "    more than a certain number of days ago (cf. undelete-time)\n"
     "    and removes any bodyparts that are no longer used.\n\n"
+    "    Also deletes the messages that have been in a junk or trash\n"
+    "    mailbox for more than undelete-time days. Those can still be\n"
+    "    undeleted for another undelete-time days.\n\n"
     "    This is not a replacement for running VACUUM ANALYSE on the\n"
     "    database (either with vaccumdb or via autovacuum).\n\n"
     "    This command should be run (we suggest daily) via crontab.\n" );
@@ -286,6 +349,10 @@ void Vacuum::execute()
         }
 
         t = new Transaction( this );
+
+        log( "vacuum: expire junk and trash", Log::Significant );
+        expireJunkAndTrash( t, days );
+
         Mailbox::setup( this );
         log( "vacuum: RetentionSelector", Log::Significant );
         r = new RetentionSelector( t, this );

@@ -618,6 +618,8 @@ bool Schema::singleStep()
         c = stepTo103(); break;
     case 103:
         c = stepTo104(); break;
+    case 104:
+        c = stepTo105(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -4604,5 +4606,20 @@ bool Schema::stepTo104()
     d->t->enqueue( "create unique index md_mon on "
                    "metadata (coalesce(mailbox,0), coalesce(owner,0), "
                    "name)" );
+    return true;
+}
+
+
+/*! Creates modseqtimes, which lets aox vacuum expunge trash/junk
+    after undelete-time days.
+*/
+
+bool Schema::stepTo105()
+{
+    describeStep( "Adding a record of modseq usage time." );
+    d->t->enqueue( "create table modseqtimes ("
+                   "modseq bigint not null primary key,"
+                   "recorded_at timestamp with time zone not null "
+                   "default current_timestamp)" );
     return true;
 }

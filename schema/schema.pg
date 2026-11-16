@@ -14,7 +14,7 @@ create table mailstore (
     -- Grant: select, update
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (103);
+insert into mailstore (revision) values (105);
 
 
 -- One entry for each unique address we've encountered.
@@ -76,6 +76,18 @@ create table group_members (
 -- we can limit the number of client updates.
 
 create sequence nextmodseq;
+
+
+-- One entry per time aox vacuum ran, recording which modseq was
+-- current then. Nothing else maps a modseq to a time, and vacuum
+-- needs that to tell how long a message has been in junk or trash.
+
+create table modseqtimes (
+    -- Grant: select, insert, delete
+    modseq      bigint not null primary key,
+    recorded_at timestamp with time zone not null
+                default current_timestamp
+);
 
 
 -- One entry per deliverable mailbox.

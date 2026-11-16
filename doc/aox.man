@@ -192,6 +192,13 @@ Permanently deletes messages that were marked for deletion more than
 .I undelete-time
 days ago, and removes any bodyparts that are no longer used.
 .IP
+It also deletes the messages that have been in a junk or trash
+mailbox for more than
+.I undelete-time
+days. Those can still be undeleted for another
+.I undelete-time
+days.
+.IP
 This is not a replacement for running VACUUM ANALYSE on the database
 (either with vacuumdb or via autovacuum).
 .IP

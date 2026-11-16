@@ -130,6 +130,7 @@ private:
     bool stepTo102();
     bool stepTo103();
     bool stepTo104();
+    bool stepTo105();
 
     void describeStep( const EString & );
 };

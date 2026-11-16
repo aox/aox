@@ -80,7 +80,7 @@ void Obliterator::execute()
         q = new Query( "truncate delivery_recipients, deliveries, "
                        "messages, mailbox_messages, deleted_messages, "
                        "scripts, fileinto_targets, annotations, metadata, "
-                       "subscriptions, flags, thread_roots, "
+                       "subscriptions, flags, thread_roots, modseqtimes, "
                        "date_fields, address_fields, header_fields, "
                        "part_numbers, bodyparts, unparsed_messages, "
                        "autoresponses, thread_indexes", 0 );

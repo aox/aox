@@ -227,3 +227,10 @@ begin
     drop table metadata;
     return 0;
 end;$$ language 'plpgsql';
+
+create or replace function downgrade_to_104()
+returns int as $$
+begin
+    drop table modseqtimes;
+    return 0;
+end;$$ language 'plpgsql';
