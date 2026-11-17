@@ -9,6 +9,7 @@
 #include "eventloop.h"
 #include "schema.h"
 #include "scope.h"
+#include "timer.h"
 #include "graph.h"
 #include "event.h"
 #include "query.h"
@@ -19,6 +20,10 @@
 
 // time_t, time
 #include <time.h>
+// rand, srand, RAND_MAX
+#include <cstdlib>
+// getpid
+#include <unistd.h>
 
 
 static uint backendNumber;
@@ -33,6 +38,56 @@ static Database::User loginAs;
 static EString * username;
 static EString * password;
 static List<EventHandler> * whenIdle;
+
+
+// Delay (in seconds) before re-creating the initial pool of database
+// handles after every handle has been lost.
+static const uint reconnectDelayMean = 5;  // seconds
+static const uint reconnectDelayJitter = 3;  // +/- seconds
+static Timer * pendingReconnect = 0;
+
+
+/*! EventHandler used to defer Database::addInitialHandles() by a few
+    seconds, breaking the synchronous error()->removeHandle()->
+    addInitialHandles()->error() recursion and connection storm if
+    database is unavailable
+*/
+
+class ReconnectDelayer
+    : public EventHandler
+{
+public:
+    ReconnectDelayer() {}
+    void execute() {
+        pendingReconnect = 0;
+        if ( Database::numHandles() > 0 )
+            return;  // another connection succeeded
+        ::log( "All database handles lost; reconnecting", Log::Info );
+        Database::addInitialHandles( 3 );
+    }
+};
+
+
+/*! Returns a per-reconnect delay of reconnectDelayMean seconds plus
+    uniform jitter in [-reconnectDelayJitter, +reconnectDelayJitter],
+    clamped to be at least 1.
+*/
+
+static uint nextReconnectDelay()
+{
+    static bool seeded = false;
+    if ( !seeded ) {
+        srand( (unsigned)time( 0 ) ^ (unsigned)getpid() );
+        seeded = true;
+    }
+    int jitter = (int)( (double)rand() / ((double)RAND_MAX + 1.0)
+                        * (2 * reconnectDelayJitter + 1) )
+                 - (int)reconnectDelayJitter;
+    int delay = (int)reconnectDelayMean + jitter;
+    if ( delay < 1 )
+        delay = 1;
+    return (uint)delay;
+}
 
 
 static void newHandle()
@@ -345,8 +400,14 @@ void Database::removeHandle( Database * d )
     if ( !handles->isEmpty() )
         return;
 
-    if ( !EventLoop::global()->inShutdown() )
-        addInitialHandles( 3 );
+    // All handles are gone. Re-create the initial pool, but only after
+    // a short jittered delay to avoid a storm on the db.
+    if ( !EventLoop::global()->inShutdown() ) {
+        if ( !pendingReconnect ) {
+            uint delay = nextReconnectDelay();
+            pendingReconnect = new Timer( new ReconnectDelayer, delay );
+        }
+    }
 
     if ( server().protocol() == Endpoint::Unix &&
          !server().address().startsWith( File::root() ) )
